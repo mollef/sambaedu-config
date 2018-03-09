@@ -398,44 +398,39 @@ chmod 644 $interfaces_file_lxc
 # Fonction personalisation .profile 
 function write_lxc_profile
 {
-profile_lxc="/var/lib/lxc/$se4name/rootfs/root/.profile"
-echo -e "$COLINFO"
-echo "Génération de $profile_lxc"
-echo -e "$COLTXT"
-echo '# ~/.profile: executed by Bourne-compatible login shells.
-if [ "$BASH" ]; then
-  if [ -f ~/.bashrc ]; then
-    . ~/.bashrc
-  fi
-fi
+lxc_profile="/var/lib/lxc/$se4name/rootfs/root/.profile"
 
-mesg n' > $profile_lxc
-echo "
-if [ -f /root/$script_phase2 ]; then
-    /root/$script_phase2  
+if [ -e "$dir_config/profile" ]; then
+    echo -e "$COLINFO"
+    echo "Copie de $dir_config/profile sur le container"
+    echo -e "$COLCMD"
+    cp -v $dir_config/profile $lxc_profile
+    echo -e "$COLTXT"
+else
+    echo -e "$COLINFO"
+    echo "Récupération du fichier bashrc"
+    echo -e "$COLCMD"
+    wget -nv $url_sambaedu_config/profile
+    mv -v profile $lxc_profile
+    echo -e "$COLTXT"
 fi
-
-if [ -f ~/.bashrc ]; then
-    . ~/.bashrc
-fi
-" >> $profile_lxc 
 }
 
 # Fonction personalisation .bashrc 
 function write_lxc_bashrc
 {
 lxc_bashrc="/var/lib/lxc/$se4name/rootfs/root/.bashrc"
-if [ -e "$dir_config/lxc/bashrc" ]; then
+if [ -e "$dir_config/bashrc" ]; then
 	echo -e "$COLINFO"
-	echo "Copie de $dir_config/lxc/bashrc"
+	echo "Copie de $dir_config/bashrc"
 	echo -e "$COLCMD"
-	cp -v $dir_config/lxc/bashrc $lxc_bashrc
+	cp -v $dir_config/bashrc $lxc_bashrc
 	echo -e "$COLTXT"
 else
 	echo -e "$COLINFO"
 	echo "Récupération du fichier bashrc"
 	echo -e "$COLCMD"
-	wget -nv $url_sambaedu_config/lxc/bashrc
+	wget -nv $url_sambaedu_config/bashrc
 	mv -v bashrc $lxc_bashrc
 	echo -e "$COLTXT"
 fi
