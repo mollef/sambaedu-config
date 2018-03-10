@@ -227,7 +227,6 @@ ifup $ecard
 # Fonction de preconfig du container
 function preconf_se4ad_lxc()
 {
-
 se4ad_lxc_lan_title="Configuration réseau du container LXC SE4"
 
 REPONSE=""
@@ -265,14 +264,16 @@ do
 	choice_domain_text="Sur un domaine AD, le serveur de domaine gère le DNS. Le choix du nom de domaine est donc important.
 Il est décomposé en deux parties : le nom de domaine samba suivi de son suffixe, séparés par un point.
 
-Exemple de domaine AD : clg-dupontel-belville.ac-dijon.fr 
-* le domaine samba sera clg-dupontel-belville 
-* le suffixe et sera ac-acad.fr 
+Exemple de domaine AD : clg-dupontel.belville.ac-dijon.fr 
+* le domaine samba sera clg-dupontel 
+* le suffixe sera belville.ac-acad.fr 
 
-Note : Les domaines du type sambaedu.lan ou etab.local sont déconseillés en production par l'équipe samba"
+Note : 
+* le domaine samba ne doit en aucun cas dépasser 15 caractères
+* Les domaines du type sambaedu.lan ou etab.local sont déconseillés en production par l'équipe samba"
 
 	ad_domain="$(hostname -d)"
-	$dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 18 80 $ad_domain 2>$tempfile
+	$dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 20 80 $ad_domain 2>$tempfile
 	ad_domain="$(cat $tempfile)"		
 	smb4_domain=$(echo "$ad_domain" | cut -d"." -f1)
 	suffix_domain=$(echo "$ad_domain" | sed -n "s/$smb4_domain\.//p")
@@ -347,7 +348,7 @@ else
 	echo -e "$COLINFO"
 	echo "Récupération du template lxc-debianse4"
 	echo -e "$COLTXT"
-	wget -nv $url_sambaedu_config/lxc/template/lxc-debianse4
+	wget -nv $url_sambaedu_config/etc/sambaedu/lxc/template/lxc-debianse4
 	mv lxc-debianse4 /usr/share/lxc/templates/lxc-debianse4
 fi
 chmod +x /usr/share/lxc/templates/lxc-debianse4
@@ -410,7 +411,7 @@ else
     echo -e "$COLINFO"
     echo "Récupération du fichier bashrc"
     echo -e "$COLCMD"
-    wget -nv $url_sambaedu_config/profile
+    wget -nv $url_sambaedu_config/etc/sambaedu/profile
     mv -v profile $lxc_profile
     echo -e "$COLTXT"
 fi
@@ -430,7 +431,7 @@ else
 	echo -e "$COLINFO"
 	echo "Récupération du fichier bashrc"
 	echo -e "$COLCMD"
-	wget -nv $url_sambaedu_config/bashrc
+	wget -nv $url_sambaedu_config/etc/sambaedu/bashrc
 	mv -v bashrc $lxc_bashrc
 	echo -e "$COLTXT"
 fi
@@ -550,7 +551,7 @@ else
 	echo -e "$COLINFO"
 	echo "Récupération de $script_phase2"
 	echo -e "$COLCMD"
-	wget -nv $url_sambaedu_config/lxc/$script_phase2
+	wget -nv $url_sambaedu_config/usr/share/se3/sbin/$script_phase2
 	mv $script_phase2 $dir_root_lxc/$script_phase2
 	echo -e "$COLTXT"
 fi
@@ -571,7 +572,6 @@ if [ -e "$ssh_keys_host" ];then
 fi
 
 }
-
 
 # Fonction génération des fichiers hosts @ LXC
 function write_lxc_hosts_conf()
@@ -599,6 +599,7 @@ se4ad
 END
 }
 
+# Lancement du container en arrière plan
 function launch_se4ad() {
 echo -e "$COLINFO"
 echo "Lancement de $se4name en arrière plan"
@@ -668,7 +669,8 @@ source /usr/share/se3/includes/functions.inc.sh
 dialog_box="$(which whiptail)"
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/inst$$
 tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
-url_sambaedu_config="https://raw.githubusercontent.com/SambaEdu/se4/master/sources/sambaedu-config"
+# url_sambaedu_config="https://raw.githubusercontent.com/SambaEdu/se4/master/sources/sambaedu-config"
+url_sambaedu_config="https://raw.githubusercontent.com/SambaEdu/sambaedu-config/master/sources"
 interfaces_file="/etc/network/interfaces" 
 dir_config="/etc/sambaedu"
 se4ad_config="$dir_config/se4ad.config"
