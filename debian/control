@@ -1,0 +1,15 @@
+Source: sambaedu-config
+Section: unknown
+Priority: extra
+Maintainer: Franck Molle <franck.molle@sambaedu.org>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.3
+Homepage: <insert the upstream URL, if relevant>
+#Vcs-Git: git://git.debian.org/collab-maint/sambaedu-config.git
+#Vcs-Browser: http://git.debian.org/?p=collab-maint/sambaedu-config.git;a=summary
+
+Package: sambaedu-config
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: <insert up to 60 chars description>
+ <insert long description, indented with spaces>
