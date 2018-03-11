@@ -310,11 +310,11 @@ function write_lxc_conf {
 show_part "Installation du container $se4name"
 
 
-if [ -e "usr/share/se3/sbin/lxc_mac_generator" ]; then
+if [ -e "usr/share/se3/sbin/lxc-mac-generator" ]; then
 	echo -e "$COLINFO"
 	echo "Génération de l'adresse MAC de la machine LXC"
 	echo -e "$COLTXT"
-	se4mac="$(usr/share/se3/sbin/lxc_mac_generator)"
+	se4mac="$(usr/share/se3/sbin/lxc-mac-generator)"
 else
 	se4mac="00:FF:AA:00:00:01"
 	echo -e "$COLINFO"

@@ -5,6 +5,7 @@ all:
 
 install:
 	mkdir -p $(DESTDIR)/etc/sambaedu
-	cp -R usr/* $(DESTDIR)/usr/
-	cp -R /etc/sambaedu/* $(DESTDIR)/etc/sambaedu/
+	mkdir -p $(DESTDIR)/usr/share/se3/sbin/
+	cp usr/share/se3/sbin/* $(DESTDIR)/usr/share/se3/sbin/
+	cp -R etc/sambaedu/* $(DESTDIR)/etc/sambaedu/
 clean:
