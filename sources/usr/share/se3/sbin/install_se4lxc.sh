@@ -396,22 +396,23 @@ chmod 644 $interfaces_file_lxc
 
 }
 
+ 
 # Fonction personalisation .profile 
 function write_lxc_profile
 {
 lxc_profile="/var/lib/lxc/$se4name/rootfs/root/.profile"
 
-if [ -e "$dir_config/profile" ]; then
+if [ -e "$dir_preseed/profile" ]; then
     echo -e "$COLINFO"
-    echo "Copie de $dir_config/profile sur le container"
+    echo "Copie du .profile sur le container"
     echo -e "$COLCMD"
-    cp -v $dir_config/profile $lxc_profile
+    cp -v $dir_preseed/profile $lxc_profile
     echo -e "$COLTXT"
 else
     echo -e "$COLINFO"
     echo "Récupération du fichier bashrc"
     echo -e "$COLCMD"
-    wget -nv $url_sambaedu_config/etc/sambaedu/profile
+    wget -nv $url_sambaedu_config/var/www/install/profile
     mv -v profile $lxc_profile
     echo -e "$COLTXT"
 fi
@@ -421,11 +422,11 @@ fi
 function write_lxc_bashrc
 {
 lxc_bashrc="/var/lib/lxc/$se4name/rootfs/root/.bashrc"
-if [ -e "$dir_config/bashrc" ]; then
+if [ -e "$dir_preseed/bashrc" ]; then
 	echo -e "$COLINFO"
-	echo "Copie de $dir_config/bashrc"
+	echo "Copie de .bashrc"
 	echo -e "$COLCMD"
-	cp -v $dir_config/bashrc $lxc_bashrc
+	cp -v $dir_preseed/bashrc $lxc_bashrc
 	echo -e "$COLTXT"
 else
 	echo -e "$COLINFO"
@@ -482,26 +483,24 @@ echo -e "$COLINFO"
 echo "Arrêt du service Samba pour export des fichiers TDB"
 echo -e "$COLTXT"
 service samba stop
-smb_dbdir_export="/etc/sambaedu"
-mkdir -p "$smb_dbdir_export"
 echo -e "$COLINFO"
-echo "Copie des fichiers TDB vers $smb_dbdir_export"
+echo "Copie des fichiers TDB vers $dir_export"
 echo -e "$COLCMD"
 tdb_smb_dir="/var/lib/samba"
 pv_tdb_smb_dir="/var/lib/samba/private"
-cp $pv_tdb_smb_dir/secrets.tdb $smb_dbdir_export/
-cp $pv_tdb_smb_dir/schannel_store.tdb $smb_dbdir_export/
-cp $pv_tdb_smb_dir/passdb.tdb $smb_dbdir_export/
+cp $pv_tdb_smb_dir/secrets.tdb $dir_export/
+cp $pv_tdb_smb_dir/schannel_store.tdb $dir_export/
+cp $pv_tdb_smb_dir/passdb.tdb $dir_export/
 
 if [ -e "$tdb_smb_dir/gencache_notrans.tdb" ] ;then
-	cp $tdb_smb_dir/gencache_notrans.tdb $smb_dbdir_export/
+	cp $tdb_smb_dir/gencache_notrans.tdb $dir_export/
 fi
-cp $tdb_smb_dir/group_mapping.tdb $smb_dbdir_export/
-cp $tdb_smb_dir/account_policy.tdb $smb_dbdir_export/
-cp $tdb_smb_dir/wins.tdb $smb_dbdir_export/
-cp $tdb_smb_dir/wins.dat $smb_dbdir_export/
+cp $tdb_smb_dir/group_mapping.tdb $dir_export/
+cp $tdb_smb_dir/account_policy.tdb $dir_export/
+cp $tdb_smb_dir/wins.tdb $dir_export/
+cp $tdb_smb_dir/wins.dat $dir_export/
 
-cp /etc/samba/smb.conf $dir_config/
+cp /etc/samba/smb.conf $dir_export/
 }
 
 # Fonction export des fichiers ldap conf, schémas propres à se3 et ldif
@@ -509,14 +508,14 @@ function export_ldap_files()
 {
 conf_slapd="/etc/ldap/slapd.conf"
 echo -e "$COLINFO"
-echo "Export de la conf ldap et de ldapse3.ldif vers $dir_config"
+echo "Export de la conf ldap et de ldapse3.ldif vers $dir_export"
 echo -e "$COLTXT"
-cp $conf_slapd $dir_config/
-ldapsearch -xLLL -D "$adminRdn,$ldap_base_dn" -w $adminPw > $dir_config/ldapse3.ldif
+cp $conf_slapd $dir_export/
+ldapsearch -xLLL -D "$adminRdn,$ldap_base_dn" -w $adminPw > $dir_export/ldapse3.ldif
 schema_dir="/etc/ldap/schema"
-cp $schema_dir/ltsp.schema $schema_dir/samba.schema $schema_dir/printer.schema $dir_config/
-cp /var/lib/ldap/DB_CONFIG $dir_config/
-cp /etc/ldap/slapd.pem $dir_config/
+cp $schema_dir/ltsp.schema $schema_dir/samba.schema $schema_dir/printer.schema $dir_export/
+cp /var/lib/ldap/DB_CONFIG $dir_export/
+cp /etc/ldap/slapd.pem $dir_export/
 
 }
 
@@ -541,17 +540,17 @@ sleep 2
 function write_se4ad_install
 {
 dir_root_lxc="/var/lib/lxc/$se4name/rootfs/root"
-if [ -e "$dir_config/lxc/$script_phase2" ]; then
+if [ -e "$dir_preseed/$script_phase2" ]; then
 	echo -e "$COLINFO"
-	echo "Copie de $dir_config/lxc/$script_phase2"
+	echo "Copie de $script_phase2"
 	echo -e "$COLCMD"
-	cp $dir_config/lxc/$script_phase2 $dir_root_lxc/$script_phase2
+	cp $dir_preseed/$script_phase2 $dir_root_lxc/$script_phase2
 	echo -e "$COLTXT"
 else
 	echo -e "$COLINFO"
 	echo "Récupération de $script_phase2"
 	echo -e "$COLCMD"
-	wget -nv $url_sambaedu_config/usr/share/se3/sbin/$script_phase2
+	wget -nv $url_sambaedu_config/var/www/install/se4ad/$script_phase2
 	mv $script_phase2 $dir_root_lxc/$script_phase2
 	echo -e "$COLTXT"
 fi
@@ -672,12 +671,19 @@ tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
 # url_sambaedu_config="https://raw.githubusercontent.com/SambaEdu/se4/master/sources/sambaedu-config"
 url_sambaedu_config="https://raw.githubusercontent.com/SambaEdu/sambaedu-config/master/sources"
 interfaces_file="/etc/network/interfaces" 
+
+
 dir_config="/etc/sambaedu"
-se4ad_config="$dir_config/se4ad.config"
+dir_export="/etc/sambaedu/export_se4ad"
+dir_preseed="/var/www/install/se4ad"
+
+mkdir -p "$dir_export"
+
+se4ad_config="$dir_export/se4ad.config"
 script_phase2="install_se4ad_phase2.sh"
 lxc_arch="$(arch)"
 ecard="br0"
-nameserver=$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2)
+nameserver="$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2| head -n 1)"
 se4ad_config_tgz="se4ad.config.tgz"
 
 
