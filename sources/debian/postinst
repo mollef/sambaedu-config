@@ -23,6 +23,9 @@ case "$1" in
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
+    echo "Les scripts d'installation suivants sont désormais disponibles"
+    echo "- Installation du container LXC /usr/share/se3/sbin/install_se4lxc.sh"
+    echo "- Génération du preseed pour installation d'un serveur SE4-AD /usr/share/se3/sbin/install_se4preseed.sh"
     ;;
 
     *)
