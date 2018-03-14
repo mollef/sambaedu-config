@@ -472,6 +472,9 @@ echo "##Rdn admin LDAP##" >> $se4ad_config
 echo "adminRdn=\"$adminRdn\"" >> $se4ad_config
 echo "##SID domaine actuel" >> $se4ad_config
 echo "domainsid=\"$domainsid\"" >> $se4ad_config
+echo "##NTP server " >> $se4ad_config
+echo "ntpserv=\"$ntpserv\"" >> $se4ad_config
+
 
 chmod +x $se4ad_config
 }
@@ -660,6 +663,7 @@ COLERREUR="\033[1;31m"  # Rouge
 COLINFO="\033[0;36m"    # Cyan
 
 ## recuperation des variables necessaires pour interoger mysql ###
+source /etc/se3/config_c.cache.sh
 source /etc/se3/config_m.cache.sh
 source /etc/se3/config_l.cache.sh
 source /usr/share/se3/includes/functions.inc.sh 
