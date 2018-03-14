@@ -58,9 +58,9 @@ d-i netcfg/choose_interface select auto
 # Configuration du réseau mode manuel.
 #
 # exemple pour IPv4
-d-i netcfg/get_ipaddress string ###_IPSE4_###
-d-i netcfg/get_netmask string ###_NETMASK_###
-d-i netcfg/get_gateway string ###_GATEWAY_###
+d-i netcfg/get_ipaddress string ###_SE4AD_IP_###
+d-i netcfg/get_netmask string ###_SE4MASK_###
+d-i netcfg/get_gateway string ###_SE4GW_###
 d-i netcfg/get_nameservers string ###_NAMESERVER_###
 d-i netcfg/confirm_static boolean true
 
@@ -70,11 +70,11 @@ d-i netcfg/confirm_static boolean true
 
 # nom de l'ordinateur
 # question déjà posée lors de l'amorçage
-d-i netcfg/get_hostname string se4ad
+d-i netcfg/get_hostname string ###_SE4NAME_###
 
 # nom du domaine
 # question déjà posée lors de l'amorçage
-d-i netcfg/get_domain string ###_DOMAINE_###
+d-i netcfg/get_domain string ###_AD_DOMAIN_###
 
 # Si pour le réseau ou pour un autre matériel vous avez besoin d'un
 # microprogramme (« firmware ») non libre, vous pouvez forcer
@@ -180,8 +180,8 @@ d-i passwd/root-password-again password se4ad
 # d-i passwd/root-password-crypted password ###_PASS_ROOT_###
 
 # Création d'un compte utilisateur nommé enseignant
-d-i passwd/user-fullname string enseignant
-d-i passwd/username string enseignant
+# d-i passwd/user-fullname string enseignant
+# d-i passwd/username string enseignant
 
 # Mot de passe de cet utilisateur normal en clair… avec confirmation
 # d-i passwd/user-password password prof
@@ -189,7 +189,7 @@ d-i passwd/username string enseignant
 # … ou chiffré sans confirmation
 # pour le chiffrage, utiliser la commande suivante dans une console
 # printf "pass" | mkpasswd -s -m md5
-d-i passwd/user-password-crypted password ###_PASS_ENS_###
+# d-i passwd/user-password-crypted password ###_PASS_ENS_###
 #### fin section 6
 
 ### 7. Configuration d'Apt
@@ -248,13 +248,13 @@ d-i grub-installer/bootdev string /dev/sda
 #############
 # Le script nstall_se4ad_phase2.shsera lancé au 1er redémarrage de la machine une fois connecté root
 
-d-i preseed/late_command string wget http://###_IP_SE3_###/se4ad/install_se4ad_phase2.sh; \
-wget http://###_IP_SE3_###/se4ad/.profile; \
-wget http://###_IP_SE3_###/se4ad/se4ad.config.tgz; \
+d-i preseed/late_command string wget http://###_IP_SE3_###/diconf/install_se4ad_phase2.sh; \
+wget http://###_IP_SE3_###/diconf/.profile; \
+wget http://###_IP_SE3_###/diconf/se4ad.config.tgz; \
 mkdir -p /target/etc/sambaedu; \
 cp se4ad.config.tgz /target/etc/sambaedu; \
 chmod +x ./install_se4ad_phase2.sh; \
-cp .profile install_se4ad_phase2.sh /target/root/
+cp .bashrc .profile install_se4ad_phase2.sh /target/root/
 #### fin section 10
 
 ### 11. Fin de l'installation

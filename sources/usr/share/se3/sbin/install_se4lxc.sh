@@ -675,7 +675,7 @@ interfaces_file="/etc/network/interfaces"
 
 dir_config="/etc/sambaedu"
 dir_export="/etc/sambaedu/export_se4ad"
-dir_preseed="/var/www/install/se4ad"
+dir_preseed="/var/www/diconf"
 
 mkdir -p "$dir_export"
 

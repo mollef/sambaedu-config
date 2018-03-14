@@ -30,7 +30,7 @@ function show_title() {
 BACKTITLE="Projet Sambaédu - https://www.sambaedu.org/"
 
 WELCOME_TITLE="Génération du preseed pour SE4-AD"
-WELCOME_TEXT="Bienvenue dans l'installation du container LXC SE4 Active Directory.
+WELCOME_TEXT="Bienvenue dans la pré-installation SE4 Active Directory.
 
 Ce programme va générer un fichier de configuration automatique (preseed) utilisable pour l'installation d'un SE4-AD sous Debian Stretch.
 
@@ -348,7 +348,8 @@ echo -e "$COLCMD"
 
 
 
-sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4mask/g; s/###_SE4GW_###/$se4gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4name/g; s/###_AD_DOMAIN_###/$ad_domain/g" -i  $target_preseed 
+sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4mask/g; s/###_SE4GW_###/$se4gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4name/g" -i  $target_preseed
+sed -e "s/###_IP_SE3_###/$se3ip/g; " -i  $target_preseed 
 }
 
 
@@ -358,9 +359,11 @@ display_end_title="Génération du preseed terminée !!"
 	
 display_end_txt="Le preseed de $se4name a été généré
 
-Pour lancer l'installation sur serveur $se4name, vous devrez entrer l'url suivante au debian intalleur :
+Pour lancer l'installation sur serveur $se4name, vous devrez entrer l'url suivante au debian installeur :
 
-http://$se3ip/install/se4ad.preseed"
+http://$se3ip/se4ad/stretch.preseed
+
+Le mot de passe root temporaire sera fixé à \"se4ad\""
 
 $dialog_box --backtitle "$BACKTITLE" --title "$display_end_title" --msgbox "$display_end_txt" 20 70
 
@@ -368,7 +371,7 @@ $dialog_box --backtitle "$BACKTITLE" --title "$display_end_title" --msgbox "$dis
 echo -e "$COLTITRE"
 echo "Génération du preseed de $se4name terminée !!
 url pour l'installation :  
-http://$se3ip/install/se4ad.preseed"
+http://$se3ip/diconf/se4ad.preseed"
 echo -e "$COLTXT"
 }
 clear
@@ -401,7 +404,7 @@ interfaces_file="/etc/network/interfaces"
 dir_config="/etc/sambaedu"
 dir_export="/etc/sambaedu/export_se4ad"
 mkdir -p "$dir_export"
-dir_preseed="/var/www/install/se4ad"
+dir_preseed="/var/www/diconf"
 se4ad_config="$dir_export/se4ad.config"
 script_phase2="install_se4ad_phase2.sh"
 nameserver="$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2| head -n 1)"
@@ -413,7 +416,6 @@ show_title
 check_whiptail
 conf_network
 preconf_se4ad
-write_lxc_conf
 export_smb_files
 write_sambaedu_conf
 export_ldap_files
