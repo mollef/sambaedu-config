@@ -246,6 +246,8 @@ echo "##Rdn admin LDAP##" >> $se4ad_config
 echo "adminRdn=\"$adminRdn\"" >> $se4ad_config
 echo "##SID domaine actuel" >> $se4ad_config
 echo "domainsid=\"$domainsid\"" >> $se4ad_config
+echo "##NTP server " >> $se4ad_config
+echo "ntpserv=\"$ntpserv\"" >> $se4ad_config
 
 chmod +x $se4ad_config
 }
@@ -349,7 +351,7 @@ echo -e "$COLCMD"
 
 
 sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4mask/g; s/###_SE4GW_###/$se4gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4name/g" -i  $target_preseed
-sed -e "s/###_IP_SE3_###/$se3ip/g; " -i  $target_preseed 
+sed -e "s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
 }
 
 
@@ -391,6 +393,7 @@ COLERREUR="\033[1;31m"  # Rouge
 COLINFO="\033[0;36m"    # Cyan
 
 ## recuperation des variables necessaires pour interoger mysql ###
+source /etc/se3/config_c.cache.sh
 source /etc/se3/config_m.cache.sh
 source /etc/se3/config_l.cache.sh
 source /usr/share/se3/includes/functions.inc.sh 
