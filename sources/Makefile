@@ -9,6 +9,6 @@ install:
 	mkdir -p $(DESTDIR)/var/www/install/se4ad/ 
 	cp usr/share/se3/sbin/* $(DESTDIR)/usr/share/se3/sbin/
 	cp -R etc/sambaedu/* $(DESTDIR)/etc/sambaedu/
-	cp var/www/install/se4ad/* $(DESTDIR)/var/www/install/se4ad/
+	cp var/www/diconf* $(DESTDIR)/var/www/diconf/
 
 clean:
