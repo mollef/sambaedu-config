@@ -402,17 +402,17 @@ function write_lxc_profile
 {
 lxc_profile="/var/lib/lxc/$se4name/rootfs/root/.profile"
 
-if [ -e "$dir_preseed/profile" ]; then
+if [ -e "$dir_preseed/.profile" ]; then
     echo -e "$COLINFO"
     echo "Copie du .profile sur le container"
     echo -e "$COLCMD"
-    cp -v $dir_preseed/profile $lxc_profile
+    cp -v $dir_preseed/.profile $lxc_profile
     echo -e "$COLTXT"
 else
     echo -e "$COLINFO"
     echo "Récupération du fichier bashrc"
     echo -e "$COLCMD"
-    wget -nv $url_sambaedu_config/var/www/install/profile
+    wget -nv $url_sambaedu_config/var/www/install/.profile
     mv -v profile $lxc_profile
     echo -e "$COLTXT"
 fi
@@ -422,17 +422,17 @@ fi
 function write_lxc_bashrc
 {
 lxc_bashrc="/var/lib/lxc/$se4name/rootfs/root/.bashrc"
-if [ -e "$dir_preseed/bashrc" ]; then
+if [ -e "$dir_preseed/.bashrc" ]; then
 	echo -e "$COLINFO"
 	echo "Copie de .bashrc"
 	echo -e "$COLCMD"
-	cp -v $dir_preseed/bashrc $lxc_bashrc
+	cp -v $dir_preseed/.bashrc $lxc_bashrc
 	echo -e "$COLTXT"
 else
 	echo -e "$COLINFO"
 	echo "Récupération du fichier bashrc"
 	echo -e "$COLCMD"
-	wget -nv $url_sambaedu_config/etc/sambaedu/bashrc
+	wget -nv $url_sambaedu_config/etc/sambaedu/.bashrc
 	mv -v bashrc $lxc_bashrc
 	echo -e "$COLTXT"
 fi

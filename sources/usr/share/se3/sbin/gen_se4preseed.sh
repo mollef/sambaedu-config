@@ -354,6 +354,27 @@ sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4mask/g; s/###_SE4G
 sed -e "s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
 }
 
+# verif somme MD5
+function check_md5() {
+
+if [ -e "netboot_stretch.tar.gz" -a -e "MD5SUMS" ]; then
+    md5_netboot_dl="$(grep "./netboot/netboot.tar.gz" MD5SUMS | cut -f1 -d" ")"
+    md5_netboot_local="$(md5sum netboot_stretch.tar.gz  | cut -f1 -d" ")"
+    
+        
+    if [ "$md5_netboot_dl" != "$md5_netboot_local" ]; then
+        rm -f netboot_stretch.tar.gz
+        rm -f MD5SUMS
+        testmd5="ko"
+    else
+        testmd5="ok"
+    fi
+else
+    testmd5="ko"
+    fi
+
+}
+
 # Chargement du boot PXE debian Stretch et conf du tftp pour bootPXE
 function conf_tftp() {
 echo -e "$COLINFO"
@@ -361,8 +382,7 @@ echo "Configuration du TFTP"
 echo -e "$COLTXT"
 url_debian="ftp.fr.debian.org/debian"
 tftp_menu="/tftpboot/tftp_modeles_pxelinux.cfg/menu/install.menu" 
-rm -f netboot_stretch.tar.gz
-rm -f MD5SUMS
+
 # vérification de la présence du paquet se3-clonage
 if [ ! -e "/usr/share/se3/scripts/se3_pxe_menu_ou_pas.sh" ]
 then
@@ -371,19 +391,21 @@ then
     echo ""
 fi
 
+cd /tftpboot
+check_md5
+if [ "$testmd5" = "ko" ];then
+    wget http://$url_debian/dists/stretch/main/installer-amd64/current/images/MD5SUMS
+    wget http://$url_debian/dists/stretch/main/installer-amd64/current/images/netboot/netboot.tar.gz -O netboot_stretch.tar.gz
+    check_md5
+fi
 
-wget http://$url_debian/dists/stretch/main/installer-amd64/current/images/MD5SUMS
-
-wget http://$url_debian/dists/stretch/main/installer-amd64/current/images/netboot/netboot.tar.gz -O netboot_stretch.tar.gz
-
-md5_netboot_dl=$(grep "./netboot/netboot.tar.gz" | cut -f1 -d" ")
-md5_netboot_local=$(md5sum netboot_stretch.tar.gz  | cut -f1 -d" ")
-
-if [ "$md5_netboot_dl" = "$md5_netboot_local" ]; then
-    tar -xzf netboot_stretch.tar.gz
+if [ "$testmd5" != "ko" ]; then
+    mkdir /tmp/netboot
+    tar -xzf netboot_stretch.tar.gz -C /tmp/netboot 
     rm -rf /tftpboot/debian-installer-stretch
-    mv  debian-installer /tftpboot/debian-installer-stretch 
-    if [ -z "$($grep "DebianStretch64se4ad" $tftp_menu)" ] ; then
+    mv  /tmp/netboot/debian-installer /tftpboot/debian-installer-stretch 
+    rm -rf mkdir /tmp/netboot
+    if [ -z "$(grep "DebianStretch64se4ad" $tftp_menu)" ] ; then
         echo "Ajout du menu d'installation SE4-AD dans le menu TFTP"
         echo "LABEL DebianStretch64se4ad
             MENU LABEL ^Netboot Debian stretch SE4-AD (amd64)
@@ -395,9 +417,9 @@ if [ "$md5_netboot_dl" = "$md5_netboot_local" ]; then
         /usr/share/se3/scripts/se3_pxe_menu_ou_pas.sh menu
     fi
 else
-    echo -e "COLERREUR"
+    echo -e "$COLERREUR"
     echo -e "Erreur MD5 du fichier téléchargé"
-    echo -e "COLTXT"
+    echo -e "$COLTXT"
 fi
 }
 
@@ -408,9 +430,9 @@ display_end_title="Génération du preseed terminée !!"
 display_end_txt="Le preseed de $se4name a été généré
 
 Pour lancer l'installation sur serveur $se4name, deux solutions :
-- Via un boot PXE sur le se3, rubrique installation puis Netboot Debian stretch SE4-AD
+- Via un boot PXE sur le se3, partie maintenance, rubrique installation puis  **Netboot Debian stretch SE4-AD**
 
-- Par installation CD netboot. vous devrez entrer l'url suivante au debian installeur :
+- Par installation via clé ou CD netboot. vous devrez entrer l'url suivante au debian installeur :
 http://$se3ip/diconf/se4ad.preseed
 
 Le mot de passe root temporaire sera fixé à \"se4ad\""
