@@ -315,10 +315,13 @@ function write_ssh_keys
 ssh_keys_host="/root/.ssh/authorized_keys"
 
 if [ -e "$ssh_keys_host" ];then
-	echo -e "$COLINFO"
-	echo "Copie du fichier des clés SSH $ssh_keys_host"
-	cp "$ssh_keys_host" "$dir_preseed/"
-	echo -e "$COLCMD"
+    echo -e "$COLINFO"
+    echo "Copie du fichier des clés SSH $ssh_keys_host"
+    cp "$ssh_keys_host" "$dir_preseed/"
+    echo -e "$COLCMD"
+else
+    touch $dir_preseed/authorized_keys
+    chmod 600 $dir_preseed/authorized_keys
 fi
 }
 
@@ -421,6 +424,7 @@ else
     echo -e "Erreur MD5 du fichier téléchargé"
     echo -e "$COLTXT"
 fi
+service isc-dhcp-server restart
 }
 
 # Affichage message de fin
