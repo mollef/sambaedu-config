@@ -354,6 +354,52 @@ sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4mask/g; s/###_SE4G
 sed -e "s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
 }
 
+# Chargement du boot PXE debian Stretch et conf du tftp pour bootPXE
+function conf_tftp() {
+echo -e "$COLINFO"
+echo "Configuration du TFTP"
+echo -e "$COLTXT"
+url_debian="ftp.fr.debian.org/debian"
+tftp_menu="/tftpboot/tftp_modeles_pxelinux.cfg/menu/install.menu" 
+rm -f netboot_stretch.tar.gz
+rm -f MD5SUMS
+# vérification de la présence du paquet se3-clonage
+if [ ! -e "/usr/share/se3/scripts/se3_pxe_menu_ou_pas.sh" ]
+then
+    echo "installation du module Clonage" | tee -a $compte_rendu
+    /usr/share/se3/scripts/install_se3-module.sh se3-clonage
+    echo ""
+fi
+
+
+wget http://$url_debian/dists/stretch/main/installer-amd64/current/images/MD5SUMS
+
+wget http://$url_debian/dists/stretch/main/installer-amd64/current/images/netboot/netboot.tar.gz -O netboot_stretch.tar.gz
+
+md5_netboot_dl=$(grep "./netboot/netboot.tar.gz" | cut -f1 -d" ")
+md5_netboot_local=$(md5sum netboot_stretch.tar.gz  | cut -f1 -d" ")
+
+if [ "$md5_netboot_dl" = "$md5_netboot_local" ]; then
+    tar -xzf netboot_stretch.tar.gz
+    rm -rf /tftpboot/debian-installer-stretch
+    mv  debian-installer /tftpboot/debian-installer-stretch 
+    if [ -z "$($grep "DebianStretch64se4ad" $tftp_menu)" ] ; then
+        echo "Ajout du menu d'installation SE4-AD dans le menu TFTP"
+        echo "LABEL DebianStretch64se4ad
+            MENU LABEL ^Netboot Debian stretch SE4-AD (amd64)
+            KERNEL  debian-installer-stretch/amd64/linux
+            APPEND  auto=true priority=critical preseed/url=http://$se3ip/diconf/se4ad.preseed initrd=debian-installer-stretch/amd64/initrd.gz --
+            TEXT HELP
+            Installation auto de se4-AD sur Debian Stretch amd64 
+            ENDTEXT" >> $tftp_menu
+        /usr/share/se3/scripts/se3_pxe_menu_ou_pas.sh menu
+    fi
+else
+    echo -e "COLERREUR"
+    echo -e "Erreur MD5 du fichier téléchargé"
+    echo -e "COLTXT"
+fi
+}
 
 # Affichage message de fin
 function display_end_message() {
@@ -361,9 +407,11 @@ display_end_title="Génération du preseed terminée !!"
 	
 display_end_txt="Le preseed de $se4name a été généré
 
-Pour lancer l'installation sur serveur $se4name, vous devrez entrer l'url suivante au debian installeur :
+Pour lancer l'installation sur serveur $se4name, deux solutions :
+- Via un boot PXE sur le se3, rubrique installation puis Netboot Debian stretch SE4-AD
 
-http://$se3ip/se4ad/stretch.preseed
+- Par installation CD netboot. vous devrez entrer l'url suivante au debian installeur :
+http://$se3ip/diconf/se4ad.preseed
 
 Le mot de passe root temporaire sera fixé à \"se4ad\""
 
@@ -376,6 +424,10 @@ url pour l'installation :
 http://$se3ip/diconf/se4ad.preseed"
 echo -e "$COLTXT"
 }
+
+
+######## Debut du Script ########
+
 clear
 
 #Couleurs
@@ -414,7 +466,6 @@ nameserver="$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2| head -n 1)"
 se4ad_config_tgz="se4ad.config.tgz"
 
 
-
 show_title
 check_whiptail
 conf_network
@@ -425,6 +476,7 @@ export_ldap_files
 cp_config_to_preseed
 write_ssh_keys
 write_preseed
+conf_tftp
 display_end_message
 
 
