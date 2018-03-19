@@ -214,7 +214,7 @@ d-i apt-setup/security_host string security.debian.org
 tasksel tasksel/first multiselect standard
 
 # installation de divers paquets
-d-i pkgsel/include string openssh-server vim screen ifupdown locales dialog  net-tools iproute openssh-server wget nano bind9-host
+d-i pkgsel/include string openssh-server vim screen ifupdown locales dialog net-tools iproute wget nano bind9-host
 
 # Gestion des mises à jour avec 3 possibilités prédéfinies :
 # - "none" → pas de mise à jour automatique
