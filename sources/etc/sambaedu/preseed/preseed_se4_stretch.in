@@ -3,7 +3,7 @@
 ### pour l'installation de Debian stretch SE4###
 # Le script de config_preseed_se4ad.sh se chargera de compléter les paramètres du type ##_VARIABLE_###
 
-# 03-2018
+# 03-2018 - keyser
 #
 
 # Ligne d'amorçage possible (exemple)
@@ -56,6 +56,13 @@ d-i keyboard-configuration/xkb-keymap select fr(latin9)
 d-i netcfg/choose_interface select auto
 
 # Configuration du réseau mode manuel.
+
+d-i preseed/run string netcfg.sh
+d-i netcfg/disable_autoconfig boolean true
+d-i netcfg/dhcp_failed note
+d-i netcfg/dhcp_options select Configure network manually
+
+
 #
 # exemple pour IPv4
 d-i netcfg/get_ipaddress string ###_SE4AD_IP_###
@@ -204,10 +211,10 @@ d-i apt-setup/security_host string security.debian.org
 #############
 #tasksel tasksel/first multiselect standard, web-server, print-server
 # choix du paquet 
-tasksel tasksel/first multiselect standard, ssh-server
+tasksel tasksel/first multiselect standard
 
 # installation de divers paquets
-d-i pkgsel/include string openssh-server mc vim screen 
+d-i pkgsel/include string openssh-server vim screen ifupdown locales dialog  net-tools iproute openssh-server wget nano bind9-host
 
 # Gestion des mises à jour avec 3 possibilités prédéfinies :
 # - "none" → pas de mise à jour automatique
