@@ -313,7 +313,6 @@ if [ "$download" = "yes" ] || [ ! -e /root/dl_ok ]; then
 	echo -e "$COLTXT"
 	installbase
 	gensourcelist
-	gensourcese4
 	echo -e "$COLPARTIE"
 	echo "Téléchargement de samba 4" 
 	echo -e "$COLCMD"
