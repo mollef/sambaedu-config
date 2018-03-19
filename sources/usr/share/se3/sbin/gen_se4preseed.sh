@@ -351,10 +351,8 @@ echo -e "$COLINFO"
 echo "Modification du preseed avec les données saisies"
 echo -e "$COLCMD"
 
-
-
 sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4mask/g; s/###_SE4GW_###/$se4gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4name/g" -i  $target_preseed
-sed -e "s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
+sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
 }
 
 # verif somme MD5
