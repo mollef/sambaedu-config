@@ -297,13 +297,11 @@ cp /etc/ldap/slapd.pem $dir_export/
 # Fonction copie des fichiers de conf @LXC/etc/sambaedu
 function cp_config_to_preseed()
 {
-echo "Création de l'archive d'export des données $se4ad_config_tgz sur $dir_preseed"
-cd $dir_export
+echo "Création de l'archive d'export des données $se4ad_config_tgz et copie sur $dir_preseed"
+cd $dir_config
 echo -e "$COLCMD"
-tar -czf $dir_preseed/$se4ad_config_tgz *
-# echo "copie de $se4ad_config_tgz sur la machine LXC"
-# 
-# cp -av  $se4ad_config_tgz $dir_config_preseed/
+tar -czf $se4ad_config_tgz export_se4ad
+cp -av  $se4ad_config_tgz $dir_preseed/
 cd -
 echo -e "$COLTXT"
 sleep 2

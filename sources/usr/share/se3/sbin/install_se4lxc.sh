@@ -527,10 +527,11 @@ function cp_config_to_lxc()
 {
 dir_config_lxc="/var/lib/lxc/$se4name/rootfs/etc/sambaedu"
 mkdir -p $dir_config_lxc
-echo "Création de l'archive d'export des données $se4ad_config_tgz sur la machine LXC"
+echo "Création de l'archive $se4ad_config_tgz d'export des données et copie sur la machine LXC"
 cd $dir_config
 echo -e "$COLCMD"
-tar -czf $dir_config_lxc/$se4ad_config_tgz *
+tar -czf $se4ad_config_tgz export_se4ad
+cp -v $se4ad_config_tgz $dir_config_lxc/
 # echo "copie de $se4ad_config_tgz sur la machine LXC"
 # 
 # cp -av  $se4ad_config_tgz $dir_config_lxc/
