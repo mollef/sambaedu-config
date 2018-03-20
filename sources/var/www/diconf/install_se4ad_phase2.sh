@@ -73,20 +73,14 @@ fi
 function gensourcelist()
 {
 cat >/etc/apt/sources.list <<END
-# Sources standard:
-deb http://ftp.fr.debian.org/debian/ stretch main non-free contrib
+deb http://deb.debian.org/debian stretch main non-free contrib
 
-# Security Updates:
-deb http://security.debian.org/ stretch/updates main contrib non-free
+deb http://security.debian.org/debian-security stretch/updates main contrib non-free
 
-# stretch-updates
-deb http://ftp.fr.debian.org/debian/ stretch-updates main contrib non-free
-
-# stretch-backports
-#deb http://ftp.fr.debian.org/debian/ stretch-backports main
-
-
+# stretch-updates, previously known as 'volatile'
+deb http://deb.debian.org/debian stretch-updates main contrib non-free
 END
+apt-get -q update
 }
 
 # Fonction génération du sources.list SE4
