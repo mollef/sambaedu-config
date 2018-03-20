@@ -307,7 +307,7 @@ END
 function download_packages() { 
 if [ "$download" = "yes" ] || [ ! -e /root/dl_ok ]; then
 # 	show_title
-	test_ecard
+# 	test_ecard
 	echo -e "$COLINFO"
 	echo "Pré-téléchargement des paquets nécessaire à l'installation"
 	echo -e "$COLTXT"
