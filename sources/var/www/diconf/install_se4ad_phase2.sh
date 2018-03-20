@@ -362,15 +362,15 @@ $adminPw
 END
 
 rm /etc/ldap/slapd.d -rf
-cp $dir_config/slapd.conf $dir_config/slapd.pem /etc/ldap/
+cp $dir_export/slapd.conf $dir_export/slapd.pem /etc/ldap/
 sed '/^include \/etc\/ldap\/syncrepl.conf/d' -i /etc/ldap/slapd.conf 
-sed "s/$sambadomaine_old/$sambadomaine_new/I" -i $dir_config/$se3ldif
+sed "s/$sambadomaine_old/$sambadomaine_new/I" -i $dir_export/$se3ldif
 
-cp $dir_config/*.schema  /etc/ldap/schema/
+cp $dir_export/*.schema  /etc/ldap/schema/
 # nettoyage au besoin
 rm -f /var/lib/ldap/* 
-cp $dir_config/DB_CONFIG  /var/lib/ldap/
-slapadd -l $dir_config/$se3ldif
+cp $dir_export/DB_CONFIG  /var/lib/ldap/
+slapadd -l $dir_export/$se3ldif
 check_error
 chown -R openldap:openldap /var/lib/ldap/
 chown -R openldap:openldap /etc/ldap
@@ -530,7 +530,7 @@ END
 # Fonction conversion domaine se3 ldap vers AD
 function convert_smb_to_ad()
 {
-if [ -e "$dir_config/smb.conf" ]; then
+if [ -e "$dir_export/smb.conf" ]; then
 	rm -f /etc/samba/smb.conf
 	rm -f /var/lib/samba/private/*.tdb
 
@@ -538,11 +538,11 @@ if [ -e "$dir_config/smb.conf" ]; then
 	echo "Lancement de la migration du domaine NT4 vers Samba AD avec sambatool" 
 	go_on
 	echo -e "$COLCMD"
-	sed "s/$netbios_name/se4ad/I" -i $dir_config/smb.conf
-	sed "s/$sambadomaine_old/$sambadomaine_new/I" -i $dir_config/smb.conf
-	sed "s#passdb backend.*#passdb backend = ldapsam:ldap://$se4ad_ip#" -i $dir_config/smb.conf  
-	echo "samba-tool domain classicupgrade --dbdir=$db_dir --use-xattrs=yes --realm=$ad_domain_up --dns-backend=SAMBA_INTERNAL $dir_config/smb.conf"
-	samba-tool domain classicupgrade --dbdir=$db_dir --use-xattrs=yes --realm=$ad_domain_up --dns-backend=SAMBA_INTERNAL $dir_config/smb.conf
+	sed "s/$netbios_name/se4ad/I" -i $dir_export/smb.conf
+	sed "s/$sambadomaine_old/$sambadomaine_new/I" -i $dir_export/smb.conf
+	sed "s#passdb backend.*#passdb backend = ldapsam:ldap://$se4ad_ip#" -i $dir_export/smb.conf  
+	echo "samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$ad_domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf"
+	samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$ad_domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf
 	quit_on_error "Une erreur s'est produite lors de la migration de l'annaire avec samba-tool. Reglez le probleme sur l'export d'annuaire ou smb.conf et relancez le script" 
         echo -e "$COLINFO"
         echo "Migration de l'annuaire vers samba AD Ok !! On peut couper le service slapd et le désactiver au boot" 
@@ -553,7 +553,7 @@ if [ -e "$dir_config/smb.conf" ]; then
 
 else
 	echo -e "$COLERREUR"
-	echo -e "$dir_config/smb.conf ne semble pas présent. Il est indispensable pour la migration des données. Reglez le probleme et relancez le script"
+	echo -e "$dir_export/smb.conf ne semble pas présent. Il est indispensable pour la migration des données. Reglez le probleme et relancez le script"
 	echo -e "$COLTXT"
 	exit 1
 fi
@@ -563,7 +563,7 @@ fi
 function provision_new_ad()	
 {
 echo -e "$COLPARTIE"
-echo "$db_dir/smb.conf Manquant - Lancement d'une nouvelle installation de Samba AD avec sambatool" 
+echo "$dir_export/smb.conf Manquant - Lancement d'une nouvelle installation de Samba AD avec sambatool" 
 samba-tool domain provision --realm=$ad_domain_up --domain $smb4_domain_up --adminpass $ad_admin_pass  
 echo -e "$COLCMD"
 }
@@ -930,8 +930,8 @@ dev_debug
 samba_packages="samba winbind libnss-winbind krb5-user smbclient"
 export DEBIAN_FRONTEND=noninteractive
 dir_config="/etc/sambaedu"
-se4ad_config="$dir_config/se4ad.config"
-db_dir="/etc/sambaedu"
+dir_export="/etc/sambaedu/export_se4ad"
+se4ad_config="$dir_export/se4ad.config"
 nameserver=$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2)
 se3ldif="ldapse3.ldif"
 se4ad_config_tgz="se4ad.config.tgz"
@@ -1033,7 +1033,7 @@ reset_smb_ad_conf
 installsamba
 Permit_ssh_by_password
 
-if [ -e "$dir_config/slapd.conf" ]; then 
+if [ -e "$dir_export/slapd.conf" ]; then 
 	install_slapd
 	clean_ldap
 	extract_ldifs
@@ -1047,7 +1047,7 @@ if [ -e "$dir_config/slapd.conf" ]; then
 	change_pass_admin
 	
 else
-	echo "$dir_config/slapd.conf non trouvé - L'installation se poursuivra sur un nouveau domaine sans import d'anciennes données"
+	echo "$dir_export/slapd.conf non trouvé - L'installation se poursuivra sur un nouveau domaine sans import d'anciennes données"
 	go_on
 	provision_new_ad # Voir partie dns interne
 	write_smbconf
