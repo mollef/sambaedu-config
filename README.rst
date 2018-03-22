@@ -58,9 +58,10 @@ Les détails du fonctionnement de cette possibilité sont indiqués `dans la doc
 Roadmap - todolist
 ==================
 
-* Ecriture du script d'installation de la machine LXC **fait !**
-* Ecriture du script de génération preseed **fait !**
-* Ecriture du script preseed **fait !**
-* Packaging de l'ensemble dans sambaedu-config **fait !**
-* Ecriture de script de vérification du bon état de l'AD 
-* Ecriture du script de migration Se3 ---> Se4-FS
+* Écriture du script d'installation de la machine ``LXC`` **fait !**
+* Écriture du script de génération du fichier ``preseed`` **fait !**
+* Écriture du script ``preseed`` **fait !** (c'est quoi ce script ?)
+* Packaging de l'ensemble dans le paquet ``sambaedu-config`` **fait !**
+* Écriture de script de vérification du bon état de l'``AD``
+* Écriture du script de migration ``Se3`` → ``Se4-FS`` (que signifie FS ?)
+
