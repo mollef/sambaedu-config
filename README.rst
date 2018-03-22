@@ -20,7 +20,7 @@ En ce qui concerne le serveur ``Se4-AD``, deux choix de fonctionnement exclusifs
 * Un container de type ``LXC`` qui n'est autre que de la virtualisation allégée.  
 * Une machine virtuelle indépendante type ``Proxmox``, ``Xen``, ``ESX``, ou autre. Dans ce cas, on pourra générer automatiquement un preseed permettant ensuite l'installation et la configuration automatique du ``Se4-AD``.
 
-.. **Important** :: Dans un cas comme dans l'autre l'ensemble des éléments de l'annuaire ``LDAP`` d'origine sont récupérés de façon à être injectés lors de la phase de configuration de l'``Active Directory``. 
+**Important** : Dans un cas comme dans l'autre l'ensemble des éléments de l'annuaire ``LDAP`` d'origine sont récupérés de façon à être injectés lors de la phase de configuration de l'``Active Directory``. 
 
 
 Installation du paquet
