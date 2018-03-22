@@ -10,7 +10,7 @@ scripts de configuration pour migration vers Se4
 Objectifs
 =========
 
-Ce paquet a pour but la mise à disposition des éléments nécessaires à la migration des données ldap vers un nouveau serveur Se4 Active Directory.
+Ce paquet a pour but la mise à disposition des éléments nécessaires à la migration des données ``ldap`` vers un nouveau serveur ``Se4 Active Directory (Se4-AD)``.
 
 Principe de fonctionnement
 ==========================
