@@ -45,7 +45,7 @@ Durant cette phase on installe de façon automatique un container ``Stretch`` et
 Choix du serveur dédié
 ======================
 
-Le preseed sera quand à lui généré à l'aide de la commande ``/usr/share/se3/sbin/gen_se4_preseed.sh``. Il sera ensuite possible d'`installer le serveur en utilisant le serveur TFTP du ``Se3`` ou un support ammovible.  <https://github.com/SambaEdu/se4/blob/master/doc-installation/gen-preseed-se4AD.rst>`__
+Le preseed sera quand à lui généré à l'aide de la commande ``/usr/share/se3/sbin/gen_se4_preseed.sh``. Il sera ensuite possible d'`installer le serveur en utilisant le serveur TFTP du Se3 ou un support ammovible.  <https://github.com/SambaEdu/se4/blob/master/doc-installation/gen-preseed-se4AD.rst>`__
 
 
 Roadmap - todolist
