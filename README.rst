@@ -16,12 +16,12 @@ Ce paquet a pour but la mise à disposition des éléments nécessaires à la mi
 Principe de fonctionnement
 ==========================
 
-En ce qui concerne le serveur ``Se4-AD``, deux choix de fonctionnement exclusifs l'un de l'autre sont proposées :
+En ce qui concerne le serveur ``Se4-AD``, deux possibilités de fonctionnement (exclusives l'une de l'autre) sont proposées :
 
 * Un container de type ``LXC`` qui n'est autre que de la virtualisation allégée.  
-* Une machine virtuelle indépendante type ``Proxmox``, ``Xen``, ``ESX``, ou autre. Dans ce cas, on pourra générer automatiquement un preseed permettant ensuite l'installation et la configuration automatique du ``Se4-AD``.
+* Une machine virtuelle indépendante type ``Proxmox``, ``Xen``, ``ESX``, ou autre. Dans ce cas, on pourra générer automatiquement un fichier ``preseed`` permettant ensuite l'installation et la configuration automatique du ``Se4-AD``.
 
-**Important** : Dans un cas comme dans l'autre l'ensemble des éléments de l'annuaire ``LDAP`` d'origine sont récupérés de façon à être injectés lors de la phase de configuration de l'``Active Directory``. 
+**Important** : Dans un cas, comme dans l'autre, l'ensemble des éléments de l'annuaire ``LDAP`` d'origine sont récupérés de façon à être injectés lors de la phase de configuration de l'``Active Directory``.
 
 
 Installation du paquet ``sambaedu-config``
@@ -37,15 +37,21 @@ Le paquet ``sambaedu-config`` déposera les fichiers de configuration nécessair
 Choix du container ``LXC``
 ==========================
 
-L'installation du container ``LXC`` se fait à l'aide d'un script dédié dont l'utilisation le fonctionnement est détaillé.
+L'installation du container ``LXC`` se fait à l'aide d'un script dédié dont l'utilisation et le fonctionnement sont détaillés.
 
-Durant cette phase on installe de façon automatique un container ``Stretch`` et on y dépose une archive contenant les paramètres importants du ``Se3`` et son  annuaire. Le détail du fonctionnement est indiqué `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/doc-installation/install-lxc-se4AD.rst>`__
+Durant cette phase on installe de façon automatique un container ``Stretch`` et on y dépose une archive contenant les paramètres importants du ``Se3`` et son  annuaire.
+
+Les détails du fonctionnement de cette possibilité sont indiqués `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/doc-installation/install-lxc-se4AD.rst>`__
 
 
 Choix du serveur dédié
 ======================
 
-Le preseed sera quand à lui généré à l'aide de la commande ``/usr/share/se3/sbin/gen_se4_preseed.sh``. Il sera ensuite possible d'`installer le serveur en utilisant le serveur TFTP du Se3 ou un support ammovible.  <https://github.com/SambaEdu/se4/blob/master/doc-installation/gen-preseed-se4AD.rst>`__
+Le fichier ``preseed`` sera, quand à lui, généré à l'aide de la commande ``/usr/share/se3/sbin/gen_se4_preseed.sh``.
+
+Il sera ensuite possible, en utilisant ce fichier ``preseed``, d'installer le serveur dédié en utilisant le serveur ``TFTP`` du ``Se3`` ou un support ammovible (par exemple un ``CD``).
+
+Les détails du fonctionnement de cette possibilité sont indiqués `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/doc-installation/gen-preseed-se4AD.rst>`__
 
 
 Roadmap - todolist
