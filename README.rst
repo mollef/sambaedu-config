@@ -37,13 +37,15 @@ Le paquet ``sambaedu-config`` déposera les fichiers de configuration nécessair
 Choix du container ``LXC``
 ==========================
 
-* L'installation du container se fait à l'aide d'un script dédié dont l'utilisation le fonctionnement est détaillé . Durant cette phase on installe de façon automatique un container Stretch et on y dépose une archive contenant les paramètres importants du Se3 et son  annuaire. Le détail du fonctionnement est indiqué `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/doc-installation/install-lxc-se4AD.rst>`__
+L'installation du container ``LXC`` se fait à l'aide d'un script dédié dont l'utilisation le fonctionnement est détaillé.
+
+Durant cette phase on installe de façon automatique un container ``Stretch`` et on y dépose une archive contenant les paramètres importants du ``Se3`` et son  annuaire. Le détail du fonctionnement est indiqué `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/doc-installation/install-lxc-se4AD.rst>`__
 
 
 Choix du serveur dédié
 ======================
 
-* Le preseed sera quand à lui généré à l'aide de la commande ``/usr/share/se3/sbin/gen_se4_preseed.sh``. Il sera ensuite possible d'`installer le serveur en utilisant le TFTP du se3 ou un support ammovible.  <https://github.com/SambaEdu/se4/blob/master/doc-installation/gen-preseed-se4AD.rst>`__
+Le preseed sera quand à lui généré à l'aide de la commande ``/usr/share/se3/sbin/gen_se4_preseed.sh``. Il sera ensuite possible d'`installer le serveur en utilisant le ``TFTP`` du ``Se3`` ou un support ammovible.  <https://github.com/SambaEdu/se4/blob/master/doc-installation/gen-preseed-se4AD.rst>`__
 
 
 Roadmap - todolist
