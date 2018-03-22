@@ -12,6 +12,7 @@ Objectifs
 
 Ce paquet a pour but la mise à disposition des éléments nécessaires à la migration des données ``ldap`` vers un nouveau serveur ``Se4 Active Directory (Se4-AD)``.
 
+
 Principe de fonctionnement
 ==========================
 
@@ -23,17 +24,18 @@ En ce qui concerne le serveur ``Se4-AD``, deux choix de fonctionnement exclusifs
 **Important** : Dans un cas comme dans l'autre l'ensemble des éléments de l'annuaire ``LDAP`` d'origine sont récupérés de façon à être injectés lors de la phase de configuration de l'``Active Directory``. 
 
 
-Installation du paquet
-======================
+Installation du paquet ``sambaedu-config``
+==========================================
 
-Le paquet est installable via les commandes habituelles à condition de `déclarer le dépôt testing sur le serveur Se3. <https://github.com/SambaEdu/se3-docs/blob/master/dev-clients-linux/upgrade-via-se3testing.md>`__
+Le paquet ``sambaedu-config`` est installable via les commandes habituelles à condition de `déclarer le dépôt testing sur le serveur Se3. <https://github.com/SambaEdu/se3-docs/blob/master/dev-clients-linux/upgrade-via-se3testing.md>`__
 
-Une fois le dépôt testing activé, il reste ensuite à installer le paquet : ``apt-get install sambaedu-config``
+Une fois le dépôt ``testing`` activé, il reste ensuite à installer le paquet : ``apt-get install sambaedu-config``.
 
-Le paquet déposera les fichiers de configuration nécessaires ainsi que les scripts d'installation pour LXC ou génération du preseed.
+Le paquet ``sambaedu-config`` déposera les fichiers de configuration nécessaires ainsi que les scripts d'installation pour ``LXC`` ou génération du fichier ``preseed``.
 
-Choix du container LXC 
-======================
+
+Choix du container ``LXC``
+==========================
 
 * L'installation du container se fait à l'aide d'un script dédié dont l'utilisation le fonctionnement est détaillé . Durant cette phase on installe de façon automatique un container Stretch et on y dépose une archive contenant les paramètres importants du Se3 et son  annuaire. Le détail du fonctionnement est indiqué `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/doc-installation/install-lxc-se4AD.rst>`__
 
