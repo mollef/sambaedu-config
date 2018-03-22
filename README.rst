@@ -2,15 +2,16 @@
 sambaedu-config
 ===============
 
-scripts de configuration pour migration vers Se4
+Paquet contenant les scripts de configuration pour migration d'un serveur ``Se3`` vers un serveur ``Se4``.
 
 .. sectnum::
 .. contents:: Table des matières
 
+
 Objectifs
 =========
 
-Ce paquet a pour but la mise à disposition des éléments nécessaires à la migration des données ``ldap`` vers un nouveau serveur ``Se4 Active Directory (Se4-AD)``.
+Le paquet ``sambaedu-config`` a pour but la mise à disposition des éléments nécessaires à la migration des données ``ldap`` d'un serveur ``Se3`` vers un nouveau serveur ``Se4 Active Directory (Se4-AD)``.
 
 
 Principe de fonctionnement
