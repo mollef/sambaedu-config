@@ -48,7 +48,7 @@ Les détails du fonctionnement de cette possibilité sont indiqués `dans la doc
 Choix du serveur dédié
 ======================
 
-Le fichier ``preseed`` sera, quand à lui, généré à l'aide de la commande ``/usr/share/se3/sbin/gen_se4_preseed.sh``.
+Le fichier ``preseed`` sera, quand à lui, généré à l'aide de la commande ``/usr/share/se3/sbin/gen_se4preseed.sh``.
 
 Il sera ensuite possible, en utilisant ce fichier ``preseed``, d'installer le serveur dédié en utilisant le serveur ``TFTP`` du ``Se3`` ou un support ammovible (par exemple un ``CD``).
 
@@ -58,10 +58,9 @@ Les détails du fonctionnement de cette possibilité sont indiqués `dans la doc
 Roadmap - todolist
 ==================
 
-* Écriture du script d'installation de la machine ``LXC`` **fait !**
-* Écriture du script de génération du fichier ``preseed`` **fait !**
-* Écriture du script ``preseed`` **fait !** (c'est quoi ce script ?)
-* Packaging de l'ensemble dans le paquet ``sambaedu-config`` **fait !**
-* Écriture de script de vérification du bon état de l'``AD``
-* Écriture du script de migration ``Se3`` → ``Se4-FS`` (que signifie FS ?)
+* Écriture du script d'installation de la machine ``LXC`` - **fait !**
+* Écriture du script de génération du fichier ``preseed`` - **fait !**
+* Packaging de l'ensemble dans le paquet ``sambaedu-config`` - **fait !**
+* Écriture de script de vérification du bon état de l'``AD`` - en cours !
+* Écriture du script de migration ``Se3`` → ``Se4-FileSystem`` sous Stretch - en cours !  
 
