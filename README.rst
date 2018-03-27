@@ -4,6 +4,8 @@ sambaedu-config
 
 Paquet contenant les scripts de configuration pour migration d'un serveur ``Se3`` vers un serveur ``Se4``.
 
+**Ce Dépôt est destiné à la version Wheezy à installer sur un se3. Un paquet du même nom est généré à partir des sources se4 pour configurer directement des nouveaux serveurs en Stretch**
+
 .. sectnum::
 .. contents:: Table des matières
 
