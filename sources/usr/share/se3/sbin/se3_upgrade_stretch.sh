@@ -64,50 +64,29 @@ fi
 
 
 
-gensourcewheezy()
+gensource_distrib()
 {
+distrib-name="$1"
 echo -e "$COLINFO"
-echo "Mise a jour des dépots Wheezy"
+echo "Mise a jour des dépots $distrib_name"
 echo -e "$COLTXT"
 rm -f /etc/apt/sources.list.d/*
  
 cat >/etc/apt/sources.list <<END
 # Sources standard:
-deb http://ftp.fr.debian.org/debian/ wheezy main non-free contrib
+deb http://ftp.fr.debian.org/debian/ $distrib_name main non-free contrib
 
 # Security Updates:
-deb http://security.debian.org/ wheezy/updates main contrib non-free
+deb http://security.debian.org/ $distrib_name/updates main contrib non-free
 
-# wheezy-updates
-deb http://ftp.fr.debian.org/debian/ wheezy-updates main contrib non-free
+# $distrib_name-updates
+deb http://ftp.fr.debian.org/debian/ $distrib_name-updates main contrib non-free
 
-# wheezy-backports
-#deb http://ftp.fr.debian.org/debian/ wheezy-backports main
+# $distrib_name-backports
+#deb http://ftp.fr.debian.org/debian/ $distrib_name-backports main
 END
 apt-get -q update $option_update
-}
-
-
-gensourcestretch()
-{
-echo -e "$COLINFO"
-echo "Mise a jour des dépots Stretch"
-echo -e "$COLTXT"
-mv /etc/apt/sources.list /etc/apt/sources.list_save_migration
-cat >/etc/apt/sources.list <<END
-# Sources standard:
-deb http://ftp.fr.debian.org/debian/ stretch main non-free contrib
-
-# Security Updates:
-deb http://security.debian.org/ stretch/updates main contrib non-free
-
-# stretch-updates
-deb http://ftp.fr.debian.org/debian/ stretch-updates main contrib non-free
-
-# stretch-backports
-#deb http://ftp.fr.debian.org/debian/ stretch-backports main
-END
-apt-get -q update $option_update
+unset distrib_name
 }
 
 gensourcese3()
@@ -125,12 +104,28 @@ END
 apt-get -q update
 }
 
+gensourcese3jessie()
+{
+cat >/etc/apt/sources.list.d/se3.list <<END
+#sources pour se3
+deb http://wawadeb.crdp.ac-caen.fr/debian jessie se3
+
+#### Sources testing desactivee en prod ####
+deb http://wawadeb.crdp.ac-caen.fr/debian jessie se3testing
+
+END
+apt-get -q update
+}
+
 gensourcese4()
 {
 cat >/etc/apt/sources.list.d/se4.list <<END
 # sources pour se4
 deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4
+# sources pour se4testing
+deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4testing
 END
+apt-get -q update
 }
 
 #date
@@ -198,14 +193,14 @@ A lancer sans option ou avec les options suivantes
 
 maj_se3wheezy()
 {
-gensourcewheezy
+gensource_distrib wheezy
 echo -e "$COLINFO"
 echo "Partie Wheezy - Mise à  jour des dépots en cours....Patientez"
 echo -e "$COLTXT"
 [ "$DEBUG" != "yes" ] && apt-get clean
 apt-get -qq update $option_update
 (
-dpkg -l|grep se3-|cut -d ' ' -f3|while read package
+dpkg -l|grep "se3-\|sambaedu"|cut -d ' ' -f3|while read package
 do
 LC_ALL=C apt-get -s install $package|grep newest >/dev/null|| echo $package
 done
@@ -243,7 +238,7 @@ else
 fi
 }
 
-Stretch_dl() 
+packages_dl() 
 {
 echo -e "$COLINFO"
 echo "Téléchargement des paquets Stretch nécessaires à  la migration lancé"
@@ -257,7 +252,7 @@ echo "Taille du cache actuel : $(du -sh /var/cache/apt/archives/ |  awk '{print 
 touch "$chemin_migr/download_only"
 }
 
-system_check()
+system_check_place()
 {
 echo -e "$COLPARTIE"
 echo "Preparation et tests du systeme" | tee -a $fichier_log
@@ -266,7 +261,7 @@ echo -e "$COLTXT"
 libre_root=$(($(stat -f --format="%a*%S/1048576" /))) 
 libre_var=$(($(stat -f --format="%a*%S/1048576" /var))) 
 
-if [ "$libre_root" -lt 1000 ]; then
+if [ "$libre_root" -lt 1500 ]; then
 	echo "Espace insuffisant sur / : $libre_root Mo"
 		if [ "$DEBUG" = "yes" ]; then
 		echo "mode debug actif"
@@ -281,8 +276,8 @@ PARTROOT=`df | grep "/\$" | sed -e "s/ .*//"`
 PARTROOT_SIZE=$(fdisk -s $PARTROOT)
 rm -f /root/dead.letter
 
-if [ "$PARTROOT_SIZE" -le 2300000 ]; then
-	erreur "La partition racine fait moins de 2.3Go, c'est insuffisant pour passer en Stretch" | tee -a $fichier_log
+if [ "$PARTROOT_SIZE" -le 3500000 ]; then
+	erreur "La partition racine fait moins de 3.5Go, c'est insuffisant pour passer en Stretch" | tee -a $fichier_log
 	if [ "$DEBUG" = "yes" ]; then
 		echo "mode debug actif"
 		poursuivre
@@ -301,7 +296,7 @@ fi
 
 [ "$DEBUG" != "yes" ] && [ ! -e "$chemin_migr/download_only" ] && apt-get clean && echo "Suppression du cache effectué"
 
-if [ "$libre_var" -lt 1000 ];then
+if [ "$libre_var" -lt 1700 ];then
 	echo "Espace insuffisant sur /var : $libre_var Mo"
 	
 	if [ "$DEBUG" = "yes" ]; then
@@ -336,7 +331,7 @@ echo "Maj si besoin de debian-archive-keyring"
     touch $chemin_migr/phase1-ok
 }
 
-backuppc_check()
+backuppc_check_mount()
 {
 echo -e "$COLINFO"
 echo "Test de montage sur Backuppc"
@@ -346,10 +341,32 @@ if [ ! -z "$(df -h | grep /var/lib/backuppc)" ]; then
 	erreur "Il semble qu'une ressource soit montee sur /var/lib/backuppc. Il faut la demonter puis relancer"
 	exit 1
 else
-	[ -e $BPC_SCRIPT ] && $BPC_SCRIPT stop
+	[ -e $bpc_script ] && $bpc_script stop
 	[ ! -h /var/lib/backuppc ] && rm -rf /var/lib/backuppc/*
 fi
 }
+
+backuppc_check_run()
+{
+rm -f /etc/init.d/backuppc.ori 
+if [ -e "$bpc_script" ]; then
+    echo -e "$COLINFO"
+    echo "Test bon fonctionnenment backuppc et Suppression en cas de besoin"
+    echo -e "$COLTXT"
+    if [ ! -e "$BPC_PID" ]; then
+        $bpc_script start 
+        if [ "$?" != "0" ]; then
+            apt-get remove backuppc --purge -y
+            rm -f /etc/apache2se/sites-enabled/backuppc.conf
+        else
+            $bpc_script stop
+        fi
+    else
+        $bpc_script stop
+    fi
+fi
+}
+
 
 maj_slapd_wheezy()
 {
@@ -419,6 +436,8 @@ NODL="no"
 DEBUG="yes"
 # option_update="-o Acquire::Check-Valid-Until=false"
 
+bpc_script="/etc/init.d/backuppc"
+
 #init des params
 source /usr/share/se3/includes/config.inc.sh -cml
 source /usr/share/se3/includes/functions.inc.sh
@@ -447,50 +466,43 @@ if [ "$download" = "yes" ]; then
     echo "Pré-téléchargement des paquets uniquement"
     echo -e "$COLTXT"
     maj_se3wheezy
-    gensourcestretch
-    Stretch_dl
-    gensourcewheezy
+    system_check_place
+    gensource_distrib jessie
+    packages_dl
+    gensource_distrib strech
+    packages_dl
+    gensource_distrib wheezy
     exit 0
 fi
 
-system_check
+system_check_place
 
 
 if [ ! -e $chemin_migr/phase1-ok ]; then
-    gensourcewheezy
+    gensource_distrib wheezy
     upgrade_se3packages
     
 else
 	echo "$chemin_migr/phase1-ok existe, on passe cette phase"
 fi
-backuppc_check
+backuppc_check_mount
 maj_slapd_wheezy
 
 
-if [ ! -e $chemin_migr/phase2a-ok ]; then
-    cp /etc/ldap/slapd.conf $chemin_migr/
-    chown -R openldap:openldap /var/lib/ldap/
-    touch $chemin_migr/phase2a-ok 
-else
-    echo -e "$COLINFO"
-    echo "$chemin_migr/phase2a-ok existe, on passe cette phase" | tee -a $fichier_log
-    echo -e "$COLTXT"
-fi
-
 if [ ! -e $chemin_migr/phase2b-ok ]; then
     echo -e "$COLPARTIE"
-    echo "Partie 2 : Migration en Stretch - installations des paquets prioritaires" | tee -a $fichier_log
+    echo "Partie 2 : Migration en jessie - installations des paquets prioritaires" | tee -a $fichier_log
     echo -e "$COLTXT"
     poursuivre
     [ -z "$LC_ALL" ] && LC_ALL=C && export LC_ALL=C 
     [ -z "$LANGUAGE" ] && export LANGUAGE=fr_FR:fr:en_GB:en  
     [ -z "$LANG" ] && export LANG=fr_FR@euro 
     # Creation du source.list stretch
-    gensourcestretch
+    gensource_distrib jessie
     # On se lance
     if [ "$?" != "0" ]; then
         erreur "une erreur s'est produite lors de la mise a jour des paquets disponibles. reglez le probleme et relancez le script"
-        gensourcewheezy
+        gensource_distrib wheezy
         errexit
     fi
     echo "Ok !"
@@ -501,25 +513,7 @@ if [ ! -e $chemin_migr/phase2b-ok ]; then
     apt-get install debian-archive-keyring --allow-unauthenticated | tee -a $fichier_log
     apt-get -qq update 
 
-    
-    rm -f /etc/init.d/backuppc.ori 
-    if [ -e "$BPC_SCRIPT" ]; then
-        echo -e "$COLINFO"
-        echo "Test bon fonctionnenment backuppc et Suppression en cas de besoin"
-        echo -e "$COLTXT"
-        if [ ! -e "$BPC_PID" ]; then
-            $BPC_SCRIPT start 
-            if [ "$?" != "0" ]; then
-                apt-get remove backuppc --purge -y
-                rm -f /etc/apache2se/sites-enabled/backuppc.conf
-            else
-                $BPC_SCRIPT stop
-            fi
-        else
-            $BPC_SCRIPT stop
-       fi
-    fi
-
+    backuppc_check_run
 
 
     echo "mise a jour de lib6 - locales" | tee -a $fichier_log
@@ -537,24 +531,6 @@ if [ ! -e $chemin_migr/phase2b-ok ]; then
 	echo -e "$COLINFO"
 	echo "mise a jour de lib6  et locales ---> OK" | tee -a $fichier_log
 	echo -e "$COLTXT"
-	sleep 3
-	
-	
-### modif ###
-
-# Mysl avec le reste pour le moment....	
-	
-# 	echo "mise a jour de lib6 - locales  et mysql-server" | tee -a $fichier_log
-# 
-# 	aptitude -o Dpkg::Options::="--force-confnew" install mysql-server -y | tee -a $fichier_log
-# 	if [ "$?" != "0" ]; then
-# 		mv /etc/apt/sources.list_save_migration /etc/apt/sources.list 
-# 		erreur "Une erreur s'est produite lors de la mise a jour du paquet mysql-server. Reglez le probleme et relancez le script"
-# 		errexit
-# 	fi
-# 	echo -e "$COLINFO"
-# 	echo "mise a jour de  mysql-server ---> OK" | tee -a $fichier_log
-# 	echo -e "$COLTXT"
 	sleep 3
 	touch $chemin_migr/phase2b-ok
 	
@@ -580,7 +556,7 @@ fi
 
 
 echo -e "$COLPARTIE"
-echo "Partie 4 : Migration en Wheezy - installations des paquets restants" 
+echo "Partie 4 : Migration en Stretch - installations des paquets restants" 
 echo -e "$COLTXT"
 poursuivre
 echo -e "$COLINFO"
