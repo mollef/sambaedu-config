@@ -169,9 +169,9 @@ show_title()
 {
 
 echo -e "$COLTITRE"
-echo "*********************************************"
-echo "* Script de migration de Wheezy vers Stretch *" | tee -a $fichier_log
-echo "*********************************************"
+echo "**********************************************************"
+echo "* Script de migration de Wheezy vers Jessie puis Stretch *" | tee -a $fichier_log
+echo "**********************************************************"
 echo -e "$COLTXT"
 poursuivre
 
@@ -328,7 +328,7 @@ echo "Maj si besoin de debian-archive-keyring"
 	poursuivre
 	
     fi
-    touch $chemin_migr/phase1-ok
+    touch $chemin_migr/upgradese3-ok
 }
 
 backuppc_check_mount()
@@ -387,6 +387,138 @@ if [ "$DIST" = "wheezy" ]; then
 	PATHSAVLDAP="/var/backups/$SLAPD_VERSION"
 	mkdir -p $PATHSAVLDAP
 	ldapsearch -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw > "$PATHSAVLDAP/${ldap_base_dn}.ldif"
+fi
+}
+
+prim_packages_jessie()
+{
+if [ ! -e $chemin_migr/phase2b-ok ]; then
+    echo -e "$COLPARTIE"
+    echo "Partie 2 : Migration en jessie - installations des paquets prioritaires" | tee -a $fichier_log
+    echo -e "$COLTXT"
+    poursuivre
+    [ -z "$LC_ALL" ] && LC_ALL=C && export LC_ALL=C 
+    [ -z "$LANGUAGE" ] && export LANGUAGE=fr_FR:fr:en_GB:en  
+    [ -z "$LANG" ] && export LANG=fr_FR@euro 
+    # Creation du source.list de la distrib
+    gensource_distrib jessie
+    # On se lance
+    if [ "$?" != "0" ]; then
+        erreur "une erreur s'est produite lors de la mise a jour des paquets disponibles. reglez le probleme et relancez le script"
+        gensource_distrib wheezy
+        errexit
+    fi
+    apt-get install debian-archive-keyring --allow-unauthenticated | tee -a $fichier_log
+    apt-get -qq update 
+    backuppc_check_run
+    aptitude install libc6 locales  -y < /dev/tty | tee -a $fichier_log
+    if [ "$?" != "0" ]; then
+        mv /etc/apt/sources.list_save_migration /etc/apt/sources.list 
+        erreur "Une erreur s'est produite lors de la mise a jour des paquets lib6 et locales. Reglez le probleme et relancez le script"
+        errexit
+    fi
+    echo -e "$COLINFO"
+    echo "mise a jour de lib6  et locales ---> OK" | tee -a $fichier_log
+    echo -e "$COLTXT"
+    sleep 3
+    touch $chemin_migr/phase2b-ok
+else
+    echo -e "$COLINFO"
+    echo "$chemin_migr/phase2b-ok existe, on passe cette phase"
+    echo "Reprise du script phase 3"
+    echo -e "$COLTXT"
+fi
+}
+
+dist_upgrade_jessie()
+{
+echo -e "$COLPARTIE"
+echo "Partie 4 : Migration en Jessie - installations des paquets restants" 
+echo -e "$COLTXT"
+poursuivre
+echo -e "$COLINFO"
+echo "migration du systeme lancee.....ça risque d'être long ;)" 
+echo -e "$COLTXT"
+   
+    echo "Dpkg::Options {\"--force-confold\";}" > /etc/apt/apt.conf	
+    # 	echo "Dpkg::Options {\"--force-confnew\";}" > /etc/apt/apt.conf
+    echo -e "$COLINFO"
+    echo "mise a jour des depots...Patientez svp" 
+    echo -e "$COLTXT"
+    apt-get -qq update
+    if [ "$?" != "0" ]; then
+        erreur "Une erreur s'est produite lors de la mise a jour des paquets disponibles. Reglez le probleme et relancez le script" 
+        errexit
+    fi
+# DEBIAN_FRONTEND="non-interactive" 
+apt-get dist-upgrade $option_apt  < /dev/tty | tee -a $fichier_log
+
+if [ "$?" != "0" ]; then
+	echo -e "$COLERREUR Une erreur s'est produite lors de la migration vers Jessie"
+	echo "En fonction du probleme, vous pouvez choisir de poursuivre tout de meme ou bien d'abandonner afin de terminer la migration manuellement"
+	#/usr/share/se3/scripts/install_se3-module.sh se3
+	echo -e "$COLTXT"
+	echo "Voulez vous continuez (o/N) ? "
+	read REPLY
+	if [ "$REPLY" != "O" ] &&  [ "$REPLY" != "o" ] && [ -n $REPLY ]; then
+			erreur "Abandon !"
+			GENSOURCESE3
+			errexit
+	fi
+	
+fi
+touch $chemin_migr/phase4-ok
+echo "migration du systeme OK" | tee -a $fichier_log
+}
+
+kernel_update()
+{
+echo -e "$COLINFO"
+echo "Mise à jour du noyau linux" 
+echo -e "$COLTXT"
+
+# update noyau wheezy
+arch="686"
+[ "$(arch)" != "i686" ] && arch="amd64"
+
+apt-get install linux-image-$arch firmware-linux-nonfree  -y | tee -a $fichier_log
+}
+
+slapdconfig_renew()
+{
+echo -e "$COLINFO"
+echo "Réécriture du fichier /etc/default/slapd pour utiliser slapd.conf au lieu de cn=config" 
+echo -e "$COLTXT"
+# Retour Slapd.conf
+service slapd stop
+#sed -i "s/#SLAPD_CONF=/SLAPD_CONF=\"\/etc\/ldap\/slapd.conf\"/g" /etc/default/slapd
+echo 'SLAPD_CONF="/etc/ldap/slapd.conf"
+SLAPD_USER="openldap"
+SLAPD_GROUP="openldap"
+SLAPD_PIDFILE=
+SLAPD_SERVICES="ldap:/// ldapi:///"
+SLAPD_SENTINEL_FILE=/etc/ldap/noslapd
+SLAPD_OPTIONS=""
+' > /etc/default/slapd
+
+# [ grep  ] || sed -i "s/SLAPD_CONF=/SLAPD_CONF=\"\/etc\/ldap\/slapd.conf\"/g" /etc/default/slapd
+cp $chemin_migr/slapd.conf /etc/ldap/slapd.conf
+chown openldap:openldap /etc/ldap/slapd.conf
+sleep 2
+service slapd start
+sleep 3
+}
+
+nscd_off()
+{
+echo -e "$COLINFO"
+echo "Arrêt de nscd - nscd sucks !" | tee -a $fichier_log
+echo -e "$COLTXT"
+### Modif à faire ###
+# nscd sucks !
+if [ -e /etc/init.d/nscd  ]; then
+	insserv -r nscd
+	service nscd stop
 fi
 }
 
@@ -475,171 +607,20 @@ if [ "$download" = "yes" ]; then
     exit 0
 fi
 
+#Lancement de la migration Jessie
+
+# test du system
 system_check_place
-
-
-if [ ! -e $chemin_migr/phase1-ok ]; then
+if [ ! -e $chemin_migr/upgradese3-ok ]; then
     gensource_distrib wheezy
     upgrade_se3packages
-    
 else
-	echo "$chemin_migr/phase1-ok existe, on passe cette phase"
+    echo "$chemin_migr/upgradese3-ok existe, on passe cette phase"
 fi
 backuppc_check_mount
 maj_slapd_wheezy
 
-
-if [ ! -e $chemin_migr/phase2b-ok ]; then
-    echo -e "$COLPARTIE"
-    echo "Partie 2 : Migration en jessie - installations des paquets prioritaires" | tee -a $fichier_log
-    echo -e "$COLTXT"
-    poursuivre
-    [ -z "$LC_ALL" ] && LC_ALL=C && export LC_ALL=C 
-    [ -z "$LANGUAGE" ] && export LANGUAGE=fr_FR:fr:en_GB:en  
-    [ -z "$LANG" ] && export LANG=fr_FR@euro 
-    # Creation du source.list stretch
-    gensource_distrib jessie
-    # On se lance
-    if [ "$?" != "0" ]; then
-        erreur "une erreur s'est produite lors de la mise a jour des paquets disponibles. reglez le probleme et relancez le script"
-        gensource_distrib wheezy
-        errexit
-    fi
-    echo "Ok !"
-    echo -e "$COLINFO"
-    echo "Maj si besoin de debian-archive-keyring"
-    echo -e "$COLTXT"
-
-    apt-get install debian-archive-keyring --allow-unauthenticated | tee -a $fichier_log
-    apt-get -qq update 
-
-    backuppc_check_run
-
-
-    echo "mise a jour de lib6 - locales" | tee -a $fichier_log
-
-    echo -e "${COLINFO}Ne pas s'alarmer des erreurs sur les locales, c'est inevitable a cette etape de la migration\nIl est egalement possible que le noyau en cours se desinstalle, un autre sera installe ensuite$COLTXT"
-    echo -e "$COLTXT"
-    aptitude install libc6 locales  -y < /dev/tty | tee -a $fichier_log
-	
-# wine
-	if [ "$?" != "0" ]; then
-		mv /etc/apt/sources.list_save_migration /etc/apt/sources.list 
-		erreur "Une erreur s'est produite lors de la mise a jour des paquets lib6 et locales. Reglez le probleme et relancez le script"
-		errexit
-	fi
-	echo -e "$COLINFO"
-	echo "mise a jour de lib6  et locales ---> OK" | tee -a $fichier_log
-	echo -e "$COLTXT"
-	sleep 3
-	touch $chemin_migr/phase2b-ok
-	
-
-else
-	echo -e "$COLINFO"
-	echo "$chemin_migr/phase2b-ok existe, on passe cette phase"
-	echo "Reprise du script phase 3"
-	echo -e "$COLTXT"
-	
-	echo "Dpkg::Options {\"--force-confold\";}" > /etc/apt/apt.conf	
-	# 	echo "Dpkg::Options {\"--force-confnew\";}" > /etc/apt/apt.conf
-	echo -e "$COLINFO"
-	echo "mise a jour des depots...Patientez svp" 
-	echo -e "$COLTXT"
-	apt-get -qq update
-	if [ "$?" != "0" ]; then
-		erreur "Une erreur s'est produite lors de la mise a jour des paquets disponibles. Reglez le probleme et relancez le script" 
-		errexit
-	fi
-
-fi
-
-
-echo -e "$COLPARTIE"
-echo "Partie 4 : Migration en Stretch - installations des paquets restants" 
-echo -e "$COLTXT"
-poursuivre
-echo -e "$COLINFO"
-echo "migration du systeme lancee.....ça risque d'être long ;)" 
-echo -e "$COLTXT"
-
-# DEBIAN_FRONTEND="non-interactive" 
-apt-get dist-upgrade $option_apt  < /dev/tty | tee -a $fichier_log
-
-
-if [ "$?" != "0" ]; then
-	echo -e "$COLERREUR Une erreur s'est produite lors de la migration vers wheezy"
-	echo "En fonction du probleme, vous pouvez choisir de poursuivre tout de meme ou bien d'abandonner afin de terminer la migration manuellement"
-	#/usr/share/se3/scripts/install_se3-module.sh se3
-	echo -e "$COLTXT"
-	echo "Voulez vous continuez (o/N) ? "
-	read REPLY
-	if [ "$REPLY" != "O" ] &&  [ "$REPLY" != "o" ] && [ -n $REPLY ]; then
-			erreur "Abandon !"
-			GENSOURCESE3
-			errexit
-	fi
-	
-fi
-
-touch $chemin_migr/phase4-ok
-echo "migration du systeme OK" | tee -a $fichier_log
-
-
-
-echo -e "$COLINFO"
-echo "Ajout paquets complementaires si besoin" 
-echo -e "$COLTXT"
-
-
-#Install ssmtp si necessaire
-apt-get install ssmtp -y >/dev/null | tee -a $fichier_log
-
-
-# update noyau wheezy
-arch="686"
-[ "$(arch)" != "i686" ] && arch="amd64"
-
-apt-get install linux-image-$arch firmware-linux-nonfree  -y | tee -a $fichier_log
-
-
-
-echo -e "$COLINFO"
-echo "Réécriture du fichier /etc/default/slapd pour utiliser slapd.conf au lieu de cn=config" 
-echo -e "$COLTXT"
-# Retour Slapd.conf
-service slapd stop
-#sed -i "s/#SLAPD_CONF=/SLAPD_CONF=\"\/etc\/ldap\/slapd.conf\"/g" /etc/default/slapd
-echo 'SLAPD_CONF="/etc/ldap/slapd.conf"
-SLAPD_USER="openldap"
-SLAPD_GROUP="openldap"
-SLAPD_PIDFILE=
-SLAPD_SERVICES="ldap:/// ldapi:///"
-SLAPD_SENTINEL_FILE=/etc/ldap/noslapd
-SLAPD_OPTIONS=""
-' > /etc/default/slapd
-
-# [ grep  ] || sed -i "s/SLAPD_CONF=/SLAPD_CONF=\"\/etc\/ldap\/slapd.conf\"/g" /etc/default/slapd
-cp $chemin_migr/slapd.conf /etc/ldap/slapd.conf
-chown openldap:openldap /etc/ldap/slapd.conf
-sleep 2
-service slapd start
-sleep 3
-
-
-echo -e "$COLINFO"
-echo "Arrêt de nscd - nscd sucks !" | tee -a $fichier_log
-echo -e "$COLTXT"
-
-
-
-### Modif à faire ###
-# nscd sucks !
-if [ -e /etc/init.d/nscd  ]; then
-	insserv -r nscd
-	service nscd stop
-fi
-
+prim_packages_jessie
 
 
 echo -e "$COLPARTIE"
