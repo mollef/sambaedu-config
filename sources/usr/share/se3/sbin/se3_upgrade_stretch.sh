@@ -53,7 +53,9 @@ poursuivre()
 
 line_test()
 {
+echo -e "$COLINFO"
 echo "Test de la connexion internet wget http://wawadeb.crdp.ac-caen.fr/index.html"
+echo -e "$COLTXT"
 if ( ! wget -q --output-document=/dev/null 'http://wawadeb.crdp.ac-caen.fr/index.html') ; then
 	erreur "Votre connexion internet ou la configuration du proxy ne semble pas fonctionnelle !!" 
 	exit 1
@@ -62,11 +64,9 @@ else
 fi
 }
 
-
-
 gensource_distrib()
 {
-distrib-name="$1"
+distrib_name="$1"
 echo -e "$COLINFO"
 echo "Mise a jour des dépots $distrib_name"
 echo -e "$COLTXT"
@@ -142,9 +142,9 @@ mail_report()
 
 [ -e /etc/ssmtp/ssmtp.conf ] && MAIL_ADMIN=$(cat /etc/ssmtp/ssmtp.conf | grep root | cut -d= -f2)
 if [ ! -z "$MAIL_ADMIN" ]; then
-	REPORT=$(cat $fichier_log)
-	#On envoie un mail aÂ  l'admin
-	echo "$REPORT"  | mail -s "[SE3] Rapport de migration $0" $MAIL_ADMIN
+    REPORT=$(cat $fichier_log)
+    #On envoie un mail aÂ  l'admin
+    echo "$REPORT"  | mail -s "[SE3] Rapport de migration $0" $MAIL_ADMIN
 fi
 }
 
@@ -153,14 +153,13 @@ screen_test()
 SCREENOK=$(ps ax | grep screen | grep -v grep)
 
 if [ -z "$SCREENOK" ]; then
-	echo "Pas de session screen en cours....Il est conseille de l'utiliser lors de la migration"
-	echo "Voulez vous continuez (o/N) ? "
-	read REPLY
-	if [ "$REPLY" != "O" ] &&  [ "$REPLY" != "o" ] && [ -n $REPLY ]; then
-			erreur "Abandon !"
-			exit 1
-	fi
-
+    echo "Pas de session screen en cours....Il est conseille de l'utiliser lors de la migration"
+    echo "Voulez vous continuez (o/N) ? "
+    read REPLY
+    if [ "$REPLY" != "O" ] &&  [ "$REPLY" != "o" ] && [ -n $REPLY ]; then
+                    erreur "Abandon !"
+                    exit 1
+    fi
 fi
 }
 
@@ -191,48 +190,48 @@ A lancer sans option ou avec les options suivantes
 "
 }
 
-maj_se3wheezy()
-{
-gensource_distrib wheezy
-echo -e "$COLINFO"
-echo "Partie Wheezy - Mise à  jour des dépots en cours....Patientez"
-echo -e "$COLTXT"
-[ "$DEBUG" != "yes" ] && apt-get clean
-apt-get -qq update $option_update
-(
-dpkg -l|grep "se3-\|sambaedu"|cut -d ' ' -f3|while read package
-do
-LC_ALL=C apt-get -s install $package|grep newest >/dev/null|| echo $package
-done
-)>/root/se3_update_list
-list_module=$(cat /root/se3_update_list)
-if [ -n "$list_module" ]; then
-    echo "Téléchargement des modules SE3 devant être mis à  jour avant migration" 
-    apt-get install $list_module -d -y --force-yes --allow-unauthenticated 2>&1
-fi
-rm -f /root/se3_update_list
-echo -e "$COLINFO"
-echo "Téléchargement des paquets ldap Wheezy si nécessaire"
-echo -e "$COLTXT"
-
-apt-get install ldap-utils libldap-2.4-2 slapd -d -y --allow-unauthenticated
-}
+# maj_se3wheezy()
+# {
+# gensource_distrib wheezy
+# echo -e "$COLINFO"
+# echo "Partie Wheezy - Mise à  jour des dépots en cours....Patientez"
+# echo -e "$COLTXT"
+# [ "$DEBUG" != "yes" ] && apt-get clean
+# apt-get -qq update $option_update
+# (
+# dpkg -l|grep "se3-\|sambaedu"|cut -d ' ' -f3|while read package
+# do
+# LC_ALL=C apt-get -s install $package|grep newest >/dev/null|| echo $package
+# done
+# )>/root/se3_update_list
+# list_module=$(cat /root/se3_update_list)
+# if [ -n "$list_module" ]; then
+#     echo "Téléchargement des modules SE3 devant être mis à  jour avant migration" 
+#     apt-get install $list_module -d -y --force-yes --allow-unauthenticated 2>&1
+# fi
+# rm -f /root/se3_update_list
+# echo -e "$COLINFO"
+# echo "Téléchargement des paquets ldap Wheezy si nécessaire"
+# echo -e "$COLTXT"
+# 
+# apt-get install ldap-utils libldap-2.4-2 slapd -d -y --allow-unauthenticated
+# }
 
 debian_check()
 {
 # On teste la version de debian
  
 if  ! egrep -q "^7.0" /etc/debian_version;  then
-        if egrep -q "^9." /etc/debian_version; then
-                echo "Votre serveur est deja en version Debian Stretch"
-                echo "Vous pouvez continuer si vous souhaitez terminer une migration precedente"
-                echo "Le script se positionnera automatiquement au bon endroit"
-                poursuivre
-        else
-                echo "Votre serveur n'est pas en version Debian Wheezy."
-                echo "Operation annulee !"
-                exit 1
-        fi
+    if egrep -q "^9." /etc/debian_version; then
+        echo "Votre serveur est deja en version Debian Stretch"
+        echo "Vous pouvez continuer si vous souhaitez terminer une migration precedente"
+        echo "Le script se positionnera automatiquement au bon endroit"
+        poursuivre
+    else
+        echo "Votre serveur n'est pas en version Debian Wheezy."
+        echo "Operation annulee !"
+        exit 1
+    fi
 else
 	DIST="wheezy"
 fi
@@ -241,7 +240,7 @@ fi
 packages_dl() 
 {
 echo -e "$COLINFO"
-echo "Téléchargement des paquets Stretch nécessaires à  la migration lancé"
+echo "Téléchargement des paquets nécessaires à la migration"
 echo -e "$COLTXT"
 sleep 1
 apt-get dist-upgrade -d -y --allow-unauthenticated
@@ -262,73 +261,68 @@ libre_root=$(($(stat -f --format="%a*%S/1048576" /)))
 libre_var=$(($(stat -f --format="%a*%S/1048576" /var))) 
 
 if [ "$libre_root" -lt 1500 ]; then
-	echo "Espace insuffisant sur / : $libre_root Mo"
-		if [ "$DEBUG" = "yes" ]; then
-		echo "mode debug actif"
-		poursuivre
-	else
-		exit 1
-	fi
+    echo "Espace insuffisant sur / : $libre_root Mo"
+    if [ "$DEBUG" = "yes" ]; then
+        echo "mode debug actif"
+        poursuivre
+    else
+        exit 1
+    fi
 fi
 
 # On teste si on a de la place pour faire la maj
-PARTROOT=`df | grep "/\$" | sed -e "s/ .*//"`
+PARTROOT=`df -x rootfs | grep "/\$" | sed -e "s/ .*//"`
 PARTROOT_SIZE=$(fdisk -s $PARTROOT)
 rm -f /root/dead.letter
 
 if [ "$PARTROOT_SIZE" -le 3500000 ]; then
-	erreur "La partition racine fait moins de 3.5Go, c'est insuffisant pour passer en Stretch" | tee -a $fichier_log
-	if [ "$DEBUG" = "yes" ]; then
-		echo "mode debug actif"
-		poursuivre
-	else
-		exit 1
-	fi
+    erreur "La partition racine fait moins de 3.5Go, c'est insuffisant pour passer en Stretch" | tee -a $fichier_log
+    if [ "$DEBUG" = "yes" ]; then
+            echo "mode debug actif"
+            poursuivre
+    else
+            exit 1
+    fi
 fi
 
-if [ "$replica_status" == "" -o "$replica_status" == "0" ]
-then
-	echo "Serveur ldap en standalone ---> OK"
+if [ "$replica_status" == "" -o "$replica_status" == "0" ]; then
+    echo "Serveur ldap en standalone ---> OK"
 else
-	ERREUR "Le serveur ldap soit etre en standalone (pas de replication ldap) !!!\nModifiez cette valeur et relancez le script" | tee -a $fichier_log
-	exit 1
+    ERREUR "Le serveur ldap soit etre en standalone (pas de replication ldap) !!!\nModifiez cette valeur et relancez le script" | tee -a $fichier_log
+    exit 1
 fi
 
 [ "$DEBUG" != "yes" ] && [ ! -e "$chemin_migr/download_only" ] && apt-get clean && echo "Suppression du cache effectué"
 
 if [ "$libre_var" -lt 1700 ];then
-	echo "Espace insuffisant sur /var : $libre_var Mo"
-	
-	if [ "$DEBUG" = "yes" ]; then
-		echo "mode debug actif"
-		poursuivre
-	else
-		exit 1
-	fi
+    echo "Espace insuffisant sur /var : $libre_var Mo"
+    
+    if [ "$DEBUG" = "yes" ]; then
+            echo "mode debug actif"
+            poursuivre
+    else
+            exit 1
+    fi
 fi
 }
 
-upgrade_se3packages()
+upgrade_se3wheezy()
 {
 echo "Maj si besoin de debian-archive-keyring"
-    apt-get install debian-archive-keyring --allow-unauthenticated
-    SE3_CANDIDAT=$(apt-cache policy se3 | grep "Candidat" | awk '{print $2}')
-    SE3_INSTALL=$(apt-cache policy se3 | grep "Install" | awk '{print $2}')
-    #[ "$SE3_CANDIDAT" != "$SE3_INSTALL" ] && ERREUR "Il semble que votre serveur se3 n'est pas a jour\nMettez votre serveur a jour puis relancez le script de migration" && exit 1
+apt-get install debian-archive-keyring --allow-unauthenticated
+SE3_CANDIDAT=$(apt-cache policy se3 | grep "Candidat" | awk '{print $2}')
+SE3_INSTALL=$(apt-cache policy se3 | grep "Install" | awk '{print $2}')
+#[ "$SE3_CANDIDAT" != "$SE3_INSTALL" ] && ERREUR "Il semble que votre serveur se3 n'est pas a jour\nMettez votre serveur a jour puis relancez le script de migration" && exit 1
 
-    echo -e "$COLPARTIE"
-    echo "Migration phase 1 : Mise a jour SE3 si necessaire"
-    echo -e "$COLTXT"
-    /usr/share/se3/scripts/install_se3-module.sh se3 | grep -v "pre>" | tee -a $fichier_log
-    #/usr/share/se3/scripts/se3-upgrade.sh | grep -v pre
-
-
+echo -e "$COLPARTIE"
+echo "Mise a jour des paquets SE3 avant migration"
+echo -e "$COLTXT"
+/usr/share/se3/scripts/install_se3-module.sh se3 | grep -v "pre>" | tee -a $fichier_log
     if [ "$?" != "0" ]; then
-    erreur "Une erreur s'est produite lors de la mise à  jour des modules\nIl est conseille de couper la migration"
+        erreur "Une erreur s'est produite lors de la mise à  jour des modules\nIl est conseille de couper la migration"
 	poursuivre
-	
     fi
-    touch $chemin_migr/upgradese3-ok
+touch $chemin_migr/upgrade_se3wheezy
 }
 
 backuppc_check_mount()
@@ -338,11 +332,11 @@ echo "Test de montage sur Backuppc"
 echo -e "$COLTXT"
 df -h | grep backuppc && umount /var/lib/backuppc
 if [ ! -z "$(df -h | grep /var/lib/backuppc)" ]; then 
-	erreur "Il semble qu'une ressource soit montee sur /var/lib/backuppc. Il faut la demonter puis relancer"
-	exit 1
+    erreur "Il semble qu'une ressource soit montee sur /var/lib/backuppc. Il faut la demonter puis relancer"
+    exit 1
 else
-	[ -e $bpc_script ] && $bpc_script stop
-	[ ! -h /var/lib/backuppc ] && rm -rf /var/lib/backuppc/*
+    [ -e $bpc_script ] && $bpc_script stop
+    [ ! -h /var/lib/backuppc ] && rm -rf /var/lib/backuppc/*
 fi
 }
 
@@ -392,82 +386,72 @@ fi
 
 prim_packages_jessie()
 {
-if [ ! -e $chemin_migr/phase2b-ok ]; then
-    echo -e "$COLPARTIE"
-    echo "Partie 2 : Migration en jessie - installations des paquets prioritaires" | tee -a $fichier_log
-    echo -e "$COLTXT"
-    poursuivre
-    [ -z "$LC_ALL" ] && LC_ALL=C && export LC_ALL=C 
-    [ -z "$LANGUAGE" ] && export LANGUAGE=fr_FR:fr:en_GB:en  
-    [ -z "$LANG" ] && export LANG=fr_FR@euro 
-    # Creation du source.list de la distrib
-    gensource_distrib jessie
-    # On se lance
-    if [ "$?" != "0" ]; then
-        erreur "une erreur s'est produite lors de la mise a jour des paquets disponibles. reglez le probleme et relancez le script"
-        gensource_distrib wheezy
-        errexit
-    fi
-    apt-get install debian-archive-keyring --allow-unauthenticated | tee -a $fichier_log
-    apt-get -qq update 
-    backuppc_check_run
-    aptitude install libc6 locales  -y < /dev/tty | tee -a $fichier_log
-    if [ "$?" != "0" ]; then
-        mv /etc/apt/sources.list_save_migration /etc/apt/sources.list 
-        erreur "Une erreur s'est produite lors de la mise a jour des paquets lib6 et locales. Reglez le probleme et relancez le script"
-        errexit
-    fi
-    echo -e "$COLINFO"
-    echo "mise a jour de lib6  et locales ---> OK" | tee -a $fichier_log
-    echo -e "$COLTXT"
-    sleep 3
-    touch $chemin_migr/phase2b-ok
-else
-    echo -e "$COLINFO"
-    echo "$chemin_migr/phase2b-ok existe, on passe cette phase"
-    echo "Reprise du script phase 3"
-    echo -e "$COLTXT"
+echo -e "$COLPARTIE"
+echo "Migration en jessie - installations des paquets prioritaires" | tee -a $fichier_log
+echo -e "$COLTXT"
+poursuivre
+[ -z "$LC_ALL" ] && LC_ALL=C && export LC_ALL=C 
+[ -z "$LANGUAGE" ] && export LANGUAGE=fr_FR:fr:en_GB:en  
+[ -z "$LANG" ] && export LANG=fr_FR@euro 
+# Creation du source.list de la distrib
+gensource_distrib jessie
+# On se lance
+if [ "$?" != "0" ]; then
+    erreur "une erreur s'est produite lors de la mise a jour des paquets disponibles. reglez le probleme et relancez le script"
+    gensource_distrib wheezy
+    errexit
 fi
+apt-get install debian-archive-keyring --allow-unauthenticated | tee -a $fichier_log
+apt-get -qq update 
+backuppc_check_run
+aptitude install libc6 locales  -y < /dev/tty | tee -a $fichier_log
+if [ "$?" != "0" ]; then
+    mv /etc/apt/sources.list_save_migration /etc/apt/sources.list 
+    erreur "Une erreur s'est produite lors de la mise a jour des paquets lib6 et locales. Reglez le probleme et relancez le script"
+    errexit
+fi
+echo -e "$COLINFO"
+echo "mise a jour de lib6  et locales ---> OK" | tee -a $fichier_log
+echo -e "$COLTXT"
+sleep 3
+touch $chemin_migr/prim_packages_jessie-ok
+
 }
 
 dist_upgrade_jessie()
 {
 echo -e "$COLPARTIE"
-echo "Partie 4 : Migration en Jessie - installations des paquets restants" 
+echo "Migration en Jessie - installation des paquets restants" 
 echo -e "$COLTXT"
 poursuivre
 echo -e "$COLINFO"
 echo "migration du systeme lancee.....ça risque d'être long ;)" 
 echo -e "$COLTXT"
    
-    echo "Dpkg::Options {\"--force-confold\";}" > /etc/apt/apt.conf	
-    # 	echo "Dpkg::Options {\"--force-confnew\";}" > /etc/apt/apt.conf
-    echo -e "$COLINFO"
-    echo "mise a jour des depots...Patientez svp" 
-    echo -e "$COLTXT"
-    apt-get -qq update
-    if [ "$?" != "0" ]; then
-        erreur "Une erreur s'est produite lors de la mise a jour des paquets disponibles. Reglez le probleme et relancez le script" 
-        errexit
-    fi
+echo "Dpkg::Options {\"--force-confold\";}" > /etc/apt/apt.conf	
+# echo "Dpkg::Options {\"--force-confnew\";}" > /etc/apt/apt.conf
+gensource_distrib jessie
+if [ "$?" != "0" ]; then
+    erreur "Une erreur s'est produite lors de la mise a jour des paquets disponibles. Reglez le probleme et relancez le script" 
+    errexit
+fi
 # DEBIAN_FRONTEND="non-interactive" 
 apt-get dist-upgrade $option_apt  < /dev/tty | tee -a $fichier_log
 
 if [ "$?" != "0" ]; then
 	echo -e "$COLERREUR Une erreur s'est produite lors de la migration vers Jessie"
-	echo "En fonction du probleme, vous pouvez choisir de poursuivre tout de meme ou bien d'abandonner afin de terminer la migration manuellement"
-	#/usr/share/se3/scripts/install_se3-module.sh se3
-	echo -e "$COLTXT"
-	echo "Voulez vous continuez (o/N) ? "
-	read REPLY
-	if [ "$REPLY" != "O" ] &&  [ "$REPLY" != "o" ] && [ -n $REPLY ]; then
-			erreur "Abandon !"
-			GENSOURCESE3
-			errexit
-	fi
-	
+    echo "En fonction du probleme, vous pouvez choisir de poursuivre tout de meme ou bien d'abandonner afin de terminer la migration manuellement"
+    #/usr/share/se3/scripts/install_se3-module.sh se3
+    echo -e "$COLTXT"
+    echo "Voulez vous continuez (o/N) ? "
+    read REPLY
+    if [ "$REPLY" != "O" ] &&  [ "$REPLY" != "o" ] && [ -n $REPLY ]; then
+                    erreur "Abandon !"
+                    GENSOURCESE3
+                    errexit
+    fi
 fi
-touch $chemin_migr/phase4-ok
+touch $chemin_migr/dist_upgrade_jessie
 echo "migration du systeme OK" | tee -a $fichier_log
 }
 
@@ -522,6 +506,77 @@ if [ -e /etc/init.d/nscd  ]; then
 fi
 }
 
+
+prim_packages_stretch()
+{
+echo -e "$COLPARTIE"
+echo "Migration en stretch - installations des paquets prioritaires" | tee -a $fichier_log
+echo -e "$COLTXT"
+poursuivre
+[ -z "$LC_ALL" ] && LC_ALL=C && export LC_ALL=C 
+[ -z "$LANGUAGE" ] && export LANGUAGE=fr_FR:fr:en_GB:en  
+[ -z "$LANG" ] && export LANG=fr_FR@euro 
+# Creation du source.list de la distrib
+gensource_distrib stretch
+# On se lance
+if [ "$?" != "0" ]; then
+    erreur "une erreur s'est produite lors de la mise a jour des paquets disponibles. reglez le probleme et relancez le script"
+    gensource_distrib wheezy
+    errexit
+fi
+apt-get install debian-archive-keyring --allow-unauthenticated | tee -a $fichier_log
+apt-get -qq update 
+backuppc_check_run
+aptitude install libc6 locales  -y < /dev/tty | tee -a $fichier_log
+if [ "$?" != "0" ]; then
+    mv /etc/apt/sources.list_save_migration /etc/apt/sources.list 
+    erreur "Une erreur s'est produite lors de la mise a jour des paquets lib6 et locales. Reglez le probleme et relancez le script"
+    errexit
+fi
+echo -e "$COLINFO"
+echo "mise a jour de lib6  et locales ---> OK" | tee -a $fichier_log
+echo -e "$COLTXT"
+sleep 3
+touch $chemin_migr/prim_packages_stretch-ok
+
+}
+
+dist_upgrade_stretch()
+{
+echo -e "$COLPARTIE"
+echo "Migration en Jessie - installation des paquets restants" 
+echo -e "$COLTXT"
+poursuivre
+echo -e "$COLINFO"
+echo "migration du systeme lancee.....ça risque d'être long ;)" 
+echo -e "$COLTXT"
+   
+echo "Dpkg::Options {\"--force-confold\";}" > /etc/apt/apt.conf	
+# echo "Dpkg::Options {\"--force-confnew\";}" > /etc/apt/apt.conf
+gensource_distrib stretch
+if [ "$?" != "0" ]; then
+    erreur "Une erreur s'est produite lors de la mise a jour des paquets disponibles. Reglez le probleme et relancez le script" 
+    errexit
+fi
+# DEBIAN_FRONTEND="non-interactive" 
+apt-get dist-upgrade $option_apt  < /dev/tty | tee -a $fichier_log
+
+if [ "$?" != "0" ]; then
+	echo -e "$COLERREUR Une erreur s'est produite lors de la migration vers Jessie"
+    echo "En fonction du probleme, vous pouvez choisir de poursuivre tout de meme ou bien d'abandonner afin de terminer la migration manuellement"
+    #/usr/share/se3/scripts/install_se3-module.sh se3
+    echo -e "$COLTXT"
+    echo "Voulez vous continuez (o/N) ? "
+    read REPLY
+    if [ "$REPLY" != "O" ] &&  [ "$REPLY" != "o" ] && [ -n $REPLY ]; then
+                    erreur "Abandon !"
+                    GENSOURCESE3
+                    errexit
+    fi
+fi
+touch $chemin_migr/dist_upgrade_stretch
+echo "migration du systeme OK" | tee -a $fichier_log
+}
 
 while :; do
 	case $1 in
@@ -597,7 +652,7 @@ if [ "$download" = "yes" ]; then
     echo -e "$COLINFO"
     echo "Pré-téléchargement des paquets uniquement"
     echo -e "$COLTXT"
-    maj_se3wheezy
+    upgrade_se3wheezy
     system_check_place
     gensource_distrib jessie
     packages_dl
@@ -611,122 +666,32 @@ fi
 
 # test du system
 system_check_place
-if [ ! -e $chemin_migr/upgradese3-ok ]; then
+
+if [ ! -e $chemin_migr/upgrade_se3wheezy ]; then
     gensource_distrib wheezy
-    upgrade_se3packages
-else
-    echo "$chemin_migr/upgradese3-ok existe, on passe cette phase"
+    upgrade_se3wheezy
+    backuppc_check_mount
+    maj_slapd_wheezy
 fi
-backuppc_check_mount
-maj_slapd_wheezy
 
-prim_packages_jessie
+if [ ! -e $chemin_migr/prim_packages_jessie ]; then
+    prim_packages_jessie
+fi
 
+if [ ! -e $chemin_migr/dist_upgrade_jessie ]; then
+    dist_upgrade_jessie
+fi
 
 echo -e "$COLPARTIE"
 echo "Partie 5 : Nettoyage de fichiers obsolètes sur /home et modification des droit sur /home/profiles" | tee -a $fichier_log
 echo -e "$COLTXT"
 
-if [ -e /home/netlogon/EnableGPO.bat ]; then
-    mv  /home/netlogon/EnableGPO.bat /var/se3/
-    rm -f /home/netlogon/*.bat
-    rm -f /home/netlogon/*.txt
-    mv  /var/se3/EnableGPO.bat /home/netlogon/
-else
-    rm -f /home/netlogon/*.bat
-    rm -f /home/netlogon/*.txt
-fi
-
-
-ls /home/ | while read USER
-do
-    rm -fr /home/$USER/profil/Demarrer/*	
-done
-
-echo -e "$COLINFO"
-echo "Modification des droits sur /home/profiles pour samba 4.1" | tee -a $fichier_log
-echo -e "$COLTXT"
-
-chmod 777 /home/profiles
-setfacl -b /home/profiles
-sleep 2
-chgrp lcs-users /home/profiles || poursuivre 
-
-echo -e "$COLINFO"
-echo "Suppression immédiat du profil errant pour admin "
-echo -e "$COLTXT"
-
-
-echo -e "$COLINFO"
-echo "Suppression des profils itinérant" | tee -a $fichier_log
-echo -e "$COLTXT"
-
-echo -e "$COLINFO"
-echo "Suppression immédiate des profil errant XP et Seven pour admin"
-echo -e "$COLTXT"
-rm -rf /home/profiles/admin*
-sleep 1
-
-echo -e "$COLINFO"
-echo "Les autres profils seront effacés ensuite en arrière plan afin de ne pas ralentir le script" | tee -a $fichier_log
-sleep 2
-echo -e "$COLTXT"
-
-
-
-echo -e "$COLPARTIE"
-echo "Partie 6 : Mise a jour des paquets se3 sous stretch"  | tee -a $fichier_log
-echo -e "$COLTXT"
-
-
-service samba restart
-echo -e "$COLINFO"
-echo "Mise à  jour des paquets SE3"
-echo -e "$COLTXT"
-/usr/share/se3/scripts/install_se3-module.sh se3 | tee -a $fichier_log
-
-
-echo -e "$COLINFO"
-echo "Redemarrage des services...."
-echo -e "$COLCMD"
-service apache2se restart
-
 service mysql restart
-service samba restart
 
 # modif base sql
 mysql -e "UPDATE se3db.params SET value = 'stretch' WHERE value = 'wheezy';" 
 # mysql -e "UPDATE se3db.params SET value = '2.5' WHERE value = '2.4';" 
 
-
-echo -e "$COLPARTIE"
-echo "Partie 7 : Nettoyage et conversion des fichiers utilisateurs en UTF-8"  | tee -a $fichier_log
-echo -e "$COLTXT"
-
-
-echo "Commande lancée en arrière plan afin de gagner du temps"
-echo " résultats consultables dans le fichier $fichier_log"
-
-
-if [ ! -e "/usr/bin/convmv" ]
-then
-        echo "convmv n'est pas installe, on l'installe"
-        apt-get install convmv
-fi
-
-
-# at now +15 minutes -f $at_script
-
-sleep 2
-
-# A voir si l'on en a besoin
-# echo -e "$COLINFO"
-# echo "On relance samba puis on lance create_adminse3.sh"
-# echo -e "$COLTXT"
-# service samba restart
-# sleep 3
-# # /usr/share/se3/sbin/instance_se3.sh
-# /usr/share/se3/sbin/create_adminse3.sh
 
 echo -e "$COLINFO"
 echo "nettoyage du cache et des paquets inutiles"
@@ -749,12 +714,5 @@ DEBIAN_PRIORITY="high"
 DEBIAN_FRONTEND="dialog" 
 export  DEBIAN_PRIORITY
 export  DEBIAN_FRONTEND
-
-
-
-
-
-
-
 
 exit 0
