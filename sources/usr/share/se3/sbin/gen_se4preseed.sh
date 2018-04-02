@@ -213,6 +213,132 @@ done
 echo -e "$COLTXT"
 }
 
+ask_preseed_se4fs()
+{
+confirm_title="Générer un preseed pour le serveur se4-FS"
+confirm_txt="Faut-il également générer un fichier de préconfiguration preseed pour une instalaltion 
+automatique du serveur Samba Edu 4 - Serveur de fichiers (se4-FS) ?"
+	
+if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 15 70) then
+    preseed_se4fs="yes"
+fi
+}
+
+function preconf_se4fs()
+{
+se4fs_lan_title="Configuration réseau du futur SE4-FS"
+
+REPONSE=""
+details="no"
+se4afs_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
+while [ "$REPONSE" != "yes" ]
+do
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'IP du SE4-FS" 15 70 $se4fs_ip 2>$tempfile || erreur "Annulation"
+	se4fs_ip=$(cat $tempfile)
+	
+	if [ "$details" != "no" ]; then
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir le Masque sous réseau" 15 70 $se3mask 2>$tempfile || erreur "Annulation"
+		se4mask=$(cat $tempfile)
+		
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 15 70 $se3network 2>$tempfile || erreur "Annulation"
+		se4network=$(cat $tempfile)
+		
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de broadcast" 15 70 $se3bcast 2>$tempfile || erreur "Annulation"
+		se4bcast=$(cat $tempfile)
+		
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 15 70 $se3gw 2>$tempfile || erreur "Annulation"
+		se4gw=$(cat $tempfile)
+	fi
+	details="yes"
+	
+	se4fs_name_title="Nom du SE4-AD"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_name_title" --inputbox "Saisir le Nom de la machine SE4-AD" 15 70 se4fs 2>$tempfile || erreur "Annulation"
+	se4fs_name=$(cat $tempfile)
+	
+	
+	
+	confirm_title="Récapitulatif de la configuration prévue"
+	confirm_txt="IP :         $se4ad_ip
+Masque :     $se4mask
+Réseau :     $se4network
+Broadcast :  $se4bcast
+Passerelle : $se4gw
+
+Nom :        $se4name
+
+Confirmer l'enregistrement de cette configuration ?"
+		
+		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 20 60) then
+			REPONSE="yes"
+		else
+			REPONSE="no"
+		fi	
+done
+
+echo -e "$COLTXT"
+}
+
+
+function partman_se4fs()
+{
+se4fs_lan_title="Configuration du partitionnement du futur SE4-FS"
+
+REPONSE=""
+details="no"
+se4afs_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
+while [ "$REPONSE" != "yes" ]
+do
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille mini optimale maxi de la partition racine en Mo" 15 70 "4000 5000 6000" 2>$tempfile || erreur "Annulation"
+    root_size=$(cat $tempfile)
+    root_mini="$(echo $root_size | cut -d" " -f1)"
+    root_opt="$(echo $root_size | cut -d" " -f2)"
+    root_max="$(echo $root_size | cut -d" " -f3)"
+    
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille mini optimale maxi de la partition /var en Mo : " 15 70 "10000 12000 15000" 2>$tempfile || erreur "Annulation"
+    var_size=$(cat $tempfile)
+    var_mini="$(echo $var_size | cut -d" " -f1)"
+    var_opt="$(echo $var_size | cut -d" " -f2)"
+    var_max="$(echo $var_size | cut -d" " -f3)"
+            
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille mini optimale maxi de la partition /home en Mo" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    home_size=$(cat $tempfile)
+    home_mini="$(echo $home_size | cut -d" " -f1)"
+    home_opt="$(echo $home_size | cut -d" " -f2)"
+    home_max="$(echo $home_size | cut -d" " -f3)"
+              
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille mini optimale maxi de la partition /var/se3 en Mo" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    varse3_size=$(cat $tempfile)
+    varse3_mini="$(echo $varse3_size | cut -d" " -f1)"
+    varse3_opt="$(echo $varse3_size | cut -d" " -f2)"
+    varse3_max="$(echo $varse3_size | cut -d" " -f3)"
+	
+		
+confirm_title="Récapitulatif des tailles de partitions prévues"
+confirm_txt="Rappel : Les vleurs sont en Mo 
+    
+Partition Racine : minimum $root_mini, optimal $root_opt, maximum $root_max
+Partition /var : minimum $var_mini, optimal $var_opt, maximum $var_max
+Partition /home : minimum $home_mini, optimal $home_opt, maximum $home_max
+Partition /var/se3 : minimum $home_mini, optimal $home_opt, maximum $home_max
+Partition swap : 200% de la ram ou 16Go non modifiable
+
+Confirmer l'enregistrement de cette configuration ?"
+		
+		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 20 70) then
+			REPONSE="yes"
+		else
+			REPONSE="no"
+		fi	
+done
+
+echo -e "$COLTXT"
+}
+
+
+
+
 # Fonction écriture fichier de conf /etc/sambaedu/se4ad.config
 function write_sambaedu_conf
 {
@@ -327,7 +453,7 @@ fi
 function write_preseed
 {
 dir_config_preseed="$dir_config/preseed"
-template_preseed="preseed_se4_stretch.in"
+template_preseed="preseed_se4ad_stretch.in"
 target_preseed="$dir_preseed/se4ad.preseed"
 
 if [ -e "$dir_config_preseed/$template_preseed" ];then
