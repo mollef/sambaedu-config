@@ -238,16 +238,16 @@ do
 	
 	if [ "$details" != "no" ]; then
 		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir le Masque sous réseau" 15 70 $se3mask 2>$tempfile || erreur "Annulation"
-		se4mask=$(cat $tempfile)
+		se4fs_mask=$(cat $tempfile)
 		
 		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 15 70 $se3network 2>$tempfile || erreur "Annulation"
-		se4network=$(cat $tempfile)
+		se4fs_network=$(cat $tempfile)
 		
 		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de broadcast" 15 70 $se3bcast 2>$tempfile || erreur "Annulation"
-		se4bcast=$(cat $tempfile)
+		se4fs_bcast=$(cat $tempfile)
 		
 		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 15 70 $se3gw 2>$tempfile || erreur "Annulation"
-		se4gw=$(cat $tempfile)
+		se4fs_gw=$(cat $tempfile)
 	fi
 	details="yes"
 	
@@ -259,10 +259,10 @@ do
 	
 	confirm_title="Récapitulatif de la configuration prévue"
 	confirm_txt="IP :         $se4ad_ip
-Masque :     $se4mask
-Réseau :     $se4network
-Broadcast :  $se4bcast
-Passerelle : $se4gw
+Masque :     $se4fs_mask
+Réseau :     $se4fs_network
+Broadcast :  $se4fs_bcast
+Passerelle : $se4fs_gw
 
 Nom :        $se4name
 
@@ -456,27 +456,31 @@ dir_config_preseed="$dir_config/preseed"
 template_preseed="preseed_se4ad_stretch.in"
 target_preseed="$dir_preseed/se4ad.preseed"
 
-if [ -e "$dir_config_preseed/$template_preseed" ];then
-    echo -e "$COLINFO"
-    echo "Copie du modele $template_preseed dans $target_preseed"
-    cp "$dir_config_preseed/$template_preseed" "$target_preseed"
-    echo -e "$COLCMD"
-else
-    echo -e "$COLINFO"
-    echo "Récupération du fichier preseed"
-    echo -e "$COLCMD"
-    wget -nv $url_sambaedu_config/etc/sambaedu/preseed/$template_preseed
-    mv -v $template_preseed $target_preseed
-    echo -e "$COLTXT"
-fi
-
-
+echo -e "$COLINFO"
+echo "Copie du modele $template_preseed dans $target_preseed"
+cp "$dir_config_preseed/$template_preseed" "$target_preseed"
 echo -e "$COLINFO"
 echo "Modification du preseed avec les données saisies"
 echo -e "$COLCMD"
 
 sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4mask/g; s/###_SE4GW_###/$se4gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4name/g" -i  $target_preseed
 sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
+
+
+if [ "$preseed_se4fs" = "yes" ];then
+    template_preseed="preseed_se4fs_stretch.in"
+    target_preseed="$dir_preseed/se4fs.preseed"
+    echo -e "$COLINFO"
+    echo "Copie du modele $template_preseed dans $target_preseed"
+    cp "$dir_config_preseed/$template_preseed" "$target_preseed"
+    echo -e "$COLTXT"
+    echo -e "$COLINFO"
+    echo "Modification du preseed avec les données saisies"
+    echo -e "$COLCMD"
+    sed -e "s/###_SE4FS_IP_###/$se4fs_ip/g; s/###_SE4FS_MASK_###/$se4fs_mask/g; s/###_SE4FS_GW_###/$se4fs_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4FS_NAME_###/$se4fs_name/g" -i  $target_preseed
+    sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
+    sed -e "s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE3_SIZE_###/$varse3_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
+fi
 }
 
 # verif somme MD5
@@ -541,6 +545,17 @@ if [ "$testmd5" != "ko" ]; then
             ENDTEXT" >> $tftp_menu
         /usr/share/se3/scripts/se3_pxe_menu_ou_pas.sh menu
     fi
+    if [ -z "$(grep "DebianStretch64se4fs" $tftp_menu)" -a "$preseed_se4fs" = "yes" ] ; then
+        echo "Ajout du menu d'installation SE4-FS dans le menu TFTP"
+        echo "LABEL DebianStretch64se4fs
+            MENU LABEL ^Netboot Debian stretch SE4-FS (amd64)
+            KERNEL  debian-installer-stretch/amd64/linux
+            APPEND  auto=true priority=critical preseed/url=http://$se3ip/diconf/se4fs.preseed initrd=debian-installer-stretch/amd64/initrd.gz --
+            TEXT HELP
+            Installation auto de se4-AD sur Debian Stretch amd64 
+            ENDTEXT" >> $tftp_menu
+        /usr/share/se3/scripts/se3_pxe_menu_ou_pas.sh menu
+    fi
 else
     echo -e "$COLERREUR"
     echo -e "Erreur MD5 du fichier téléchargé"
@@ -551,9 +566,24 @@ service isc-dhcp-server restart
 
 # Affichage message de fin
 function display_end_message() {
-display_end_title="Génération du preseed terminée !!"	
-	
-display_end_txt="Le preseed de $se4name a été généré
+display_end_title="Génération terminée !!"	
+if [ "$preseed_se4fs" = "yes" ];then
+    display_end_txt="Deux fichiers preseed ont été générés
+* Celui de $se4name :
+Pour lancer l'installation du serveur $se4name, deux solutions :
+- Via un boot PXE sur le se3, partie maintenance, rubrique installation puis  **Netboot Debian stretch SE4-AD**
+- Par installation via clé ou CD netboot. vous devrez entrer l'url suivante au debian installeur :
+http://$se3ip/diconf/se4ad.preseed
+Le mot de passe root temporaire sera fixé à \"se4ad\"
+
+* Celui de se4fs :
+Pour lancer l'installation du serveur se4fs, deux solutions :
+- Via un boot PXE sur le se3, partie maintenance, rubrique installation puis  **Netboot Debian stretch SE4-FS**
+- Par installation via clé ou CD netboot. vous devrez entrer l'url suivante au debian installeur :
+http://$se3ip/diconf/se4fs.preseed
+Le mot de passe root temporaire sera fixé à \"se4fs\""
+else
+    display_end_txt="Le preseed de $se4name a été généré
 
 Pour lancer l'installation sur serveur $se4name, deux solutions :
 - Via un boot PXE sur le se3, partie maintenance, rubrique installation puis  **Netboot Debian stretch SE4-AD**
