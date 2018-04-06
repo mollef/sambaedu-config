@@ -424,13 +424,37 @@ cp /etc/ldap/slapd.pem $dir_export/
 function cp_config_to_preseed()
 {
 echo "Création de l'archive d'export des données $se4ad_config_tgz et copie sur $dir_preseed"
+mkdir -p $dir_preseed/secret/
 cd $dir_config
 echo -e "$COLCMD"
 tar -czf $se4ad_config_tgz export_se4ad
-cp -av  $se4ad_config_tgz $dir_preseed/
+cp -av  $se4ad_config_tgz $dir_preseed/secret/
 cd -
 echo -e "$COLTXT"
 sleep 2
+}
+
+function apache_config()
+{
+echo -e "$COLINFO"
+echo "Mise en place de la conf apache pour le dossier diconf"
+echo -e "$COLCMD"
+
+cat > /etc/apache2/conf.d/diconf <<END
+<Directory /var/www/diconf/>
+    Options -Indexes FollowSymLinks MultiViews
+    Allow from all
+    </Directory>
+
+<Directory /var/www/diconf/secret/>
+	Options -Indexes FollowSymLinks MultiViews
+	AllowOverride All
+	deny from all
+	Allow from $se4ad_ip
+</Directory>
+END
+service apache2 restart
+
 }
 
 # copie des clés ssh présente sur le serveur principal sur le container
@@ -479,7 +503,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo -e "$COLCMD"
     sed -e "s/###_SE4FS_IP_###/$se4fs_ip/g; s/###_SE4FS_MASK_###/$se4fs_mask/g; s/###_SE4FS_GW_###/$se4fs_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4FS_NAME_###/$se4fs_name/g" -i  $target_preseed
     sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
-    sed -e "s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE3_SIZE_###/$varse3_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
+    sed -e "s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE_SIZE_###/$varse_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
 fi
 }
 
@@ -533,7 +557,7 @@ if [ "$testmd5" != "ko" ]; then
     tar -xzf netboot_stretch.tar.gz -C /tmp/netboot 
     rm -rf /tftpboot/debian-installer-stretch
     mv  /tmp/netboot/debian-installer /tftpboot/debian-installer-stretch 
-    rm -rf mkdir /tmp/netboot
+    rm -rf /tmp/netboot
     if [ -z "$(grep "DebianStretch64se4ad" $tftp_menu)" ] ; then
         echo "Ajout du menu d'installation SE4-AD dans le menu TFTP"
         echo "LABEL DebianStretch64se4ad
@@ -648,10 +672,16 @@ show_title
 check_whiptail
 conf_network
 preconf_se4ad
+ask_preseed_se4fs
+if [ "$preseed_se4fs" = "yes" ];then
+    preconf_se4fs
+    partman_se4fs
+fi
 export_smb_files
 write_sambaedu_conf
 export_ldap_files
 cp_config_to_preseed
+apache_config
 write_ssh_keys
 write_preseed
 conf_tftp
