@@ -1,5 +1,11 @@
+sambaedu-config (0.2~1) unstable; urgency=low
+
+  * Release who can generate SE4FS & SE4AD preseed.
+
+ -- Franck Molle <franck.molle@sambaedu.org>  Thu, 08 Apr 2018 23:18:13 +0100
+
 sambaedu-config (0.1) unstable; urgency=low
 
-  * Initial Release.
+  * Initiale Release.
 
  -- Franck Molle <franck.molle@sambaedu.org>  Thu, 08 Mar 2018 16:44:43 +0100

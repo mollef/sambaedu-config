@@ -250,7 +250,7 @@ d-i grub-installer/bootdev string /dev/sda
 d-i preseed/late_command string wget http://###_IP_SE3_###/diconf/install_se4ad_phase2.sh; \
 wget http://###_IP_SE3_###/diconf/.profile; \
 wget http://###_IP_SE3_###/diconf/.bashrc; \
-wget http://###_IP_SE3_###/diconf/se4ad.config.tgz; \
+wget http://###_IP_SE3_###/diconf/secret/se4ad.config.tgz; \
 wget http://###_IP_SE3_###/diconf/authorized_keys; \
 mkdir -p /target/etc/sambaedu; \
 cp se4ad.config.tgz authorized_keys /target/etc/sambaedu; \

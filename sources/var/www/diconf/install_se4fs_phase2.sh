@@ -1,6 +1,6 @@
 #!/bin/bash
 # installation Se4-AD phase 2
-# version pour Stretch - franck.molle@sambaedu.org
+# version pour Stretch - franck molle
 # version 02 - 2018 
 
 
@@ -163,11 +163,7 @@ WELCOME_TEXT="Bienvenue sur l'installation du serveur de fichiers SambaEdu 4.
 
 SambaEdu est un projet libre sous licence GPL vivant de la collaboration active des différents contributeurs issus de différentes académies
 
-Ce programme installera les paquets nécessaires au serveur AD avant de récupérer les données de l'ancien serveur si elles sont disponibles dans /root ou /etc/sambaedu, au choix.
-
-Le fichier contenant ces données devra se nommer $se4ad_config_tgz. S'il n'existe pas une nouvelle installation sera effectuée. 
-
-A noter que si la machine a été installée avec un container LXC l'import est complétement automatique.
+Ce programme installera les paquets nécessaires au serveur SE4-FS 
 
 Contact : 
 Franck.molle@sambaedu.org : Maintenance de l'installeur"
@@ -179,7 +175,7 @@ dialog --backtitle "$BACKTITLE" --title "Installeur de samba Edu 4 - serveur Act
 --menu "Choisissez l'action à effectuer" 15 90 7  \
 "1" "Installation classique" \
 "2" "Téléchargement des paquets uniquement (utile pour préparer un modèle de VM)" \
-"3" "Configuration du réseau uniquement (en cas de changement d'IP" \
+"3" "Configuration du réseau uniquement (en cas de changement d'IP)" \
 2>$tempfile
 
 choice=`cat $tempfile`
@@ -290,11 +286,11 @@ cat >/etc/hosts <<END
 ::1	localhost ip6-localhost ip6-loopback
 ff02::1	ip6-allnodes
 ff02::2	ip6-allrouters
-$se4ad_ip	$se4ad_name.$ad_domain	$se4ad_name
+$se4fs_ip	$se4fs_name.$ad_domain	$se4fs_name
 END
 
 cat >/etc/hostname <<END
-$se4ad_name
+$se4fs_name
 END
 }
 
@@ -329,177 +325,6 @@ echo "Testez la connexion internet avant de relancer le script sans option afin 
 exit 0
 }
 
-# Fonction installation et config de slapd afin d'importer l'ancien SE3 ldap
-function install_slapd()
-{
-echo -e "$COLPARTIE"
-echo "Installation et configuration du backend slapd pour récupération des anciennes données" 
-echo -e "$COLCMD"
-apt-get install --assume-yes slapd ldb-tools
-echo -e "$COLINFO"
-echo "configuration et import de l'annuaire" 
-echo -e "$COLCMD"
-/etc/init.d/slapd stop
-echo -e "$COLTXT"
-
-cat > /etc/default/slapd <<END
-SLAPD_CONF="/etc/ldap/slapd.conf"
-SLAPD_USER="openldap"
-SLAPD_GROUP="openldap"
-SLAPD_PIDFILE=
-SLAPD_SERVICES="ldap:/// ldapi:///"
-SLAPD_SENTINEL_FILE=/etc/ldap/noslapd
-SLAPD_OPTIONS=""
-END
-
-cat > /etc/ldap/ldap.conf <<END
-HOST $se4ad_ip
-BASE $ldap_base_dn
-END
-
-cat > /etc/ldap.secret <<END
-$adminPw
-END
-
-rm /etc/ldap/slapd.d -rf
-cp $dir_export/slapd.conf $dir_export/slapd.pem /etc/ldap/
-sed '/^include \/etc\/ldap\/syncrepl.conf/d' -i /etc/ldap/slapd.conf 
-sed "s/$sambadomaine_old/$sambadomaine_new/I" -i $dir_export/$se3ldif
-
-cp $dir_export/*.schema  /etc/ldap/schema/
-# nettoyage au besoin
-rm -f /var/lib/ldap/* 
-cp $dir_export/DB_CONFIG  /var/lib/ldap/
-slapadd -l $dir_export/$se3ldif
-check_error
-chown -R openldap:openldap /var/lib/ldap/
-chown -R openldap:openldap /etc/ldap
-
-echo -e "$COLINFO"
-echo "Lancement de slapd" 
-echo -e "$COLCMD"
-/etc/init.d/slapd start
-check_error "Impossible de lancer slapd. Si vous avez lancé le script plusieurs fois, le plus simple est de redémarrer la machine car le port 389 doit être déjà occupé"
-echo -e "$COLTXT"
-}
-
-# Nettoyage comptes machines en erreurs et root
-function clean_ldap()
-{
-ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn uid=*\$ uid | sed -n "s/^uid: //p" | while read uid_computers
-do
-	uidnumberEntry="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn "uid=$uid_computers" uidNumber  | grep uidNumber)"
-	if [ -z "$uidnumberEntry" ];then
-		echo -e "$COLINFO"
-		echo -e "Suppression de l'entrée invalide uid=$uid_computers,ou=Computers,$ldap_base_dn"
-		echo -e "$COLCMD"
-		ldapdelete -x -D "$adminRdn,$ldap_base_dn" -w "$adminPw" "uid=$uid_computers,ou=Computers,$ldap_base_dn"
-		sleep 2
-		echo -e "$COLTXT"
-	fi
-	
-#	number_attributes="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn "uid=$uid_computers" | wc -l)"
-	
-done
-echo -e "$COLINFO"
-echo -e "Suppression du compte root samba obsolète"
-echo -e "$COLCMD"
-ldapdelete -x -D "$adminRdn,$ldap_base_dn" -w "$adminPw" "uid=root,ou=People,$ldap_base_dn"
-# A voir pour adaptation surppression groupe root
-#ldapdelete -x -D "$ADMINRDN,$BASEDN" -w "$ADMINPW" "cn=root,$GROUPSRDN,$BASEDN"
-echo -e "$COLTXT"
-}
-
-# Fonction génération des ldifs de l'ancien annuaire se3 avec adaptation de la structure pour conformité AD
-function extract_ldifs()
-{
-local ad_base_dn="##ad_base_dn##"
-rm -f $dir_config/ad_rights.ldif
-ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b ou=Rights,$ldap_base_dn cn | sed -n 's/^cn: //p' | while read cn_rights
-do
-	
-cat >> $dir_config/ad_rights.ldif <<END	
-dn: CN=$cn_rights,OU=Rights,$ad_base_dn
-objectClass: group
-objectClass: top
-member: CN=Administrator,CN=Users,$ad_base_dn
-END
-ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$cn_rights,ou=Rights,$ldap_base_dn member | sed -n 's/member: uid=//p' | cut -d "," -f1 | grep -v "^admin" | while read member_rights
-	do
-		echo "member: CN=$member_rights,CN=Users,$ad_base_dn" >> $dir_config/ad_rights.ldif
-	done
-	
-ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$cn_rights,ou=Rights,$ldap_base_dn member | sed -n 's/member: cn=//p' | cut -d "," -f1 | while read member_rights
-	do
-		echo "member: CN=$member_rights,OU=Groups,$ad_base_dn" >> $dir_config/ad_rights.ldif
-	done
-echo ""	>> $dir_config/ad_rights.ldif
-done
-
-if [ -n "$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn| sed -n 's/^cn: //p')" ]; then
-	rm -f $dir_config/ad_parcs.ldif
-	ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn| sed -n 's/^cn: //p' | while read cn_parcs
-	do
-	cat >> $dir_config/ad_parcs.ldif <<END	
-dn: CN=$cn_parcs,OU=Parcs,$ad_base_dn
-objectClass: group
-objectClass: top
-END
-	if [ -n "$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn=$cn_parcs | sed -n 's/member: cn=//p')"  ]; then
-		ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn=$cn_parcs | sed -n 's/member: cn=//p'  | cut -d "," -f1 | while read member_parcs
-		do
-			if [ -n "$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn uid="$member_parcs"$ dn)" ]; then 
-				echo "member: CN=$member_parcs,CN=Computers,$ad_base_dn" >> $dir_config/ad_parcs.ldif
-			fi
-		done
-	fi
-	echo "" >>  $dir_config/ad_parcs.ldif
-	done
-	
-fi
-rm -f $dir_config/ad_computers.ldif
-ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn uid=*\$ uid | sed -n "s/^uid: //p"| sed -e 's/\$//g' | while read cn_computers
-do
-	ipHostNumber="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn "cn=$cn_computers" ipHostNumber | sed -n "s/ipHostNumber: //p")"
-	macAddress="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn "cn=$cn_computers" macAddress | sed -n "s/macAddress: //p")"
-	if [ -n "$ipHostNumber" -a   -n "$macAddress" ];then
-		cat >>  $dir_config/ad_computers.ldif <<END	
-dn: CN=$cn_computers,cn=Computers,$ad_base_dn
-changetype: modify
-add: ipHostNumber
-ipHostNumber: $ipHostNumber
--
-add: networkAddress
-networkAddress: $macAddress
-
-END
-	fi 
-	# ajouter lecture cn=
-done
-
-}
-# Nettoyage complet de la conf samba ad
-function reset_smb_ad_conf()
-{
-echo
-echo -e "$COLPARTIE"
-echo "Arrêt des services si existants et installation de Samba & cie" 
-echo -e "$COLTXT\c"
-for smb_service in samba-ad-dc samba winbind smbd nmbd
-do
-	if [ -e /etc/init.d/$smb_service ]; then
-		echo -e "$COLINFO\c"
-		echo -e "Arrêt du service $smb_service"
-		echo -e "$COLCMD\c"
-		/etc/init.d/$smb_service stop 
-		sleep 1
-		echo -e "$COLTXT\c"
-	fi
-done
-sleep 1
-rm 	-f /etc/samba/smb.conf
-rm /var/lib/samba/private/* -rf
-}
 
 # Fonction installation de samba 4.5 (pour le moment)
 function installsamba()
@@ -508,10 +333,10 @@ echo -e "$COLINFO"
 echo "Installation de samba 4.5" 
 echo -e "$COLCMD"
 apt-get install $samba_packages 
-/etc/init.d/samba stop
-/etc/init.d/smbd stop
-/etc/init.d/nmbd stop
-/etc/init.d/winbind stop
+# /etc/init.d/samba stop
+# /etc/init.d/smbd stop
+# /etc/init.d/nmbd stop
+# /etc/init.d/winbind stop
 echo -e "$COLTXT"
 
 }
@@ -525,176 +350,6 @@ cat > /etc/krb5.conf <<END
  dns_lookup_kdc = true
  default_realm = $ad_domain_up
 END
-}
-
-# Fonction conversion domaine se3 ldap vers AD
-function convert_smb_to_ad()
-{
-if [ -e "$dir_export/smb.conf" ]; then
-	rm -f /etc/samba/smb.conf
-	rm -f /var/lib/samba/private/*.tdb
-
-	echo -e "$COLPARTIE"
-	echo "Lancement de la migration du domaine NT4 vers Samba AD avec sambatool" 
-	go_on
-	echo -e "$COLCMD"
-	sed "s/$netbios_name/se4ad/I" -i $dir_export/smb.conf
-	sed "s/$sambadomaine_old/$sambadomaine_new/I" -i $dir_export/smb.conf
-	sed "s#passdb backend.*#passdb backend = ldapsam:ldap://$se4ad_ip#" -i $dir_export/smb.conf  
-	echo "samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$ad_domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf"
-	samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$ad_domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf
-	quit_on_error "Une erreur s'est produite lors de la migration de l'annaire avec samba-tool. Reglez le probleme sur l'export d'annuaire ou smb.conf et relancez le script" 
-        echo -e "$COLINFO"
-        echo "Migration de l'annuaire vers samba AD Ok !! On peut couper le service slapd et le désactiver au boot" 
-        echo -e "$COLCMD"
-        /etc/init.d/slapd stop
-        systemctl disable slapd
-        echo -e "$COLTXT"
-
-else
-	echo -e "$COLERREUR"
-	echo -e "$dir_export/smb.conf ne semble pas présent. Il est indispensable pour la migration des données. Reglez le probleme et relancez le script"
-	echo -e "$COLTXT"
-	exit 1
-fi
-}	
-	
-# Fonction provision d'un nouvel AD - cas new installation
-function provision_new_ad()	
-{
-echo -e "$COLPARTIE"
-echo "$dir_export/smb.conf Manquant - Lancement d'une nouvelle installation de Samba AD avec sambatool" 
-samba-tool domain provision --realm=$ad_domain_up --domain $smb4_domain_up --adminpass $ad_admin_pass  
-echo -e "$COLCMD"
-}
-
-# Fonction activation samba ad-dc
-function activate_smb_ad()
-{
-/etc/init.d/samba stop
-sleep 1
-/etc/init.d/smbd stop
-sleep 1
-/etc/init.d/nmbd stop
-sleep 1
-/etc/init.d/winbind stop
-sleep 1
-# ps aux | grep "nmbd|smbd|smb|winbind"
-systemctl disable samba 
-systemctl disable winbind
-systemctl disable nmbd 
-systemctl disable smbd
-
-systemctl unmask samba-ad-dc
-systemctl enable samba-ad-dc
-# systemctl disable samba winbind nmbd smbd
-systemctl mask samba winbind nmbd smbd
-
-echo -e "$COLPARTIE"
-echo "En avant la musique :) - lancement de Samba AD-DC"
-echo -e "$COLCMD"
-/etc/init.d/samba-ad-dc start
-check_error
-echo -e "$COLTXT"
-sleep 10
-
-
-}
-
-
-# Fonction permettant l'ajout d'une OU ds l'annuaire AD
-function ldbadd_ou()
-{
-local dn_add=$1
-local rdn_add=$2
-local desc_add=$3
-ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF
-dn: $dn_add
-changetype: add
-objectClass: organizationalUnit
-objectClass: top
-instanceType: 4
-OU: $rdn_add
-description: $desc_add
-EOF
-}
-
-# Fonction permettant le déplacement d'un groupe ds l'annuaire AD
-function ldbmv_grp()
-{
-local dn_mv=$1
-local rdn_mv=$2
-local target_dn_mv=$3
-
-ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF
-dn: $dn_mv
-changetype: moddn
-newrdn: $rdn_mv
-deleteoldrdn: 1
-newsuperior: $target_dn_mv
-EOF
-}
-
-# Fonction permettant l'ajout des parties spécifiques à SE4 avec récup des données de l'ancien SE3 ds l'annuaire AD
-function modif_ldb()
-{
-echo "Détection DN et RDN de l'AD"	
-ad_base_dn="$(ldbsearch -H /var/lib/samba/private/sam.ldb -s base -b "" defaultNamingContext | sed -n "s/defaultNamingContext: //p")"
-ad_bindDN="CN=Administrator,CN=users,$ad_base_dn"
-echo "Base Dn trouvée : $ad_base_dn"
-
-echo "Modification des exports ldif pour insertion de la base dn AD"
-sed "s/##ad_base_dn##/$ad_base_dn/g" -i $dir_config/*.ldif
-
-echo -e "$COLINFO"
-echo "Ajout des branches de l'annuaire propres à SE4"
-echo -e "$COLCMD"
-ldbadd_ou "OU=Rights,$ad_base_dn" "Rights" "Branche des droits"
-ldbadd_ou "OU=Groups,$ad_base_dn" "Groups" "Branche des groupes"
-ldbadd_ou "OU=Trash,$ad_base_dn" "Trash" "Branche de la corbeille"
-ldbadd_ou "OU=Parcs,$ad_base_dn" "Parcs" "Branche parcs"
-ldbadd_ou "OU=Printers,$ad_base_dn" "Printers" "Branche imprimantes"
-sleep 2
-
-
-
-echo -e "$COLINFO"
-echo "Commplétion de la branche Parcs"
-echo -e "$COLCMD"
-ldbadd -H /var/lib/samba/private/sam.ldb $dir_config/ad_parcs.ldif
-
-echo -e "$COLINFO"
-echo "Commplétion de la branche Computers"
-echo -e "$COLCMD"
-ldbmodify -H /var/lib/samba/private/sam.ldb $dir_config/ad_computers.ldif
-
-echo -e "$COLINFO"
-echo "Déplacement des groupes dans la branche dédiée"
-echo -e "$COLCMD"
-# ldapsearch -xLLL -D $ad_bindDN -w $administrator_pass -b $ad_base_dn -H ldaps://sambaedu4.lan "(objectClass=group)" dn | grep "dn:" | while read dn
-ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=group)" dn | grep "dn:" | while read dn
-do
-	rdn="$(echo $dn | sed -e "s/dn: //" | cut -d "," -f1)"
-	rdn_classe="$(echo $rdn | sed -n "s/^CN=Classe_\|^CN=Equipe_//"p)"
-# 	rdn_equipe="$(echo $rdn | sed -n "s/^CN=Equipe_//"p)"
-	if [ -n "$rdn_classe" ];then
-		target_dn="OU=$rdn_classe,OU=Groups,$ad_base_dn"
-		ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$rdn_classe" "ensemble $rdn_classe"
-	else
-		target_dn="OU=Groups,$ad_base_dn"
-	fi
-	ldbmv_grp "$rdn,CN=users,$ad_base_dn" "$rdn" "$target_dn"
-done
-
-echo -e "$COLINFO"
-echo "Commplétion de la branche Rights"
-echo -e "$COLCMD"
-#~ ad_base_dn
-
-#~ set -x
-ldbadd -H /var/lib/samba/private/sam.ldb $dir_config/ad_rights.ldif
-
-#~ set +x
 }
 
 # Fonction permettant la mise à l'heure du serveur 
@@ -732,40 +387,6 @@ if [ "$heureok" != "yes" ];then
 fi
 }
 
-# Fonction permettant l'écriture de resolv.conf car AD est DNS du domaine
-function write_resolvconf()
-{
-cat >/etc/resolv.conf<<END
-search $ad_domain
-nameserver 127.0.0.1
-END
-}
-
-# Fonction permettant l'écriture de smb.conf car sambatool n'ajoute pas le dns forwarder lors de l'upgrade
-function write_smbconf()
-{
-mv /etc/samba/smb.conf /etc/samba/smb.conf.ori
-cat >/etc/samba/smb.conf <<END
-# Global parameters
-[global]
-	netbios name = SE4AD
-	realm = $ad_domain_up
-	workgroup = $smb4_domain_up
-	dns forwarder = $nameserver
-	server role = active directory domain controller
-	idmap_ldb:use rfc2307 = yes
-	
-[netlogon]
-	path = /var/lib/samba/sysvol/sambaedu4.lan/scripts
-	read only = No
-
-[sysvol]
-	path = /var/lib/samba/sysvol
-	read only = No
-END
-sleep 2
-}
-
 
 # Fonction permettant de se connecter ssh root sur se4-AD
 function Permit_ssh_by_password()
@@ -775,79 +396,24 @@ grep -q "^PermitRootLogin yes" /etc/ssh/sshd_config || echo "PermitRootLogin yes
 /usr/sbin/service ssh restart
 }
 
-
-# Fonction permettant de descendre le niveau de complexité des pass utilisateurs
-function change_policy_passwords() {
-samba-tool domain passwordsettings set --complexity=off
-samba-tool domain passwordsettings set --history-length=0
-samba-tool domain passwordsettings set --min-pwd-age=0
-samba-tool domain passwordsettings set --max-pwd-age=0
-}
-
-
-
-# Fonction check samba ad-dc
-function check_smb_ad()
-{
-echo -e "$COLPARTIE"
-echo -e "Attente de la disponibilité du service samba 4"
-echo -e "$COLINFO"
-echo -e "L'initialisation de samba4 peut s'avérer assez longue lors de son tout premier lancement, jusqu'à quelques minutes"
-echo -e "--> On attend que le service soit près avec une série de tests de connexion : smbclient -L localhost -U%"
-echo -e "$COLTXT"
-echo -e "Pause de 60s pour commencer"
-sleep 60
-cpt_fin=12
-for ((cpt=1; cpt <= cpt_fin ; cpt++))
-do
-	wt=20
-	echo "Test de connexion $cpt"
-	echo -e "$COLCMD"
-	smbclient -L localhost -U% >$tempfile
-		if [ "$?" != "0" ]; then
-			echo "le service n'est pas encore prêt - nouvelle attente de $wt s"
-			sleep $wt
-		else
-			cat $tempfile
-			echo "le service est désormais fonctionnel, on peut passer à la suite !"
-                        break
-		fi
-done
-if [ "$cpt" = 13 ]; then
-    echo -e "$COLERREUR\c" 
-    echo -e "Aie ! - Connexion impossible sur l'AD"
-fi
-echo -e "$COLTXT"	
-}
-
-
 # Fonction permettant de fixer le pass admin : Attention complexité requise
-function change_pass_admin()
+function check_pass_admin()
 {
 TEST_PASS="none"
 cpt=1
 echo -e "$COLPARTIE"
-echo -e "Mise en place du mot de passe du compte Administrator"
+echo -e "Test de la connexion AD avec le mot de passe du compte Administrator"
 while [ "$TEST_PASS" != "OK" ]
 do
 	
 	
 	echo -e "$COLCMD"
-	echo -e "Entrez un mot de passe pour le compte Administrator AD (remplaçant de admin sur se3)" 
+	echo -e "Entrez le mot de passe du compte Administrator AD pour le test de connexion" 
 	echo -e "$COLTXT"
-	echo -e "---- /!\ Attention /!\ ----"
-	echo -e "le mot de passe doit contenir au moins 8 caractères tout en mélangeant lettres / chiffres et un caractère spécial !"
 	read -r administrator_pass
-	sleep 2
-	echo -e "Veuillez confirmer le mot de passe saisi précédemment"
-	read -r confirm_pass
-	sleep 2
-	if [ "$administrator_pass" != "$confirm_pass" ];then
-		echo "Les deux mots de passe ne correspondent pas ! - Merci de recommencer"
-		sleep 3
-		continue
-	fi
-	printf '%s\n%s\n' "$administrator_pass" "$administrator_pass"|(/usr/bin/smbpasswd -s Administrator)
+	smbclient -L $se4ad_ip -U Administrator%$administrator_pass
+
+	
 # 	echo -e "Test de connexion smbclient avec le nouveau mot de passe....\c$COLTXT"
 # 	sleep 5
 # # 	smbclient -L localhost -U Administrator%"$administrator_pass"  >/tmp/smbclient_cnx
@@ -855,18 +421,14 @@ do
         echo -e "$COLERREUR"
         let cpt++
 		if [ "$cpt" = 3 ];then
-			echo -e "3 Tentatives infructueuses - Abandon de modification du mot de passe"
-			echo -e "Vous devrez changer le mot de passe manuellement avec smbpasswd Administrator"
+			echo -e "3 Tentatives infructueuses - Abandon" 
 			echo -e "$COLTXT"
 			break
 		fi
-        echo -e "Attention : mot de passe a été saisi de manière incorrecte ou ne respecte pas les critères de sécurité demandés"
-        echo "Merci de saisir le mot de passe à nouveau"
-        sleep 1
     else
         TEST_PASS="OK"
         echo -e "$COLINFO"
-        echo "Mot de passe Administrator changé avec succès :)"
+        echo "Mot de passe Administrator correct :)"
         sleep 1
     fi
     

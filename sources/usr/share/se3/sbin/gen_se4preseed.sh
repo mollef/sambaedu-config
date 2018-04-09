@@ -27,16 +27,16 @@ fi
 
 
 function show_title() {
-BACKTITLE="Projet Sambaédu - https://www.sambaedu.org/"
+BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
 
-WELCOME_TITLE="Génération du preseed pour SE4-AD"
-WELCOME_TEXT="Bienvenue dans la pré-installation SE4 Active Directory.
+WELCOME_TITLE="Génération du preseed pour SE4-AD / SE4-FS"
+WELCOME_TEXT="Bienvenue dans la pré-installation de SAMBAEDU 4.
 
-Ce programme va générer un fichier de configuration automatique (preseed) utilisable pour l'installation d'un SE4-AD sous Debian Stretch.
+Ce programme va générer un ou des fichiers de configuration automatique (preseed) utilisables pour l'installation d'un SE4-AD / SE4-FS sous Debian Stretch.
 
-Une fois la machine SE4-AD installée, il suffira de la démarrer afin de poursuivre son installation et sa configuration de façon automatique."
+Une fois la machine SE4-AD / SE4-FS installée, il suffira de la démarrer afin de poursuivre son installation et sa configuration de façon automatique."
 
-$dialog_box  --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOME_TEXT" 18 70
+$dialog_box  --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOME_TEXT" 18 75
 }
 
 
@@ -142,10 +142,10 @@ se4ad_lan_title="Configuration réseau du futur SE4-AD"
 REPONSE=""
 details="no"
 se4ad_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
-se4mask="$se3mask"
-se4network="$se3network"
-se4bcast="$se3bcast"
-se4gw="$se3gw"
+se4ad_mask="$se3mask"
+se4ad_network="$se3network"
+se4ad_bcast="$se3bcast"
+se4ad_gw="$se3gw"
 while [ "$REPONSE" != "yes" ]
 do
 	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'IP du SE4-AD" 15 70 $se4ad_ip 2>$tempfile || erreur "Annulation"
@@ -153,22 +153,22 @@ do
 	
 	if [ "$details" != "no" ]; then
 		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir le Masque sous réseau" 15 70 $se3mask 2>$tempfile || erreur "Annulation"
-		se4mask=$(cat $tempfile)
+		se4ad_mask=$(cat $tempfile)
 		
 		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 15 70 $se3network 2>$tempfile || erreur "Annulation"
-		se4network=$(cat $tempfile)
+		se4ad_network=$(cat $tempfile)
 		
 		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de broadcast" 15 70 $se3bcast 2>$tempfile || erreur "Annulation"
-		se4bcast=$(cat $tempfile)
+		se4ad_bcast=$(cat $tempfile)
 		
 		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 15 70 $se3gw 2>$tempfile || erreur "Annulation"
-		se4gw=$(cat $tempfile)
+		se4ad_gw=$(cat $tempfile)
 	fi
 	details="yes"
 	
 	se4ad_name_title="Nom du SE4-AD"
 	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_name_title" --inputbox "Saisir le Nom de la machine SE4-AD" 15 70 se4ad 2>$tempfile || erreur "Annulation"
-	se4name=$(cat $tempfile)
+	se4ad_name=$(cat $tempfile)
 	
 	choice_domain_title="Important - nom de domaine AD"
 	choice_domain_text="Sur un domaine AD, le serveur de domaine gère le DNS. Le choix du nom de domaine est donc important.
@@ -190,12 +190,12 @@ Note :
 	
 	confirm_title="Récapitulatif de la configuration prévue"
 	confirm_txt="IP :         $se4ad_ip
-Masque :     $se4mask
-Réseau :     $se4network
-Broadcast :  $se4bcast
-Passerelle : $se4gw
+Masque :     $se4ad_mask
+Réseau :     $se4ad_network
+Broadcast :  $se4ad_bcast
+Passerelle : $se4ad_gw
 
-Nom :        $se4name
+Nom :        $se4ad_name
 
 Nom de domaine AD saisi : $ad_domain
 Nom de domaine samba :    $smb4_domain
@@ -216,8 +216,7 @@ echo -e "$COLTXT"
 ask_preseed_se4fs()
 {
 confirm_title="Générer un preseed pour le serveur se4-FS"
-confirm_txt="Faut-il également générer un fichier de préconfiguration preseed pour une instalaltion 
-automatique du serveur Samba Edu 4 - Serveur de fichiers (se4-FS) ?"
+confirm_txt="Faut-il également générer un fichier de préconfiguration preseed pour une installation automatique du serveur Samba Edu 4 - Serveur de fichiers (se4-FS) ?"
 	
 if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 15 70) then
     preseed_se4fs="yes"
@@ -230,7 +229,12 @@ se4fs_lan_title="Configuration réseau du futur SE4-FS"
 
 REPONSE=""
 details="no"
-se4afs_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
+se4fs_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
+se4fs_mask="$se4ad_mask"
+se4fs_network="$se4ad_network"
+se4fs_bcast="$se4ad_bcast"
+se4fs_gw="$se4ad_gw"
+
 while [ "$REPONSE" != "yes" ]
 do
 	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'IP du SE4-FS" 15 70 $se4fs_ip 2>$tempfile || erreur "Annulation"
@@ -251,20 +255,20 @@ do
 	fi
 	details="yes"
 	
-	se4fs_name_title="Nom du SE4-AD"
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_name_title" --inputbox "Saisir le Nom de la machine SE4-AD" 15 70 se4fs 2>$tempfile || erreur "Annulation"
+	se4fs_name_title="Nom du SE4-FS"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_name_title" --inputbox "Saisir le Nom de la machine SE4-FS" 15 70 se4fs 2>$tempfile || erreur "Annulation"
 	se4fs_name=$(cat $tempfile)
 	
 	
 	
 	confirm_title="Récapitulatif de la configuration prévue"
-	confirm_txt="IP :         $se4ad_ip
+	confirm_txt="IP :         $se4fs_ip
 Masque :     $se4fs_mask
 Réseau :     $se4fs_network
 Broadcast :  $se4fs_bcast
 Passerelle : $se4fs_gw
 
-Nom :        $se4name
+Nom :        $se4fs_name
 
 Confirmer l'enregistrement de cette configuration ?"
 		
@@ -288,41 +292,51 @@ details="no"
 se4afs_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
 while [ "$REPONSE" != "yes" ]
 do
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille mini optimale maxi de la partition racine en Mo" 15 70 "4000 5000 6000" 2>$tempfile || erreur "Annulation"
+    root_size_txt="** Taille de la partition racine **
+
+Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "$root_size_txt" 15 70 "4000 5000 6000" 2>$tempfile || erreur "Annulation"
     root_size=$(cat $tempfile)
     root_mini="$(echo $root_size | cut -d" " -f1)"
     root_opt="$(echo $root_size | cut -d" " -f2)"
     root_max="$(echo $root_size | cut -d" " -f3)"
     
-    
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille mini optimale maxi de la partition /var en Mo : " 15 70 "10000 12000 15000" 2>$tempfile || erreur "Annulation"
+    var_size_txt="** Taille de la partition /var **
+
+Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "$var_size_txt" 15 70 "10000 12000 15000" 2>$tempfile || erreur "Annulation"
     var_size=$(cat $tempfile)
     var_mini="$(echo $var_size | cut -d" " -f1)"
     var_opt="$(echo $var_size | cut -d" " -f2)"
     var_max="$(echo $var_size | cut -d" " -f3)"
             
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille mini optimale maxi de la partition /home en Mo" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    home_size_txt="** Taille de la partition /home **
+
+Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces pour la partition /home en Mo" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
     home_size=$(cat $tempfile)
     home_mini="$(echo $home_size | cut -d" " -f1)"
     home_opt="$(echo $home_size | cut -d" " -f2)"
     home_max="$(echo $home_size | cut -d" " -f3)"
               
-    
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille mini optimale maxi de la partition /var/se3 en Mo" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
-    varse3_size=$(cat $tempfile)
-    varse3_mini="$(echo $varse3_size | cut -d" " -f1)"
-    varse3_opt="$(echo $varse3_size | cut -d" " -f2)"
-    varse3_max="$(echo $varse3_size | cut -d" " -f3)"
+    varse_size_txt="** Taille de la partition /var/sambaedu **
+
+Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces pour la partition /var/sambaedu en Mo" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    varse_size=$(cat $tempfile)
+    varse_mini="$(echo $varse3_size | cut -d" " -f1)"
+    varse_opt="$(echo $varse3_size | cut -d" " -f2)"
+    varse_max="$(echo $varse3_size | cut -d" " -f3)"
 	
 		
 confirm_title="Récapitulatif des tailles de partitions prévues"
-confirm_txt="Rappel : Les vleurs sont en Mo 
+confirm_txt="Rappel : Les valeurs sont en Mo 
     
-Partition Racine : minimum $root_mini, optimal $root_opt, maximum $root_max
-Partition /var : minimum $var_mini, optimal $var_opt, maximum $var_max
-Partition /home : minimum $home_mini, optimal $home_opt, maximum $home_max
-Partition /var/se3 : minimum $home_mini, optimal $home_opt, maximum $home_max
-Partition swap : 200% de la ram ou 16Go non modifiable
+Partition Racine : minimale $root_mini, optimale $root_opt, maximale $root_max
+Partition /var : minimale $var_mini, optimale $var_opt, maximale $var_max
+Partition /home : minimale $home_mini, optimale $home_opt, maximale $home_max
+Partition /var/se3 : minimale $varse_mini, optimale $varse_opt, maximale $varse_max
+Partition swap : 200% de la ram ou 16Go  - valeurs non modifiables
 
 Confirmer l'enregistrement de cette configuration ?"
 		
@@ -343,13 +357,16 @@ echo -e "$COLTXT"
 function write_sambaedu_conf
 {
 if [ -e "$se4ad_config" ] ; then
-	echo "$se4ad_config existe on en écrase le contenu"
+    echo -e "$COLINFO"
+    echo "$se4ad_config existe on en écrase le contenu"
+    echo -e "$COLTXT"
 fi
-echo -e "$COLINFO"
-#echo "Pas de fichier de conf $se4ad_config  -> On en crée un avec les params du se4ad"
-echo -e "$COLTXT"
+
+# Génération de $se4ad_config
 echo "## Adresse IP du futur SE4-AD ##" > $se4ad_config
 echo "se4ad_ip=\"$se4ad_ip\"" >> $se4ad_config
+echo "## Nom du futur SE4-AD ##" >> $se4ad_config
+echo "se4ad_name=\"$se4ad_name\"" >> $se4ad_config
 echo "## Nom de domaine samba du SE4-AD ##" >> $se4ad_config
 echo "smb4_domain=\"$smb4_domain\"" >>  $se4ad_config
 echo "## Suffixe du domaine##" >> $se4ad_config
@@ -375,7 +392,27 @@ echo "domainsid=\"$domainsid\"" >> $se4ad_config
 echo "##NTP server " >> $se4ad_config
 echo "ntpserv=\"$ntpserv\"" >> $se4ad_config
 
-chmod +x $se4ad_config
+if [ "$preseed_se4fs" = "yes" ];then
+    echo "## Adresse IP du futur SE4-FS ##" > $se4fs_config
+    echo "se4fs_ip=\"$se4ad_ip\"" >> $se4fs_config
+    echo "## Nom du futur SE4-FS ##" >> $se4fs_config
+    echo "se4fs_name=\"$se4ad_name\"" >> $se4fs_config
+    echo "## Nom de domaine samba du SE4-AD ##" >> $se4fs_config
+    echo "smb4_domain=\"$smb4_domain\"" >>  $se4fs_config
+    echo "## Suffixe du domaine##" >> $se4fs_config
+    echo "suffix_domain=\"$suffix_domain\"" >>  $se4fs_config
+    echo "## Nom de domaine complet - realm du SE4-AD ##" >> $se4fs_config
+    echo "ad_domain=\"$ad_domain\"" >> $se4fs_config
+    echo "##Adresse du serveur DNS##" >> $se4fs_config
+    echo "nameserver=\"$nameserver\"" >> $se4fs_config
+    echo "##SID domaine actuel" >> $se4fs_config
+    echo "domainsid=\"$domainsid\"" >> $se4fs_config
+    echo "##NTP server " >> $se4fs_config
+    echo "ntpserv=\"$ntpserv\"" >> $se4fs_config
+fi
+
+
+chmod +x $se4fs_config
 }
 
 # Fonction export des fichiers tdb et smb.conf 
@@ -427,10 +464,15 @@ echo "Création de l'archive d'export des données $se4ad_config_tgz et copie su
 mkdir -p $dir_preseed/secret/
 cd $dir_config
 echo -e "$COLCMD"
+if [ "$preseed_se4fs" = "yes" ];then
+        cp $se4fs_config $dir_preseed/
+fi
 tar -czf $se4ad_config_tgz export_se4ad
 cp -av  $se4ad_config_tgz $dir_preseed/secret/
 cd -
 echo -e "$COLTXT"
+
+
 sleep 2
 }
 
@@ -487,7 +529,7 @@ echo -e "$COLINFO"
 echo "Modification du preseed avec les données saisies"
 echo -e "$COLCMD"
 
-sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4mask/g; s/###_SE4GW_###/$se4gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4name/g" -i  $target_preseed
+sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4ad_mask/g; s/###_SE4GW_###/$se4ad_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4ad_name/g" -i  $target_preseed
 sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
 
 
@@ -592,9 +634,10 @@ service isc-dhcp-server restart
 function display_end_message() {
 display_end_title="Génération terminée !!"	
 if [ "$preseed_se4fs" = "yes" ];then
+    display_end_hight="28"
     display_end_txt="Deux fichiers preseed ont été générés
-* Celui de $se4name :
-Pour lancer l'installation du serveur $se4name, deux solutions :
+* Celui de $se4ad_name :
+Pour lancer l'installation du serveur $se4ad_name, deux solutions :
 - Via un boot PXE sur le se3, partie maintenance, rubrique installation puis  **Netboot Debian stretch SE4-AD**
 - Par installation via clé ou CD netboot. vous devrez entrer l'url suivante au debian installeur :
 http://$se3ip/diconf/se4ad.preseed
@@ -607,21 +650,22 @@ Pour lancer l'installation du serveur se4fs, deux solutions :
 http://$se3ip/diconf/se4fs.preseed
 Le mot de passe root temporaire sera fixé à \"se4fs\""
 else
-    display_end_txt="Le preseed de $se4name a été généré
+    display_end_hight="18"
+    display_end_txt="Le preseed de $se4ad_name a été généré
 
-Pour lancer l'installation sur serveur $se4name, deux solutions :
+Pour lancer l'installation sur serveur $se4ad_name, deux solutions :
 - Via un boot PXE sur le se3, partie maintenance, rubrique installation puis  **Netboot Debian stretch SE4-AD**
 
 - Par installation via clé ou CD netboot. vous devrez entrer l'url suivante au debian installeur :
 http://$se3ip/diconf/se4ad.preseed
 
 Le mot de passe root temporaire sera fixé à \"se4ad\""
-
-$dialog_box --backtitle "$BACKTITLE" --title "$display_end_title" --msgbox "$display_end_txt" 20 70
+fi
+$dialog_box --backtitle "$BACKTITLE" --title "$display_end_title" --msgbox "$display_end_txt" $display_end_hight 70
 
 
 echo -e "$COLTITRE"
-echo "Génération du preseed de $se4name terminée !!
+echo "Génération du preseed de $se4ad_name terminée !!
 url pour l'installation :  
 http://$se3ip/diconf/se4ad.preseed"
 echo -e "$COLTXT"
