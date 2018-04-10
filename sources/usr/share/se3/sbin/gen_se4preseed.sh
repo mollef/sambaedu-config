@@ -313,7 +313,7 @@ Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant le
     home_size_txt="** Taille de la partition /home **
 
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces pour la partition /home en Mo" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "$home_size_txt" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
     home_size=$(cat $tempfile)
     home_mini="$(echo $home_size | cut -d" " -f1)"
     home_opt="$(echo $home_size | cut -d" " -f2)"
@@ -322,11 +322,11 @@ Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant le
     varse_size_txt="** Taille de la partition /var/sambaedu **
 
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces pour la partition /var/sambaedu en Mo" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "$varse_size_txt" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
     varse_size=$(cat $tempfile)
-    varse_mini="$(echo $varse3_size | cut -d" " -f1)"
-    varse_opt="$(echo $varse3_size | cut -d" " -f2)"
-    varse_max="$(echo $varse3_size | cut -d" " -f3)"
+    varse_mini="$(echo $varse_size | cut -d" " -f1)"
+    varse_opt="$(echo $varse_size | cut -d" " -f2)"
+    varse_max="$(echo $varse_size | cut -d" " -f3)"
 	
 		
 confirm_title="Récapitulatif des tailles de partitions prévues"
@@ -335,12 +335,12 @@ confirm_txt="Rappel : Les valeurs sont en Mo
 Partition Racine : minimale $root_mini, optimale $root_opt, maximale $root_max
 Partition /var : minimale $var_mini, optimale $var_opt, maximale $var_max
 Partition /home : minimale $home_mini, optimale $home_opt, maximale $home_max
-Partition /var/se3 : minimale $varse_mini, optimale $varse_opt, maximale $varse_max
+Partition /var/sambaedu : minimale $varse_mini, optimale $varse_opt, maximale $varse_max
 Partition swap : 200% de la ram ou 16Go  - valeurs non modifiables
 
 Confirmer l'enregistrement de cette configuration ?"
 		
-		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 20 70) then
+		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 20 75) then
 			REPONSE="yes"
 		else
 			REPONSE="no"
@@ -415,6 +415,23 @@ fi
 chmod +x $se4fs_config
 }
 
+function export_dhcp()
+{
+dhcpd_conf="/etc/dhcp/dhcpd.conf"
+if [ -e "$dhcpd_conf" ];then 
+    reservation_file="$dir_config/reservations.conf"
+    cat "$dhcpd_conf" | while read line
+    do
+        if [ -n "$(echo "$line" | grep "^host")" ] || [ "$temoin" = "yes" ];then
+            temoin="yes"
+            echo $line >> "$reservation_file"
+        else
+            continue
+        fi
+    done
+fi
+}
+
 # Fonction export des fichiers tdb et smb.conf 
 function export_smb_files()
 {
@@ -460,13 +477,18 @@ cp /etc/ldap/slapd.pem $dir_export/
 # Fonction copie des fichiers de conf @LXC/etc/sambaedu
 function cp_config_to_preseed()
 {
-echo "Création de l'archive d'export des données $se4ad_config_tgz et copie sur $dir_preseed"
 mkdir -p $dir_preseed/secret/
 cd $dir_config
-echo -e "$COLCMD"
 if [ "$preseed_se4fs" = "yes" ];then
-        cp $se4fs_config $dir_preseed/
+    echo "$COLINFO"
+    echo "Copie du fichier de configuration se4fs et du fichier $reservation_file dhcp s'il existe "
+    cp -v $se4fs_config $dir_preseed/
+    if [ -e "$reservation_file" ];then
+        cp -v $reservation_file $dir_preseed/
+    fi
 fi
+echo "Création de l'archive d'export des données $se4ad_config_tgz et copie sur $dir_preseed"
+echo -e "$COLCMD"
 tar -czf $se4ad_config_tgz export_se4ad
 cp -av  $se4ad_config_tgz $dir_preseed/secret/
 cd -
@@ -707,6 +729,7 @@ dir_export="/etc/sambaedu/export_se4ad"
 mkdir -p "$dir_export"
 dir_preseed="/var/www/diconf"
 se4ad_config="$dir_export/se4ad.config"
+se4fs_config="$dir_config/se4fs.config"
 script_phase2="install_se4ad_phase2.sh"
 nameserver="$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2| head -n 1)"
 se4ad_config_tgz="se4ad.config.tgz"
@@ -720,6 +743,7 @@ ask_preseed_se4fs
 if [ "$preseed_se4fs" = "yes" ];then
     preconf_se4fs
     partman_se4fs
+    export_dhcp
 fi
 export_smb_files
 write_sambaedu_conf
