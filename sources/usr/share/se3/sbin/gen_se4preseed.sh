@@ -480,7 +480,7 @@ function cp_config_to_preseed()
 mkdir -p $dir_preseed/secret/
 cd $dir_config
 if [ "$preseed_se4fs" = "yes" ];then
-    echo "$COLINFO"
+    echo -e "$COLINFO"
     echo "Copie du fichier de configuration se4fs et du fichier $reservation_file dhcp s'il existe "
     cp -v $se4fs_config $dir_preseed/
     if [ -e "$reservation_file" ];then
@@ -590,6 +590,7 @@ if [ -e "$dir_preseed/$reservation_file" ];then
         echo "wget http://$se3ip/diconf/$reservation_file" >> $se4fs_late_command
         echo "cp $reservation_file /target/etc/sambaedu" >> $se4fs_late_command
 fi
+chmod +x $se4fs_late_command
 }
 
 
@@ -710,8 +711,16 @@ $dialog_box --backtitle "$BACKTITLE" --title "$display_end_title" --msgbox "$dis
 
 echo -e "$COLTITRE"
 echo "Génération du preseed de $se4ad_name terminée !!
-url pour l'installation :  
+url pour l'installation depuis un support ammovible :  
 http://$se3ip/diconf/se4ad.preseed"
+
+if [ "$preseed_se4fs" = "yes" ];then
+echo ""
+echo "Génération du preseed de $se4fs_name terminée !!
+url pour l'installation depuis un support ammovible :  
+http://$se3ip/diconf/se4afs.preseed"
+fi
+
 echo -e "$COLTXT"
 }
 
@@ -774,6 +783,7 @@ cp_config_to_preseed
 write_apache_config
 write_ssh_keys
 write_preseed
+write_late_command
 conf_tftp
 display_end_message
 

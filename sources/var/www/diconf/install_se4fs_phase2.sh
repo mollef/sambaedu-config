@@ -243,19 +243,13 @@ fi
 # Fonction recupératoin des paramètres via fichier de conf ou tgz
 function recup_params() {
 
-if [ -e "/root/$se4ad_config_tgz" ]; then
-	tar -xzf /root/$se4ad_config_tgz -C /etc/
-elif [ -e "$dir_config/$se4ad_config_tgz" ] ;then
-	tar -xzf $dir_config/$se4ad_config_tgz -C $dir_config/
-fi
-
 echo -e "$COLINFO"
-if [ -e "$se4ad_config" ] ; then
- 	echo "$se4ad_config est bien present sur la machine - initialisation des paramètres"
-	source $se4ad_config 
+if [ -e "$se4fs_config" ] ; then
+ 	echo "$se4fs_config est bien present sur la machine - initialisation des paramètres"
+	source $se4fs_config 
 	echo -e "$COLTXT"
 else
-	echo "$se4ad_config ne se trouve pas sur la machine"
+	echo "$se4fs_config ne se trouve pas sur la machine"
 	echo -e "$COLTXT"
 	se4ad_ip="$(ifconfig eth0 | grep "inet " | awk '{ print $2}')"
 fi
@@ -492,14 +486,11 @@ dev_debug
 samba_packages="samba winbind libnss-winbind krb5-user smbclient"
 export DEBIAN_FRONTEND=noninteractive
 dir_config="/etc/sambaedu"
-dir_export="/etc/sambaedu/export_se4ad"
-se4ad_config="$dir_export/se4ad.config"
 nameserver=$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2)
-se3ldif="ldapse3.ldif"
-se4ad_config_tgz="se4ad.config.tgz"
+se4fs_config="$dir_config/se4fs.config"
 
 echo -e "$COLPARTIE"
-echo "Prise en compte des valeurs de $se4ad_config"
+echo "Prise en compte des valeurs de $se4fs_config"
 echo -e "$COLTXT"
 
 #### Variables suivantes init via Fichier de conf ####
