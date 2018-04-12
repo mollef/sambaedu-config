@@ -498,7 +498,7 @@ echo -e "$COLTXT"
 sleep 2
 }
 
-function apache_config()
+function write_apache_config()
 {
 echo -e "$COLINFO"
 echo "Mise en place de la conf apache pour le dossier diconf"
@@ -518,7 +518,7 @@ cat > /etc/apache2/conf.d/diconf <<END
 </Directory>
 END
 service apache2 restart
-
+echo -e "$COLTXT"
 }
 
 # copie des clés ssh présente sur le serveur principal sur le container
@@ -570,6 +570,28 @@ if [ "$preseed_se4fs" = "yes" ];then
     sed -e "s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE_SIZE_###/$varse_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
 fi
 }
+
+function write_late_command() {
+se4fs_late_command="$dir_preseed/se4fs_late_command.sh"
+echo -e "$COLINFO"
+echo "Mise en place du script $se4fs_late_command"
+echo -e "$COLCMD"
+
+cat > $se4fs_late_command <<END
+#!/bin/sh
+
+mkdir -p /target/etc/sambaedu
+cp se4ad.config.tgz authorized_keys /target/etc/sambaedu
+chmod +x ./install_se4fs_phase2.sh
+cp profile_se4fs /target/root/.profile
+cp .bashrc install_se4fs_phase2.sh /target/root/
+END
+if [ -e "$dir_preseed/$reservation_file" ];then 
+        echo "wget http://$se3ip/diconf/$reservation_file" >> $se4fs_late_command
+        echo "cp $reservation_file /target/etc/sambaedu" >> $se4fs_late_command
+fi
+}
+
 
 # verif somme MD5
 function check_md5() {
@@ -749,7 +771,7 @@ export_smb_files
 write_sambaedu_conf
 export_ldap_files
 cp_config_to_preseed
-apache_config
+write_apache_config
 write_ssh_keys
 write_preseed
 conf_tftp
