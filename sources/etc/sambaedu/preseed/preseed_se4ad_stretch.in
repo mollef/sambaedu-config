@@ -159,7 +159,7 @@ d-i partman-auto/expert_recipe string                         \
                       use_filesystem{ } filesystem{ ext4 }    \
                       mountpoint{ /var }                      \
               .                                               \
-              200% 16000 16000 linux-swap                     \
+              200% 200% 16000 linux-swap                     \
                       method{ swap } format{ }                \
               .
 
