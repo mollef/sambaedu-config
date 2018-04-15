@@ -1,4 +1,4 @@
-sambaedu-config (0.2~1) unstable; urgency=low
+sambaedu-config (0.2) unstable; urgency=low
 
   * Release who can generate SE4FS & SE4AD preseed.
 
