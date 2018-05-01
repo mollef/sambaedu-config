@@ -1,14 +1,14 @@
 #!/bin/bash
 #
-##### Permet la génération du preseed de se4-AD#####
+##### Permet la génération du preseed de se4-AD et se4-FS#####
 # franck molle
-# version 03 - 2018 
+# version 05 - 2018 
 
 
 
 function usage() 
 {
-echo "Script intéractif permettant la génération du preseed  se4-AD"
+echo "Script intéractif permettant la génération des preseed  se4-AD/se4-FS"
 }
 
 if [ "$1" = "--help" -o "$1" = "-h" ]
@@ -134,10 +134,10 @@ done
 }
 
 
-# Fonction de preconfig du container
+# Fonction de preconfig se4-AD
 function preconf_se4ad()
 {
-se4ad_lan_title="Configuration réseau du futur SE4-AD"
+se4ad_lan_title="Configuration du futur SE4-AD"
 
 REPONSE=""
 details="no"
@@ -148,6 +148,12 @@ se4ad_bcast="$se3bcast"
 se4ad_gw="$se3gw"
 while [ "$REPONSE" != "yes" ]
 do
+	se4ad_boot_disk_txt="** Nom du disque sur lequel le système sera installé **
+	
+Saisir l'unité de disque sur laquelle le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "$se4ad_boot_disk_txt" 13 70 $se4ad_ip 2>$tempfile || erreur "Annulation"
+	se4ad_boot_disk=$(cat $tempfile)
+	
 	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'IP du SE4-AD" 15 70 $se4ad_ip 2>$tempfile || erreur "Annulation"
 	se4ad_ip=$(cat $tempfile)
 	
@@ -285,17 +291,22 @@ echo -e "$COLTXT"
 
 function partman_se4fs()
 {
-se4fs_lan_title="Configuration du partitionnement du futur SE4-FS"
+se4fs_partman_title="Configuration du partitionnement du futur SE4-FS"
 
 REPONSE=""
 details="no"
 se4afs_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
 while [ "$REPONSE" != "yes" ]
 do
-    root_size_txt="** Taille de la partition racine **
-
+    se4fs_boot_disk_txt="** Nom du disque sur lequel le système sera installé **
+	
+Saisir l'unité de disque sur laquelle le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
+	root_size_txt="** Taille de la partition racine **
+$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$se4fs_boot_disk_txt" 13 70 "/dev/sda" 2>$tempfile || erreur "Annulation"
+    se4fs_boot_disk=$(cat $tempfile)
+	
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "$root_size_txt" 15 70 "4000 5000 6000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$root_size_txt" 15 70 "4000 5000 6000" 2>$tempfile || erreur "Annulation"
     root_size=$(cat $tempfile)
     root_mini="$(echo $root_size | cut -d" " -f1)"
     root_opt="$(echo $root_size | cut -d" " -f2)"
@@ -304,7 +315,7 @@ Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant le
     var_size_txt="** Taille de la partition /var **
 
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "$var_size_txt" 15 70 "10000 12000 15000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$var_size_txt" 15 70 "10000 12000 15000" 2>$tempfile || erreur "Annulation"
     var_size=$(cat $tempfile)
     var_mini="$(echo $var_size | cut -d" " -f1)"
     var_opt="$(echo $var_size | cut -d" " -f2)"
@@ -313,7 +324,7 @@ Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant le
     home_size_txt="** Taille de la partition /home **
 
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "$home_size_txt" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$home_size_txt" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
     home_size=$(cat $tempfile)
     home_mini="$(echo $home_size | cut -d" " -f1)"
     home_opt="$(echo $home_size | cut -d" " -f2)"
@@ -322,7 +333,7 @@ Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant le
     varse_size_txt="** Taille de la partition /var/sambaedu **
 
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "$varse_size_txt" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$varse_size_txt" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
     varse_size=$(cat $tempfile)
     varse_mini="$(echo $varse_size | cut -d" " -f1)"
     varse_opt="$(echo $varse_size | cut -d" " -f2)"
@@ -337,6 +348,7 @@ Partition /var : minimale $var_mini, optimale $var_opt, maximale $var_max
 Partition /home : minimale $home_mini, optimale $home_opt, maximale $home_max
 Partition /var/sambaedu : minimale $varse_mini, optimale $varse_opt, maximale $varse_max
 Partition swap : 200% de la ram ou 16Go  - valeurs non modifiables
+Disque utillié : $se4fs_boot_disk 
 
 Confirmer l'enregistrement de cette configuration ?"
 		
@@ -552,7 +564,7 @@ echo "Modification du preseed avec les données saisies"
 echo -e "$COLCMD"
 
 sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4ad_mask/g; s/###_SE4GW_###/$se4ad_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4ad_name/g" -i  $target_preseed
-sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
+sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g; s/###_BOOT_DISK_###/$se4ad_boot_disk/g" -i  $target_preseed 
 
 
 if [ "$preseed_se4fs" = "yes" ];then
@@ -567,7 +579,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo -e "$COLCMD"
     sed -e "s/###_SE4FS_IP_###/$se4fs_ip/g; s/###_SE4FS_MASK_###/$se4fs_mask/g; s/###_SE4FS_GW_###/$se4fs_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4FS_NAME_###/$se4fs_name/g" -i  $target_preseed
     sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
-    sed -e "s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE_SIZE_###/$varse_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
+    sed -e "s/###_BOOT_DISK_###/$se4fs_boot_disk/g; s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE_SIZE_###/$varse_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
 fi
 }
 
