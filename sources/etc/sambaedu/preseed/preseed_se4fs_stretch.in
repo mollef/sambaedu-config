@@ -115,7 +115,7 @@ d-i clock-setup/ntp-server string ###_NTP_SERV_###
 # - lvm       partitionnement LVM
 # - crypto    partitionnement LVM dans une partition cryptée
 # 2 lignes à commenter en double-boot, à décommenter en simple-boot
-d-i partman-auto/disk string /dev/sda
+d-i partman-auto/disk string ###_BOOT_DISK_###
 d-i partman-auto/method string regular
 
 # une partition /, une /var, une /home, une /var/sambaedu et un swap
@@ -186,7 +186,7 @@ popularity-contest popularity-contest/participate boolean true
 ### 9. Installation du programme d'amorçage GRUB
 d-i grub-installer/only_debian boolean true
 d-i grub-installer/with_other_os boolean true
-d-i grub-installer/bootdev string /dev/sda
+d-i grub-installer/bootdev string ###_BOOT_DISK_###
 
 ### 10. Exécution d'une commande avant la fin de l'installation
 # Cette commande est exécutée juste avant que l'installation ne se termine,
