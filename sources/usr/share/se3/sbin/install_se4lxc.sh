@@ -504,6 +504,11 @@ cp $tdb_smb_dir/wins.tdb $dir_export/
 cp $tdb_smb_dir/wins.dat $dir_export/
 
 cp /etc/samba/smb.conf $dir_export/
+echo -e "$COLINFO"
+echo "Remise en route de Samba"
+echo -e "$COLCMD"
+service samba start
+echo -e "$COLTXT"
 }
 
 # Fonction export des fichiers ldap conf, schémas propres à se3 et ldif
