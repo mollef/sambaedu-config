@@ -40,6 +40,17 @@ $dialog_box  --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOM
 }
 
 
+# Affichage de la partie actuelle
+function show_part()
+{
+echo -e "$COLTXT"
+echo -e "$COLPARTIE"
+echo "--------"
+echo "$1"
+echo "--------"
+echo -e "$COLTXT"
+# sleep 1
+}
 
 function erreur()
 {
@@ -405,10 +416,12 @@ echo "##NTP server " >> $se4ad_config
 echo "ntpserv=\"$ntpserv\"" >> $se4ad_config
 
 if [ "$preseed_se4fs" = "yes" ];then
-    echo "## Adresse IP du futur SE4-FS ##" > $se4fs_config
-    echo "se4fs_ip=\"$se4ad_ip\"" >> $se4fs_config
+    echo "## Adresse IP du futur SE4-AD ##" > $se4fs_config
+    echo "se4ad_ip=\"$se4ad_ip\"" >> $se4fs_config
+    echo "## Adresse IP du futur SE4-FS ##" >> $se4fs_config
+    echo "se4fs_ip=\"$se4fs_ip\"" >> $se4fs_config
     echo "## Nom du futur SE4-FS ##" >> $se4fs_config
-    echo "se4fs_name=\"$se4ad_name\"" >> $se4fs_config
+    echo "se4fs_name=\"$se4fs_name\"" >> $se4fs_config
     echo "## Nom de domaine samba du SE4-AD ##" >> $se4fs_config
     echo "smb4_domain=\"$smb4_domain\"" >>  $se4fs_config
     echo "## Suffixe du domaine##" >> $se4fs_config
@@ -469,6 +482,11 @@ cp $tdb_smb_dir/wins.tdb $dir_export/
 cp $tdb_smb_dir/wins.dat $dir_export/
 
 cp /etc/samba/smb.conf $dir_export/
+echo -e "$COLINFO"
+echo "Remise en route de Samba"
+echo -e "$COLCMD"
+service samba start
+echo -e "$COLTXT"
 }
 
 # Fonction export des fichiers ldap conf, schémas propres à se3 et ldif
@@ -746,11 +764,11 @@ COLTITRE="\033[1;35m"   # Rose
 COLPARTIE="\033[1;34m"  # Bleu
 
 COLTXT="\033[0;37m"     # Gris
-COLCHOIX="\033[1;33m"   # Jaune
+COLCHOIX="\033[1;33m\c"   # Jaune
 COLDEFAUT="\033[0;33m"  # Brun-jaune
 COLSAISIE="\033[1;32m"  # Vert
 
-COLCMD="\033[1;37m"     # Blanc
+COLCMD="\033[1;37m\c"     # Blanc
 
 COLERREUR="\033[1;31m"  # Rouge
 COLINFO="\033[0;36m"    # Cyan
