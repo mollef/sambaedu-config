@@ -161,8 +161,8 @@ while [ "$REPONSE" != "yes" ]
 do
 	se4ad_boot_disk_txt="** Nom du disque sur lequel le système sera installé **
 	
-Saisir l'unité de disque sur laquelle le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "$se4ad_boot_disk_txt" 13 70 $se4ad_ip 2>$tempfile || erreur "Annulation"
+Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "$se4ad_boot_disk_txt" 13 70 "/dev/sda" 2>$tempfile || erreur "Annulation"
 	se4ad_boot_disk=$(cat $tempfile)
 	
 	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'IP du SE4-AD" 15 70 $se4ad_ip 2>$tempfile || erreur "Annulation"
@@ -206,7 +206,9 @@ Note :
 	suffix_domain=$(echo "$ad_domain" | sed -n "s/$smb4_domain\.//p")
 	
 	confirm_title="Récapitulatif de la configuration prévue"
-	confirm_txt="IP :         $se4ad_ip
+	confirm_txt="Disque à utiliser : $se4ad_boot_disk
+	
+IP :         $se4ad_ip
 Masque :     $se4ad_mask
 Réseau :     $se4ad_network
 Broadcast :  $se4ad_bcast
@@ -220,7 +222,7 @@ Suffixe du domain :       $suffix_domain
 
 Confirmer l'enregistrement de cette configuration ?"
 		
-		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 20 60) then
+		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 23 60) then
 			REPONSE="yes"
 		else
 			REPONSE="no"
@@ -235,7 +237,7 @@ ask_preseed_se4fs()
 confirm_title="Générer un preseed pour le serveur se4-FS"
 confirm_txt="Faut-il également générer un fichier de préconfiguration preseed pour une installation automatique du serveur Samba Edu 4 - Serveur de fichiers (se4-FS) ?"
 	
-if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 15 70) then
+if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 12 70) then
     preseed_se4fs="yes"
 fi
 }
@@ -289,7 +291,7 @@ Nom :        $se4fs_name
 
 Confirmer l'enregistrement de cette configuration ?"
 		
-		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 20 60) then
+		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 18 60) then
 			REPONSE="yes"
 		else
 			REPONSE="no"
@@ -311,11 +313,13 @@ while [ "$REPONSE" != "yes" ]
 do
     se4fs_boot_disk_txt="** Nom du disque sur lequel le système sera installé **
 	
-Saisir l'unité de disque sur laquelle le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
-	root_size_txt="** Taille de la partition racine **
-$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$se4fs_boot_disk_txt" 13 70 "/dev/sda" 2>$tempfile || erreur "Annulation"
+Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$se4fs_boot_disk_txt" 13 70 "/dev/sda" 2>$tempfile || erreur "Annulation"
     se4fs_boot_disk=$(cat $tempfile)
 	
+    root_size_txt="** Taille de la partition racine **
+
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
     $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$root_size_txt" 15 70 "4000 5000 6000" 2>$tempfile || erreur "Annulation"
     root_size=$(cat $tempfile)
@@ -359,11 +363,13 @@ Partition /var : minimale $var_mini, optimale $var_opt, maximale $var_max
 Partition /home : minimale $home_mini, optimale $home_opt, maximale $home_max
 Partition /var/sambaedu : minimale $varse_mini, optimale $varse_opt, maximale $varse_max
 Partition swap : 200% de la ram ou 16Go  - valeurs non modifiables
-Disque utillié : $se4fs_boot_disk 
+
+Disque à utiliser : $se4fs_boot_disk 
+
 
 Confirmer l'enregistrement de cette configuration ?"
 		
-		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 20 75) then
+		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 20 80) then
 			REPONSE="yes"
 		else
 			REPONSE="no"
@@ -582,7 +588,7 @@ echo "Modification du preseed avec les données saisies"
 echo -e "$COLCMD"
 
 sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4ad_mask/g; s/###_SE4GW_###/$se4ad_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4ad_name/g" -i  $target_preseed
-sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g; s/###_BOOT_DISK_###/$se4ad_boot_disk/g" -i  $target_preseed 
+sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g; s|###_BOOT_DISK_###|$se4ad_boot_disk|g" -i  $target_preseed 
 
 
 if [ "$preseed_se4fs" = "yes" ];then
@@ -597,7 +603,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo -e "$COLCMD"
     sed -e "s/###_SE4FS_IP_###/$se4fs_ip/g; s/###_SE4FS_MASK_###/$se4fs_mask/g; s/###_SE4FS_GW_###/$se4fs_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4FS_NAME_###/$se4fs_name/g" -i  $target_preseed
     sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
-    sed -e "s/###_BOOT_DISK_###/$se4fs_boot_disk/g; s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE_SIZE_###/$varse_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
+    sed -e "s|###_BOOT_DISK_###|$se4fs_boot_disk|g; s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE_SIZE_###/$varse_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
 fi
 }
 
@@ -678,7 +684,7 @@ if [ "$testmd5" != "ko" ]; then
     if [ -z "$(grep "DebianStretch64se4ad" $tftp_menu)" ] ; then
         echo "Ajout du menu d'installation SE4-AD dans le menu TFTP"
         echo "LABEL DebianStretch64se4ad
-            MENU LABEL ^Netboot Debian stretch SE4-AD (amd64)
+            MENU LABEL Netboot Debian stretch SE4-^AD (amd64)
             KERNEL  debian-installer-stretch/amd64/linux
             APPEND  auto=true priority=critical preseed/url=http://$se3ip/diconf/se4ad.preseed initrd=debian-installer-stretch/amd64/initrd.gz --
             TEXT HELP
@@ -689,11 +695,11 @@ if [ "$testmd5" != "ko" ]; then
     if [ -z "$(grep "DebianStretch64se4fs" $tftp_menu)" -a "$preseed_se4fs" = "yes" ] ; then
         echo "Ajout du menu d'installation SE4-FS dans le menu TFTP"
         echo "LABEL DebianStretch64se4fs
-            MENU LABEL ^Netboot Debian stretch SE4-FS (amd64)
+            MENU LABEL Netboot Debian stretch SE4-^FS (amd64)
             KERNEL  debian-installer-stretch/amd64/linux
             APPEND  auto=true priority=critical preseed/url=http://$se3ip/diconf/se4fs.preseed initrd=debian-installer-stretch/amd64/initrd.gz --
             TEXT HELP
-            Installation auto de se4-AD sur Debian Stretch amd64 
+            Installation auto de se4-FS sur Debian Stretch amd64 
             ENDTEXT" >> $tftp_menu
         /usr/share/se3/scripts/se3_pxe_menu_ou_pas.sh menu
     fi
