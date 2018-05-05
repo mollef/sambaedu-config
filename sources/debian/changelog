@@ -1,3 +1,9 @@
+sambaedu-config (0.21) unstable; urgency=low
+
+  * take care of other device than sda like on xen server.
+
+ -- Franck Molle <franck.molle@sambaedu.org>  Thu, 08 Apr 2018 23:18:13 +0100
+
 sambaedu-config (0.2) unstable; urgency=low
 
   * Release who can generate SE4FS & SE4AD preseed.
