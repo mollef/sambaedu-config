@@ -1,5 +1,5 @@
 #!/bin/bash
-# installation Se4-AD phase 2
+# installation Se4-FS phase 2
 # version pour Stretch - franck molle
 # version 02 - 2018 
 
@@ -89,13 +89,15 @@ function gensourcese4()
 
 cat >/etc/apt/sources.list.d/se4.list <<END
 # sources pour se4
-deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4
+# temporairement on est sur SE4XP
+#deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4
 
 #### Sources testing seront desactivees en prod ####
-deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4testing
+#deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4testing
 
-
+deb [trusted=yes] http://wawadeb.crdp.ac-caen.fr/debian stretch se4XP 
 END
+apt-get -q update
 }
 
 # Fonction génération conf réseau
@@ -149,7 +151,7 @@ clear
 # 
 # echo -e "$COLTITRE"
 # echo "--------------------------------------------------------------------------------"
-# echo "----------- Installation de SambaEdu4-AD sur la machine.----------------"
+# echo "----------- Installation de SambaEdu4-FS sur la machine.----------------"
 # echo "--------------------------------------------------------------------------------"
 # echo -e "$COLTXT"
 # echo "Appuyez sur Entree pour continuer"
@@ -158,7 +160,7 @@ clear
 
 BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
 
-WELCOME_TITLE="Installeur de samba Edu 4 - serveur Active Directory"
+WELCOME_TITLE="Installeur de samba Edu 4 - serveur File System"
 WELCOME_TEXT="Bienvenue sur l'installation du serveur de fichiers SambaEdu 4.
 
 SambaEdu est un projet libre sous licence GPL vivant de la collaboration active des différents contributeurs issus de différentes académies
@@ -171,7 +173,7 @@ Franck.molle@sambaedu.org : Maintenance de l'installeur"
 dialog  --ok-label Ok --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOME_TEXT" 25 70
 #
 
-dialog --backtitle "$BACKTITLE" --title "Installeur de samba Edu 4 - serveur Active Directory" \
+dialog --backtitle "$BACKTITLE" --title "Installeur de samba Edu 4 - serveur File System" \
 --menu "Choisissez l'action à effectuer" 15 90 7  \
 "1" "Installation classique" \
 "2" "Téléchargement des paquets uniquement (utile pour préparer un modèle de VM)" \
@@ -251,7 +253,7 @@ if [ -e "$se4fs_config" ] ; then
 else
 	echo "$se4fs_config ne se trouve pas sur la machine"
 	echo -e "$COLTXT"
-	se4ad_ip="$(ifconfig eth0 | grep "inet " | awk '{ print $2}')"
+	se4fs_ip="$(ifconfig eth0 | grep "inet " | awk '{ print $2}')"
 fi
 }
 
@@ -382,7 +384,7 @@ fi
 }
 
 
-# Fonction permettant de se connecter ssh root sur se4-AD
+# Fonction permettant de se connecter ssh root sur se4-FS
 function Permit_ssh_by_password()
 {
 grep -q "^PermitRootLogin yes" /etc/ssh/sshd_config || echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
@@ -390,46 +392,7 @@ grep -q "^PermitRootLogin yes" /etc/ssh/sshd_config || echo "PermitRootLogin yes
 /usr/sbin/service ssh restart
 }
 
-# Fonction permettant de fixer le pass admin : Attention complexité requise
-function check_pass_admin()
-{
-TEST_PASS="none"
-cpt=1
-echo -e "$COLPARTIE"
-echo -e "Test de la connexion AD avec le mot de passe du compte Administrator"
-while [ "$TEST_PASS" != "OK" ]
-do
-	
-	
-	echo -e "$COLCMD"
-	echo -e "Entrez le mot de passe du compte Administrator AD pour le test de connexion" 
-	echo -e "$COLTXT"
-	read -r administrator_pass
-	smbclient -L $se4ad_ip -U Administrator%$administrator_pass
 
-	
-# 	echo -e "Test de connexion smbclient avec le nouveau mot de passe....\c$COLTXT"
-# 	sleep 5
-# # 	smbclient -L localhost -U Administrator%"$administrator_pass"  >/tmp/smbclient_cnx
-    if [ $? != 0 ]; then
-        echo -e "$COLERREUR"
-        let cpt++
-		if [ "$cpt" = 3 ];then
-			echo -e "3 Tentatives infructueuses - Abandon" 
-			echo -e "$COLTXT"
-			break
-		fi
-    else
-        TEST_PASS="OK"
-        echo -e "$COLINFO"
-        echo "Mot de passe Administrator correct :)"
-        sleep 1
-    fi
-    
-    
-done
-echo -e "$COLTXT"
-}
 
 # Fonction permettant de changer le pass root
 function change_pass_root()
@@ -494,11 +457,11 @@ echo "Prise en compte des valeurs de $se4fs_config"
 echo -e "$COLTXT"
 
 #### Variables suivantes init via Fichier de conf ####
-# ip du se4ad --> $se4ad_ip" 
-# Nom de domaine samba du SE4-AD --> $smb4_domain" 
+# ip du se4fs --> $se4fs_ip" 
+# Nom de domaine samba du SE4-FS --> $smb4_domain" 
 # Suffixe du domaine --> $suffix_domain" 
-# Nom de domaine complet - realm du SE4-AD --> $ad_domain" 
-# Adresse IP de l'annuaire LDAP à migrer en AD --> $se3ip" 
+# Nom de domaine complet - realm du SE4-FS --> $ad_domain" 
+# Adresse IP de l'annuaire LDAP à migrer en FS --> $se3ip" 
 # Nom du domaine samba actuel --> $se3_domain"  
 # Nom netbios du serveur se3 actuel--> $netbios_name" 
 # Adresse du serveur DNS --> $nameserver" 
@@ -562,7 +525,7 @@ sambadomaine_new="$smb4_domain_up"
 
 download_packages
 haveged
-ad_admin_pass=$(makepasswd --minchars=8)
+# ad_admin_pass=$(makepasswd --minchars=8)
 go_on
 
 dev_debug
@@ -582,46 +545,24 @@ export  DEBIAN_PRIORITY
 
 write_hostconf
 
-reset_smb_ad_conf
 installsamba
 Permit_ssh_by_password
 
-if [ -e "$dir_export/slapd.conf" ]; then 
-	install_slapd
-	clean_ldap
-	extract_ldifs
-	convert_smb_to_ad
-	write_krb5
-	write_smbconf
-	write_resolvconf
-	activate_smb_ad
-	modif_ldb
-	check_smb_ad
-	change_pass_admin
-	
-else
-	echo "$dir_export/slapd.conf non trouvé - L'installation se poursuivra sur un nouveau domaine sans import d'anciennes données"
-	go_on
-	provision_new_ad # Voir partie dns interne
-	write_smbconf
-	write_resolvconf
-	activate_smb_ad
-	check_smb_ad
-	write_krb5
-	
-fi
+echo "Génération des sources SE4"
+gensourcese4
 
-change_policy_passwords
 
 change_pass_root
 
 echo -e "$COLTITRE"
-echo "L'installation est terminée. Bonne utilisation de SambaEdu4-AD ! :)"
+# echo "L'installation est terminée. Bonne utilisation de SambaEdu4-FS ! :)"
+echo "L'installation de base SE4-FS stretch terminée :) - Vous pouvez poursuivre en installant les paquets se4 si votre AD est fonctionnel
+apt-get install sambaedu-web-common"
 echo -e "$COLTXT"
 
 # script_absolute_path=$(readlink -f "$0")
 # [ "$DEBUG" != "yes" ] &&  mv "$script_absolute_path" /root/install_phase2.done 
-[ -e /root/install_se4ad_phase2.sh ] && mv /root/install_se4ad_phase2.sh  /root/install_phase2.done
+[ -e /root/install_se4fs_phase2.sh ] && mv /root/install_se4fs_phase2.sh  /root/install_phase2.done
 . /etc/profile
 
 unset DEBIAN_FRONTEND
