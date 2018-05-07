@@ -441,7 +441,13 @@ if [ -n "$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn| sed -n
 	ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn| sed -n 's/^cn: //p' | while read cn_parcs
 	do
 	cat >> $dir_config/ad_parcs.ldif <<END	
-dn: CN=$cn_parcs,OU=Parcs,$ad_base_dn
+dn: OU=$cn_parcs,OU=Parcs,$ad_base_dn
+objectClass: top
+objectClass: organizationalUnit
+ou: $cn_parcs
+description: ensemble $cn_parcs
+
+dn: CN=$cn_parcs,OU=$cn_parcs,OU=Parcs,$ad_base_dn
 objectClass: group
 objectClass: top
 END
