@@ -3,6 +3,14 @@
 # version pour Stretch - franck.molle@sambaedu.org
 # version 02 - 2018 
 
+function erreur()
+{
+        echo -e "$COLERREUR"
+        echo "ERREUR!"
+        echo -e "$1"
+        echo -e "$COLTXT"
+        exit 1
+}
 
 # # Fonction permettant de quitter en cas d'erreur 
 function quit_on_choice()
@@ -99,30 +107,57 @@ END
 }
 
 # Fonction génération conf réseau
-gennetwork()
+gen_network()
 {
-echo "saisir l'ip de la machine"
-read NEW_SE3IP
-echo "saisir le masque"
-read NEW_NETMASK
-echo "saisir l'adresse du réseau"
-read NEW_NETWORK
-echo "saisir l'adresse de brodcast"
-read NEW_BROADCAST
-echo "saisir l'adresse de la passerrelle"
-read NEW_GATEWAY
+dialog_box="dialog"
+config_lan_title="Modification de la configuration réseau"	
+se4ad_ecard="$(ls /sys/class/net/ | grep -v lo | head -n 1)"
+se4ad_ip="$(ifconfig $se4ad_ecard | grep "inet " | awk '{ print $2}')"
+se4ad_mask="$(ifconfig $se4ad_ecard | grep "inet " | awk '{ print $4}')"
+se4ad_network="$(grep network $interfaces_file | grep -v "#" | sed -e "s/network//g" | tr "\t" " " | sed -e "s/ //g")"
+se4ad_bcast="$(grep broadcast $interfaces_file | grep -v "#" | sed -e "s/broadcast//g" | tr "\t" " " | sed -e "s/ //g")"
+se4ad_gw="$(grep gateway $interfaces_file | grep -v "#" | sed -e "s/gateway//g" | tr "\t" " " | sed -e "s/ //g")"
 
-echo -e "$COLINFO"
-echo "Vous vous apprêtez à modifier les paramètres suivants:"
-echo -e "IP:		$NEW_SE3IP"
-echo -e "Masque:		$NEW_NETMASK"
-echo -e "Réseau:		$NEW_NETWORK"
-echo -e "Broadcast:	$NEW_BROADCAST"
-echo -e "Passerelle:	$NEW_GATEWAY"
 
-go_on
+REPONSE=""
+while [ "$REPONSE" != "yes" ]
+do
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Confirmer le nom de la carte réseau à configurer" 15 70 $se4ad_ecard 2>$tempfile || erreur "Annulation"
+    se4ad_ecard=$(cat $tempfile)
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'IP du SE4-AD souhaitée" 15 70 $se4ad_ip 2>$tempfile || erreur "Annulation"
+    se4ad_ip=$(cat $tempfile)
 
-cat >/etc/network/interfaces <<END
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir le Masque sous réseau" 15 70 $se4ad_mask 2>$tempfile || erreur "Annulation"
+    se4ad_mask=$(cat $tempfile)
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 15 70 $se4ad_network 2>$tempfile || erreur "Annulation"
+    se4ad_network=$(cat $tempfile)
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de broadcast" 15 70 $se4ad_bcast 2>$tempfile || erreur "Annulation"
+    se4ad_bcast=$(cat $tempfile)
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 15 70 $se4ad_gw 2>$tempfile || erreur "Annulation"
+    se4ad_gw=$(cat $tempfile)
+
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse du serveur DNS" 15 70 $se4ad_gw 2>$tempfile || erreur "Annulation"
+    se4ad_dns=$(cat $tempfile)
+    
+    confirm_title="Nouvelle configuration réseau"
+    confirm_txt="La configuration sera la suivante 
+
+Carte réseau à configurer :   $se4ad_ecard    
+Adresse IP du serveur SE3 :   $se4ad_ip
+Adresse réseau de base :      $se4ad_network
+Adresse de Broadcast :        $se4ad_bcast
+Adresse IP de la Passerelle : $se4ad_gw
+Adresse IP du Serveur DNS   : $se4ad_dns
+	
+Poursuivre avec ces modifications ?"	
+	
+    if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 15 70) then
+        REPONSE="yes"
+        cat >/etc/network/interfaces <<END
 # /etc/network/interfaces -- configuration file for ifup(8), ifdown(8)
 
 # The loopback interface
@@ -131,14 +166,28 @@ iface lo inet loopback
 
 # The first network card - this entry was created during the Debian installation
 # (network, broadcast and gateway are optional)
-auto eth0
-iface eth0 inet static
-        address $NEW_SE3IP
-        netmask $NEW_NETMASK
-        network $NEW_NETWORK
-        broadcast $NEW_BROADCAST
-        gateway $NEW_GATEWAY
+auto $se4ad_ecard
+iface $se4ad_ecard inet static
+        address $se4ad_ip
+        netmask $se4ad_mask
+        network $se4ad_network
+        broadcast $se4ad_bcast
+        gateway $se4ad_gw
 END
+    sed "s/nameserver.*/nameserver $se4ad_dns/" -i /etc/resolv.conf
+    else
+            REPONSE="no"
+    fi
+done
+    confirm_title="Redémarrage nécessaire"
+    confirm_txt="La machine doit redémarrer afin de prendre en compte les nouveaux paramètres. Rédémarrer immédiatement ?"
+    if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 15 70) then
+        echo "reboot dans 5s"
+        sleep 5 && reboot
+    else
+        echo "Annulation du reboot - sortie du script"
+        exit 1
+    fi
 }
 
 # Fonction Affichage du titre et choix dy type d'installation
@@ -179,7 +228,7 @@ dialog --backtitle "$BACKTITLE" --title "Installeur de samba Edu 4 - serveur Act
 --menu "Choisissez l'action à effectuer" 15 90 7  \
 "1" "Installation classique" \
 "2" "Téléchargement des paquets uniquement (utile pour préparer un modèle de VM)" \
-"3" "Configuration du réseau uniquement (en cas de changement d'IP" \
+"3" "Configuration du réseau uniquement (en cas de changement d'IP)" \
 2>$tempfile
 
 choice=`cat $tempfile`
@@ -192,7 +241,7 @@ case $choice in
 		exit 0
         ;;
         3)
-        conf_network
+        gen_network
 		exit 0
         ;;
         *) exit 0
@@ -200,49 +249,6 @@ case $choice in
         esac
 }
 
-# Fonction test carte réseau
-function test_ecard()
-{
-ECARD=$(/sbin/ifconfig | grep eth | sort | head -n 1 | cut -d " " -f 1)
-if [ -z "$ECARD" ]; then
-  ECARD=$(/sbin/ifconfig -a | grep eth | sort | head -n 1 | cut -d " " -f 1)
-
-	if [ -z "$ECARD" ]; then
-		echo -e "$COLERREUR"
-		echo "Aucune carte réseau n'a été détectée."
-		echo "Il n'est pas souhaitable de poursuivre l'installation."
-		echo -e "$COLTXT"
-		echo -e "Voulez-vous ne pas tenir compte de cet avertissement (${COLCHOIX}1${COLTXL}),"
-		echo -e "ou préférez-vous interrompre le script d'installation (${COLCHOIX}2${COLTXL})"
-		echo -e "et corriger le problème avant de relancer ce script?"
-		REPONSE=""
-		while [ "$REPONSE" != "1" -a "$REPONSE" != "2" ]
-		do
-			echo -e "${COLTXL}Votre choix: [${COLDEFAUT}2${COLTXL}] ${COLSAISIE}\c"
-			read REPONSE
-	
-			if [ -z "$REPONSE" ]; then
-				REPONSE=2
-			fi
-		done
-		if [ "$REPONSE" = "2" ]; then
-			echo -e "$COLINFO"
-			echo "Pour résoudre ce problème, chargez le pilote approprié."
-			echo "ou alors complétez le fichier /etc/modules.conf avec une ligne du type:"
-			echo "   alias eth0 <nom_du_module>"
-			echo -e "Il conviendra ensuite de rebooter pour prendre en compte le changement\nou de charger le module pour cette 'session' par 'modprobe <nom_du_module>"
-			echo -e "Vous pourrez relancer ce script via la commande:\n   /var/cache/se3_install/install_se3.sh"
-			echo -e "$COLTXT"
-			exit 1
-		fi
-	else
-	cp /etc/network/interfaces /etc/network/interfaces.orig
-	sed -i "s/eth[0-9]/$ECARD/" /etc/network/interfaces
-	ifup $ECARD
-	fi
-
-fi
-}
 
 # Fonction recupératoin des paramètres via fichier de conf ou tgz
 function recup_params() {
@@ -261,7 +267,8 @@ if [ -e "$se4ad_config" ] ; then
 else
 	echo "$se4ad_config ne se trouve pas sur la machine"
 	echo -e "$COLTXT"
-	se4ad_ip="$(ifconfig eth0 | grep "inet " | awk '{ print $2}')"
+	se4ad_ecard="$(ls /sys/class/net/ | grep -v lo | head -n 1)"
+	se4ad_ip="$(ifconfig $se4ad_ecard | grep "inet " | awk '{ print $2}')"
 fi
 }
 
@@ -316,17 +323,6 @@ if [ "$download" = "yes" ] || [ ! -e /root/dl_ok ]; then
 	echo "Phase de Téléchargement terminée"
 	echo -e "$COLTXT"
 fi
-}
-
-function conf_network {
-echo -e "$COLINFO"
-echo "Mofification de l'adressage IP"
-echo -e "$COLTXT"
-gennetwork
-service networking restart
-echo "Modification Ok" 
-echo "Testez la connexion internet avant de relancer le script sans option afin de procéder à l'installation"
-exit 0
 }
 
 # Fonction installation et config de slapd afin d'importer l'ancien SE3 ldap
@@ -429,9 +425,10 @@ ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$c
 		echo "member: CN=$member_rights,CN=Users,$ad_base_dn" >> $dir_config/ad_rights.ldif
 	done
 	
-ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$cn_rights,ou=Rights,$ldap_base_dn member | sed -n 's/member: cn=//p' | cut -d "," -f1 | while read member_rights
+ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$cn_rights,ou=Rights,$ldap_base_dn member | sed -n 's/member: cn=//p' | cut -d "," -f1 | grep -v "^admin" | while read member_rights
 	do
-		echo "member: CN=$member_rights,OU=Groups,$ad_base_dn" >> $dir_config/ad_rights.ldif
+# 		echo "member: CN=$member_rights,OU=Groups,$ad_base_dn" >> $dir_config/ad_rights.ldif
+		echo "member: CN=$member_rights,CN=Users,$ad_base_dn" >> $dir_config/ad_rights.ldif
 	done
 echo ""	>> $dir_config/ad_rights.ldif
 done
@@ -657,6 +654,8 @@ echo "Ajout des branches de l'annuaire propres à SE4"
 echo -e "$COLCMD"
 ldbadd_ou "OU=Rights,$ad_base_dn" "Rights" "Branche des droits"
 ldbadd_ou "OU=Groups,$ad_base_dn" "Groups" "Branche des groupes"
+ldbadd_ou "OU=Cours,OU=Groups,$ad_base_dn" "Cours" "Branche des groupes cours"
+ldbadd_ou "OU=Administratifs,OU=Groups,$ad_base_dn" "Administratifs" "Branche des administratifs"
 ldbadd_ou "OU=Trash,$ad_base_dn" "Trash" "Branche de la corbeille"
 ldbadd_ou "OU=Parcs,$ad_base_dn" "Parcs" "Branche parcs"
 ldbadd_ou "OU=Printers,$ad_base_dn" "Printers" "Branche imprimantes"
@@ -675,24 +674,6 @@ echo -e "$COLCMD"
 ldbmodify -H /var/lib/samba/private/sam.ldb $dir_config/ad_computers.ldif
 
 echo -e "$COLINFO"
-echo "Déplacement des groupes dans la branche dédiée"
-echo -e "$COLCMD"
-# ldapsearch -xLLL -D $ad_bindDN -w $administrator_pass -b $ad_base_dn -H ldaps://sambaedu4.lan "(objectClass=group)" dn | grep "dn:" | while read dn
-ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=group)" dn | grep "dn:" | while read dn
-do
-	rdn="$(echo $dn | sed -e "s/dn: //" | cut -d "," -f1)"
-	rdn_classe="$(echo $rdn | sed -n "s/^CN=Classe_\|^CN=Equipe_//"p)"
-# 	rdn_equipe="$(echo $rdn | sed -n "s/^CN=Equipe_//"p)"
-	if [ -n "$rdn_classe" ];then
-		target_dn="OU=$rdn_classe,OU=Groups,$ad_base_dn"
-		ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$rdn_classe" "ensemble $rdn_classe"
-	else
-		target_dn="OU=Groups,$ad_base_dn"
-	fi
-	ldbmv_grp "$rdn,CN=users,$ad_base_dn" "$rdn" "$target_dn"
-done
-
-echo -e "$COLINFO"
 echo "Commplétion de la branche Rights"
 echo -e "$COLCMD"
 #~ ad_base_dn
@@ -701,6 +682,35 @@ echo -e "$COLCMD"
 ldbadd -H /var/lib/samba/private/sam.ldb $dir_config/ad_rights.ldif
 
 #~ set +x
+
+echo -e "$COLINFO"
+echo "Déplacement des groupes dans la branche dédiée"
+echo -e "$COLCMD"
+# ldapsearch -xLLL -D $ad_bindDN -w $administrator_pass -b $ad_base_dn -H ldaps://sambaedu4.lan "(objectClass=group)" dn | grep "dn:" | while read dn
+ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=group)" dn | grep "dn:" | while read dn
+do
+	rdn="$(echo $dn | sed -e "s/dn: //" | cut -d "," -f1)"
+	rdn_cours="$(echo $rdn | grep  "^CN=Cours")"
+	rdn_other="$(echo $rdn | grep  "^CN=Eleves\|^CN=Profs\|^CN=Equipe_\|^CN=Matiere_\|^CN=Administratifs\|^CN=Classe_\|^CN=overfill" | sed -n "s/^CN=//"p)"
+# 	rdn_eleves="$(echo $rdn | sed -n "s/^CN=Eleves//"p)"
+#  	rdn_profs="$(echo $rdn | sed -n "s/^CN=Profs//"p)"
+# 	rdn_classe="$(echo $rdn | sed -n "s/^CN=Classe_\|^CN=Equipe_//"p)"
+# 	rdn_equipe="$(echo $rdn | sed -n "s/^CN=Equipe_//"p)"
+# 	if [ -n "$rdn_classe" ];then
+	if [ -n "$rdn_cours" ];then
+# 		target_dn="OU=$rdn_classe,OU=Groups,$ad_base_dn"
+		target_dn="OU=Cours,OU=Groups,$ad_base_dn"
+# 		ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "Cours" "ensemble des groupes cours"
+	elif [ -n "$rdn_other" ];then
+		target_dn="OU=$rdn_other,OU=Groups,$ad_base_dn"
+		ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$rdn_other" "ensemble $rdn_other"
+        else
+                target_dn="OU=Groups,$ad_base_dn"
+	fi
+	ldbmv_grp "$rdn,CN=users,$ad_base_dn" "$rdn" "$target_dn"
+done
+
+
 }
 
 # Fonction permettant la mise à l'heure du serveur 
@@ -759,7 +769,6 @@ cat >/etc/samba/smb.conf <<END
 	workgroup = $smb4_domain_up
 	dns forwarder = $nameserver
 	server role = active directory domain controller
-	idmap_ldb:use rfc2307 = yes
 	
 [netlogon]
 	path = /var/lib/samba/sysvol/sambaedu4.lan/scripts
@@ -932,7 +941,7 @@ COLSAISIE="\033[1;32m"  # Vert
 ### Mode devel pour le moment sur on !###
 devel="yes"
 dev_debug
-
+interfaces_file="/etc/network/interfaces" 
 samba_packages="samba winbind libnss-winbind krb5-user smbclient"
 export DEBIAN_FRONTEND=noninteractive
 dir_config="/etc/sambaedu"

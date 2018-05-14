@@ -1,3 +1,9 @@
+sambaedu-config (0.22) unstable; urgency=low
+
+  * modif on change ip & AD groups.
+
+ -- Franck Molle <franck.molle@sambaedu.org>  Mon, 14 May 2018 02:01:10 +0100
+
 sambaedu-config (0.21) unstable; urgency=low
 
   * take care of other device than sda like on xen server.
