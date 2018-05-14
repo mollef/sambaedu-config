@@ -664,17 +664,17 @@ sleep 2
 
 
 echo -e "$COLINFO"
-echo "Commplétion de la branche Parcs"
+echo "Complétion de la branche Parcs"
 echo -e "$COLCMD"
 ldbadd -H /var/lib/samba/private/sam.ldb $dir_config/ad_parcs.ldif
 
 echo -e "$COLINFO"
-echo "Commplétion de la branche Computers"
+echo "Complétion de la branche Computers"
 echo -e "$COLCMD"
 ldbmodify -H /var/lib/samba/private/sam.ldb $dir_config/ad_computers.ldif
 
 echo -e "$COLINFO"
-echo "Commplétion de la branche Rights"
+echo "Complétion de la branche Rights"
 echo -e "$COLCMD"
 #~ ad_base_dn
 
@@ -684,7 +684,7 @@ ldbadd -H /var/lib/samba/private/sam.ldb $dir_config/ad_rights.ldif
 #~ set +x
 
 echo -e "$COLINFO"
-echo "Déplacement des groupes dans la branche dédiée"
+echo "Déplacement des groupes dans sa branche dédiée - Patience !"
 echo -e "$COLCMD"
 # ldapsearch -xLLL -D $ad_bindDN -w $administrator_pass -b $ad_base_dn -H ldaps://sambaedu4.lan "(objectClass=group)" dn | grep "dn:" | while read dn
 ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=group)" dn | grep "dn:" | while read dn
@@ -692,11 +692,7 @@ do
 	rdn="$(echo $dn | sed -e "s/dn: //" | cut -d "," -f1)"
 	rdn_cours="$(echo $rdn | grep  "^CN=Cours")"
 	rdn_other="$(echo $rdn | grep  "^CN=Eleves\|^CN=Profs\|^CN=Equipe_\|^CN=Matiere_\|^CN=Administratifs\|^CN=Classe_\|^CN=overfill" | sed -n "s/^CN=//"p)"
-# 	rdn_eleves="$(echo $rdn | sed -n "s/^CN=Eleves//"p)"
-#  	rdn_profs="$(echo $rdn | sed -n "s/^CN=Profs//"p)"
-# 	rdn_classe="$(echo $rdn | sed -n "s/^CN=Classe_\|^CN=Equipe_//"p)"
-# 	rdn_equipe="$(echo $rdn | sed -n "s/^CN=Equipe_//"p)"
-# 	if [ -n "$rdn_classe" ];then
+
 	if [ -n "$rdn_cours" ];then
 # 		target_dn="OU=$rdn_classe,OU=Groups,$ad_base_dn"
 		target_dn="OU=Cours,OU=Groups,$ad_base_dn"
