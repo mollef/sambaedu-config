@@ -1,3 +1,9 @@
+sambaedu-config (0.23~1) unstable; urgency=low
+
+  * transfert of sambaedu.conf between se3 and se4fs.
+
+ -- Franck Molle <franck.molle@sambaedu.org>  Mon, 18 May 2018 13:14:10 +0100
+
 sambaedu-config (0.22.1) unstable; urgency=low
 
   * Bug correction on preseed generation.

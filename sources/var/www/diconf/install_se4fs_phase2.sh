@@ -450,7 +450,7 @@ samba_packages="samba winbind libnss-winbind krb5-user smbclient"
 export DEBIAN_FRONTEND=noninteractive
 dir_config="/etc/sambaedu"
 nameserver=$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2)
-se4fs_config="$dir_config/se4fs.config"
+se4fs_config="$dir_config/sambaedu.conf"
 
 echo -e "$COLPARTIE"
 echo "Prise en compte des valeurs de $se4fs_config"

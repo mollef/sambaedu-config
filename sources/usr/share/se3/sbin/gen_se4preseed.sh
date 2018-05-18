@@ -424,22 +424,22 @@ echo "ntpserv=\"$ntpserv\"" >> $se4ad_config
 if [ "$preseed_se4fs" = "yes" ];then
     echo "## Adresse IP du futur SE4-AD ##" > $se4fs_config
     echo "se4ad_ip=\"$se4ad_ip\"" >> $se4fs_config
+    echo "## Nom du SE4-AD ##" >> $se4fs_config
+    echo "se4ad_name=\"$se4ad_name\"" >> $se4fs_config
     echo "## Adresse IP du futur SE4-FS ##" >> $se4fs_config
     echo "se4fs_ip=\"$se4fs_ip\"" >> $se4fs_config
     echo "## Nom du futur SE4-FS ##" >> $se4fs_config
     echo "se4fs_name=\"$se4fs_name\"" >> $se4fs_config
-    echo "## Nom de domaine samba du SE4-AD ##" >> $se4fs_config
-    echo "smb4_domain=\"$smb4_domain\"" >>  $se4fs_config
-    echo "## Suffixe du domaine##" >> $se4fs_config
-    echo "suffix_domain=\"$suffix_domain\"" >>  $se4fs_config
-    echo "## Nom de domaine complet - realm du SE4-AD ##" >> $se4fs_config
-    echo "ad_domain=\"$ad_domain\"" >> $se4fs_config
+    echo "## Nom de domaine samba ##" >> $se4fs_config
+    echo "samba_domain=\"$smb4_domain\"" >>  $se4fs_config
+    echo "## Nom de domaine complet ##" >> $se4fs_config
+    echo "domain=\"$ad_domain\"" >> $se4fs_config
     echo "##Adresse du serveur DNS##" >> $se4fs_config
     echo "nameserver=\"$nameserver\"" >> $se4fs_config
-    echo "##SID domaine actuel" >> $se4fs_config
-    echo "domainsid=\"$domainsid\"" >> $se4fs_config
-    echo "##NTP server " >> $se4fs_config
-    echo "ntpserv=\"$ntpserv\"" >> $se4fs_config
+    echo "## Nom administrateur AD##" >> $se4fs_config
+    echo "admin_name=\"Administrator\"" >> $se4fs_config
+    echo "ldap_admin_name=\"Administrator\"" >> $se4fs_config
+    
 fi
 
 
@@ -451,6 +451,9 @@ function export_dhcp()
 dhcpd_conf="/etc/dhcp/dhcpd.conf"
 reservation_file="$dir_config/reservations.conf"
 if [ -e "$dhcpd_conf" ];then 
+    echo -e "$COLINFO"
+    echo "Analyse de la configuration DHCP et export des réservations si besoin"
+    echo -e "$COLTXT"
     cat "$dhcpd_conf" | while read line
     do
         if [ -n "$(echo "$line" | grep "^host")" ] || [ "$temoin" = "yes" ];then
@@ -551,6 +554,8 @@ cat > /etc/apache2/conf.d/diconf <<END
 	AllowOverride All
 	deny from all
 	Allow from $se4ad_ip
+	Allow from $se4fs_ip
+	
 </Directory>
 END
 service apache2 restart
@@ -561,6 +566,8 @@ echo -e "$COLTXT"
 function write_ssh_keys
 {
 ssh_keys_host="/root/.ssh/authorized_keys"
+rm -f $dir_config/id_rsa_se4fs*
+ssh-keygen -t rsa -N "" -f $dir_config/id_rsa_se4fs -q
 
 if [ -e "$ssh_keys_host" ];then
     echo -e "$COLINFO"
@@ -571,6 +578,10 @@ else
     touch $dir_preseed/authorized_keys
 fi
 chmod 644 $dir_preseed/authorized_keys
+cat $dir_config/id_rsa_se4fs.pub >> $dir_preseed/authorized_keys
+
+cp $dir_config/id_rsa_se4fs $dir_preseed/secret/
+chmod 644 $dir_preseed/secret/id_rsa_se4fs
 }
 
 # Génération du preseed avec les données saisies
@@ -620,8 +631,13 @@ wget http://$se3ip/diconf/install_se4fs_phase2.sh
 wget http://$se3ip/diconf/profile_se4fs
 wget http://$se3ip/diconf/.bashrc
 wget http://$se3ip/diconf/authorized_keys
+wget http://$se3ip/diconf/sambaedu.conf
+wget http://$se3ip/diconf/secret/id_rsa_se4fs 
 mkdir -p /target/etc/sambaedu
-cp authorized_keys /target/etc/sambaedu/
+cp sambaedu.conf /target/etc/sambaedu/
+mkdir -p /target/root/.ssh/
+cp id_rsa_se4fs authorized_keys /target/root/.ssh/
+chmod 400 /target/root/.ssh/id_rsa_se4fs
 chmod +x ./install_se4fs_phase2.sh
 cp profile_se4fs /target/root/.profile
 cp .bashrc install_se4fs_phase2.sh /target/root/
@@ -800,7 +816,7 @@ dir_export="/etc/sambaedu/export_se4ad"
 mkdir -p "$dir_export"
 dir_preseed="/var/www/diconf"
 se4ad_config="$dir_export/se4ad.config"
-se4fs_config="$dir_config/se4fs.config"
+se4fs_config="$dir_config/sambaedu.conf"
 script_phase2="install_se4ad_phase2.sh"
 nameserver="$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2| head -n 1)"
 se4ad_config_tgz="se4ad.config.tgz"
