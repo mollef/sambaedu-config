@@ -449,8 +449,8 @@ chmod +x $se4fs_config
 function export_dhcp()
 {
 dhcpd_conf="/etc/dhcp/dhcpd.conf"
+reservation_file="$dir_config/reservations.conf"
 if [ -e "$dhcpd_conf" ];then 
-    reservation_file="$dir_config/reservations.conf"
     cat "$dhcpd_conf" | while read line
     do
         if [ -n "$(echo "$line" | grep "^host")" ] || [ "$temoin" = "yes" ];then
@@ -569,8 +569,8 @@ if [ -e "$ssh_keys_host" ];then
     echo -e "$COLCMD"
 else
     touch $dir_preseed/authorized_keys
-    chmod 600 $dir_preseed/authorized_keys
 fi
+chmod 644 $dir_preseed/authorized_keys
 }
 
 # Génération du preseed avec les données saisies
@@ -613,11 +613,15 @@ echo -e "$COLINFO"
 echo "Mise en place du script $se4fs_late_command"
 echo -e "$COLCMD"
 
+
 cat > $se4fs_late_command <<END
 #!/bin/sh
-
+wget http://$se3ip/diconf/install_se4fs_phase2.sh
+wget http://$se3ip/diconf/profile_se4fs
+wget http://$se3ip/diconf/.bashrc
+wget http://$se3ip/diconf/authorized_keys
 mkdir -p /target/etc/sambaedu
-cp se4ad.config.tgz authorized_keys /target/etc/sambaedu
+cp authorized_keys /target/etc/sambaedu/
 chmod +x ./install_se4fs_phase2.sh
 cp profile_se4fs /target/root/.profile
 cp .bashrc install_se4fs_phase2.sh /target/root/

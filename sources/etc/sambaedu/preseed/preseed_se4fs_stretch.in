@@ -193,11 +193,7 @@ d-i grub-installer/bootdev string ###_BOOT_DISK_###
 # quand le répertoire /target est encore utilisable.
 # Le script nstall_se4fs_phase2.sh sera lancé au 1er redémarrage de la machine une fois connecté root
 
-d-i preseed/late_command string wget http://###_IP_SE3_###/diconf/install_se4fs_phase2.sh; \
-wget http://###_IP_SE3_###/diconf/profile_se4fs; \
-wget http://###_IP_SE3_###/diconf/.bashrc; \
-wget http://###_IP_SE3_###/diconf/authorized_keys; \
-wget http://###_IP_SE3_###/diconf/se4fs_late_command.sh; \
+d-i preseed/late_command string wget http://###_IP_SE3_###/diconf/se4fs_late_command.sh; \
 chmod +x ./se4fs_late_command.sh; \
 ./se4fs_late_command.sh
 

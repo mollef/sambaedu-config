@@ -1,3 +1,9 @@
+sambaedu-config (0.22.1) unstable; urgency=low
+
+  * Bug correction on preseed generation.
+
+ -- Franck Molle <franck.molle@sambaedu.org>  Mon, 18 May 2018 13:14:10 +0100
+
 sambaedu-config (0.22) unstable; urgency=low
 
   * modif on change ip & AD groups.
