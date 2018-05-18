@@ -57,12 +57,8 @@ Il sera ensuite possible, en utilisant ce fichier ``preseed``, d'installer le se
 Les détails du fonctionnement de cette possibilité sont indiqués `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/doc-installation/gen-preseed-se4AD.rst#génération-dun-preseed-et-installation-automatique-dun-serveur-se4-ad>`__
 
 
-Roadmap - todolist
-==================
+Roadmap - feuille de route
+==========================
 
-* Écriture du script d'installation de la machine ``LXC`` - **fait !**
-* Écriture du script de génération du fichier ``preseed`` - **fait !**
-* Packaging de l'ensemble dans le paquet ``sambaedu-config`` - **fait !**
-* Écriture de script de vérification du bon état de l'``AD`` - en cours !
-* Écriture du script de migration ``Se3`` → ``Se4-FileSystem`` sous Stretch - en cours !  
+Voir la `roadmap du dépôt principal SE4 <https://github.com/SambaEdu/se4/blob/master/README.rst#roadmap>`__
 
