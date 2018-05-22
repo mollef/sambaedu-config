@@ -106,11 +106,50 @@ deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4testing
 END
 }
 
+
+# Fonction recupératoin des paramètres via fichier de conf ou tgz
+function recup_params() {
+
+if [ -e "/root/$se4ad_config_tgz" ]; then
+	tar -xzf /root/$se4ad_config_tgz -C /etc/
+elif [ -e "$dir_config/$se4ad_config_tgz" ] ;then
+	tar -xzf $dir_config/$se4ad_config_tgz -C $dir_config/
+fi
+
+echo -e "$COLINFO"
+if [ -e "$se4ad_config" ] ; then
+ 	echo "$se4ad_config est bien present sur la machine - initialisation des paramètres"
+	source $se4ad_config 
+	echo -e "$COLTXT"
+else
+	echo "$se4ad_config ne se trouve pas sur la machine"
+	echo -e "$COLTXT"
+	se4ad_ecard="$(ls /sys/class/net/ | grep -v lo | head -n 1)"
+	se4ad_ip="$(ifconfig $se4ad_ecard | grep "inet " | awk '{ print $2}')"
+fi
+}
+
+# Fonction génération des fichiers /etc/hosts et /etc/hostname
+function write_hostconf()
+{
+cat >/etc/hosts <<END
+127.0.0.1	localhost
+::1	localhost ip6-localhost ip6-loopback
+ff02::1	ip6-allnodes
+ff02::2	ip6-allrouters
+$se4ad_ip	$se4ad_name.$ad_domain	$se4ad_name
+END
+
+cat >/etc/hostname <<END
+$se4ad_name
+END
+}
+
 # Fonction génération conf réseau
 gen_network()
 {
 dialog_box="dialog"
-config_lan_title="Modification de la configuration réseau"	
+se4ad_lan_title="Modification de la configuration réseau"	
 se4ad_ecard="$(ls /sys/class/net/ | grep -v lo | head -n 1)"
 se4ad_ip="$(ifconfig $se4ad_ecard | grep "inet " | awk '{ print $2}')"
 se4ad_mask="$(ifconfig $se4ad_ecard | grep "inet " | awk '{ print $4}')"
@@ -174,7 +213,14 @@ iface $se4ad_ecard inet static
         broadcast $se4ad_bcast
         gateway $se4ad_gw
 END
-    sed "s/nameserver.*/nameserver $se4ad_dns/" -i /etc/resolv.conf
+        sed "s/nameserver.*/nameserver $se4ad_dns/" -i /etc/resolv.conf
+    
+        sed "s/se4ad_ip=.*/se4ad_ip=\"$se4ad_ip\"/" -i $se4ad_config
+        ### Refaire l'archive !
+        cd $dir_config
+        tar -czf $se4ad_config_tgz export_se4ad
+        cd -
+        write_hostconf
     else
             REPONSE="no"
     fi
@@ -249,29 +295,6 @@ case $choice in
         esac
 }
 
-
-# Fonction recupératoin des paramètres via fichier de conf ou tgz
-function recup_params() {
-
-if [ -e "/root/$se4ad_config_tgz" ]; then
-	tar -xzf /root/$se4ad_config_tgz -C /etc/
-elif [ -e "$dir_config/$se4ad_config_tgz" ] ;then
-	tar -xzf $dir_config/$se4ad_config_tgz -C $dir_config/
-fi
-
-echo -e "$COLINFO"
-if [ -e "$se4ad_config" ] ; then
- 	echo "$se4ad_config est bien present sur la machine - initialisation des paramètres"
-	source $se4ad_config 
-	echo -e "$COLTXT"
-else
-	echo "$se4ad_config ne se trouve pas sur la machine"
-	echo -e "$COLTXT"
-	se4ad_ecard="$(ls /sys/class/net/ | grep -v lo | head -n 1)"
-	se4ad_ip="$(ifconfig $se4ad_ecard | grep "inet " | awk '{ print $2}')"
-fi
-}
-
 # Fonction installation des paquets de base
 function installbase()
 {
@@ -287,22 +310,6 @@ echo "installation ntpdate, vim, etc..."
 echo -e "$COLTXT"
 prim_packages="ssh ntpdate vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged"
 apt-get install --quiet --assume-yes $prim_packages
-}
-
-# Fonction génération des fichiers /etc/hosts et /etc/hostname
-function write_hostconf()
-{
-cat >/etc/hosts <<END
-127.0.0.1	localhost
-::1	localhost ip6-localhost ip6-loopback
-ff02::1	ip6-allnodes
-ff02::2	ip6-allrouters
-$se4ad_ip	$se4ad_name.$ad_domain	$se4ad_name
-END
-
-cat >/etc/hostname <<END
-$se4ad_name
-END
 }
 
 function download_packages() { 
@@ -646,8 +653,15 @@ ad_base_dn="$(ldbsearch -H /var/lib/samba/private/sam.ldb -s base -b "" defaultN
 ad_bindDN="CN=Administrator,CN=users,$ad_base_dn"
 echo "Base Dn trouvée : $ad_base_dn"
 
+se4fs_config="/root/se4fs.conf"
+echo "## ad_base_dn ##" > $se4fs_config
+echo "ldap_base_dn=\"$ad_base_dn\"" >> $se4fs_config
+
 echo "Modification des exports ldif pour insertion de la base dn AD"
 sed "s/##ad_base_dn##/$ad_base_dn/g" -i $dir_config/*.ldif
+
+
+ldap_base_dn="dc=sambaedu3,dc=maison" ldap_admin_name="Administrator" ldap_admin_passwd="wwwwwww"
 
 echo -e "$COLINFO"
 echo "Ajout des branches de l'annuaire propres à SE4"
@@ -878,6 +892,9 @@ do
         TEST_PASS="OK"
         echo -e "$COLINFO"
         echo "Mot de passe Administrator changé avec succès :)"
+        echo "## ldap_admin_passwd ##" >> $se4fs_config
+        echo "ldap_admin_passwd=\"$administrator_pass\"" >> $se4fs_config
+
         sleep 1
     fi
     
@@ -885,6 +902,14 @@ do
 done
 echo -e "$COLTXT"
 }
+
+function create_www-sambaedu()
+{
+samba-tool user create www-sambaedu --description="Utilisateur admin de l'interface web" --random-password 
+samba-tool group addmembers "Domain Admins" www-sambaedu
+samba-tool domain exportkeytab --principal=www-sambaedu@$ad_domain_up /root/www-sambaedu.keytab
+}
+
 
 # Fonction permettant de changer le pass root
 function change_pass_root()
@@ -978,7 +1003,7 @@ while :; do
 		;;
 		
 		-n|--network)
-		conf_network
+		gen_network
 		exit 0
 		;;
 		
@@ -1001,10 +1026,7 @@ while :; do
  		shift
 done
 
-show_title
 recup_params
-
-
 
 # A voir pour modifier ou récupérer depuis sambaedu.config 
 [ -z "$smb4_domain" ] && smb4_domain="sambaedu4"
@@ -1017,6 +1039,9 @@ suffix_domain_up="$(echo "$suffix_domain" | tr [:lower:] [:upper:])"
 ad_domain_up="$(echo "$ad_domain" | tr [:lower:] [:upper:])"
 sambadomaine_old="$(echo $se3_domain| tr [:lower:] [:upper:])"
 sambadomaine_new="$smb4_domain_up"
+
+
+show_title
 
 download_packages
 haveged
@@ -1071,6 +1096,7 @@ fi
 
 change_policy_passwords
 
+create_www-sambaedu
 change_pass_root
 
 echo -e "$COLTITRE"

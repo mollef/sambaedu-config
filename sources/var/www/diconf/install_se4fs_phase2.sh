@@ -101,30 +101,58 @@ apt-get -q update
 }
 
 # Fonction génération conf réseau
-gennetwork()
+gen_network()
 {
-echo "saisir l'ip de la machine"
-read NEW_SE3IP
-echo "saisir le masque"
-read NEW_NETMASK
-echo "saisir l'adresse du réseau"
-read NEW_NETWORK
-echo "saisir l'adresse de brodcast"
-read NEW_BROADCAST
-echo "saisir l'adresse de la passerrelle"
-read NEW_GATEWAY
 
-echo -e "$COLINFO"
-echo "Vous vous apprêtez à modifier les paramètres suivants:"
-echo -e "IP:		$NEW_SE3IP"
-echo -e "Masque:		$NEW_NETMASK"
-echo -e "Réseau:		$NEW_NETWORK"
-echo -e "Broadcast:	$NEW_BROADCAST"
-echo -e "Passerelle:	$NEW_GATEWAY"
+dialog_box="dialog"
+se4fs_lan_title="Modification de la configuration réseau"	
+se4fs_ecard="$(ls /sys/class/net/ | grep -v lo | head -n 1)"
+se4fs_ip="$(ifconfig $se4fs_ecard | grep "inet " | awk '{ print $2}')"
+se4fs_mask="$(ifconfig $se4fs_ecard | grep "inet " | awk '{ print $4}')"
+se4fs_network="$(grep network $interfaces_file | grep -v "#" | sed -e "s/network//g" | tr "\t" " " | sed -e "s/ //g")"
+se4fs_bcast="$(grep broadcast $interfaces_file | grep -v "#" | sed -e "s/broadcast//g" | tr "\t" " " | sed -e "s/ //g")"
+se4fs_gw="$(grep gateway $interfaces_file | grep -v "#" | sed -e "s/gateway//g" | tr "\t" " " | sed -e "s/ //g")"
 
-go_on
 
-cat >/etc/network/interfaces <<END
+REPONSE=""
+while [ "$REPONSE" != "yes" ]
+do
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Confirmer le nom de la carte réseau à configurer" 15 70 $se4fs_ecard 2>$tempfile || erreur "Annulation"
+    se4fs_ecard=$(cat $tempfile)
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'IP du SE4-AD souhaitée" 15 70 $se4fs_ip 2>$tempfile || erreur "Annulation"
+    se4fs_ip=$(cat $tempfile)
+
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir le Masque sous réseau" 15 70 $se4fs_mask 2>$tempfile || erreur "Annulation"
+    se4fs_mask=$(cat $tempfile)
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 15 70 $se4fs_network 2>$tempfile || erreur "Annulation"
+    se4fs_network=$(cat $tempfile)
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de broadcast" 15 70 $se4fs_bcast 2>$tempfile || erreur "Annulation"
+    se4fs_bcast=$(cat $tempfile)
+    
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 15 70 $se4fs_gw 2>$tempfile || erreur "Annulation"
+    se4fs_gw=$(cat $tempfile)
+
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse du serveur DNS" 15 70 $se4fs_gw 2>$tempfile || erreur "Annulation"
+    se4fs_dns=$(cat $tempfile)
+    
+    confirm_title="Nouvelle configuration réseau"
+    confirm_txt="La configuration sera la suivante 
+
+Carte réseau à configurer :   $se4fs_ecard    
+Adresse IP du serveur SE3 :   $se4fs_ip
+Adresse réseau de base :      $se4fs_network
+Adresse de Broadcast :        $se4fs_bcast
+Adresse IP de la Passerelle : $se4fs_gw
+Adresse IP du Serveur DNS   : $se4fs_dns
+	
+Poursuivre avec ces modifications ?"	
+	
+    if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 15 70) then
+        REPONSE="yes"
+        cat >/etc/network/interfaces <<END
 # /etc/network/interfaces -- configuration file for ifup(8), ifdown(8)
 
 # The loopback interface
@@ -133,14 +161,29 @@ iface lo inet loopback
 
 # The first network card - this entry was created during the Debian installation
 # (network, broadcast and gateway are optional)
-auto eth0
-iface eth0 inet static
-        address $NEW_SE3IP
-        netmask $NEW_NETMASK
-        network $NEW_NETWORK
-        broadcast $NEW_BROADCAST
-        gateway $NEW_GATEWAY
+auto $se4fs_ecard
+iface $se4fs_ecard inet static
+        address $se4fs_ip
+        netmask $se4fs_mask
+        network $se4fs_network
+        broadcast $se4fs_bcast
+        gateway $se4fs_gw
 END
+    sed "s/nameserver.*/nameserver $se4fs_dns/" -i /etc/resolv.conf
+    
+    else
+            REPONSE="no"
+    fi
+done
+    confirm_title="Redémarrage nécessaire"
+    confirm_txt="La machine doit redémarrer afin de prendre en compte les nouveaux paramètres. Rédémarrer immédiatement ?"
+    if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 15 70) then
+        echo "reboot dans 5s"
+        sleep 5 && reboot
+    else
+        echo "Annulation du reboot - sortie du script"
+        exit 1
+    fi
 }
 
 # Fonction Affichage du titre et choix dy type d'installation
@@ -314,7 +357,7 @@ function conf_network {
 echo -e "$COLINFO"
 echo "Mofification de l'adressage IP"
 echo -e "$COLTXT"
-gennetwork
+gen_network
 service networking restart
 echo "Modification Ok" 
 echo "Testez la connexion internet avant de relancer le script sans option afin de procéder à l'installation"
@@ -337,16 +380,6 @@ echo -e "$COLTXT"
 
 }
 
-# Fonction génération du fichier /etc/krb5.conf On peut aussi copier celui de /var/lib/samba
-function write_krb5()
-{
-cat > /etc/krb5.conf <<END
-[libdefaults]
- dns_lookup_realm = false
- dns_lookup_kdc = true
- default_realm = $ad_domain_up
-END
-}
 
 # Fonction permettant la mise à l'heure du serveur 
 function set_time()
