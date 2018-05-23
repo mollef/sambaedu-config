@@ -199,11 +199,11 @@ Note :
 * le domaine samba ne doit en aucun cas dépasser 15 caractères
 * Les domaines du type sambaedu.lan ou etab.local sont déconseillés en production par l'équipe samba"
 
-	ad_domain="$(hostname -d)"
-	$dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 20 80 $ad_domain 2>$tempfile
-	ad_domain="$(cat $tempfile)"		
-	smb4_domain=$(echo "$ad_domain" | cut -d"." -f1)
-	suffix_domain=$(echo "$ad_domain" | sed -n "s/$smb4_domain\.//p")
+	domain="$(hostname -d)"
+	$dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 20 80 $domain 2>$tempfile
+	domain="$(cat $tempfile)"		
+	samba_domain=$(echo "$domain" | cut -d"." -f1)
+	suffix_domain=$(echo "$domain" | sed -n "s/$samba_domain\.//p")
 	
 	confirm_title="Récapitulatif de la configuration prévue"
 	confirm_txt="Disque à utiliser : $se4ad_boot_disk
@@ -216,8 +216,8 @@ Passerelle : $se4ad_gw
 
 Nom :        $se4ad_name
 
-Nom de domaine AD saisi : $ad_domain
-Nom de domaine samba :    $smb4_domain
+Nom de domaine AD saisi : $domain
+Nom de domaine samba :    $samba_domain
 Suffixe du domain :       $suffix_domain
 
 Confirmer l'enregistrement de cette configuration ?"
@@ -397,11 +397,11 @@ echo "se4ad_ip=\"$se4ad_ip\"" >> $se4ad_config
 echo "## Nom du futur SE4-AD ##" >> $se4ad_config
 echo "se4ad_name=\"$se4ad_name\"" >> $se4ad_config
 echo "## Nom de domaine samba du SE4-AD ##" >> $se4ad_config
-echo "smb4_domain=\"$smb4_domain\"" >>  $se4ad_config
+echo "samba_domain=\"$samba_domain\"" >>  $se4ad_config
 echo "## Suffixe du domaine##" >> $se4ad_config
 echo "suffix_domain=\"$suffix_domain\"" >>  $se4ad_config
 echo "## Nom de domaine complet - realm du SE4-AD ##" >> $se4ad_config
-echo "ad_domain=\"$ad_domain\"" >> $se4ad_config
+echo "domain=\"$domain\"" >> $se4ad_config
 echo "## Adresse IP de SE3 ##" >> $se4ad_config
 echo "se3ip=\"$se3ip\"" >> $se4ad_config
 echo "## Nom du domaine samba actuel" >> $se4ad_config
@@ -431,9 +431,9 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo "## Nom du futur SE4-FS ##" >> $se4fs_config
     echo "se4fs_name=\"$se4fs_name\"" >> $se4fs_config
     echo "## Nom de domaine samba ##" >> $se4fs_config
-    echo "samba_domain=\"$smb4_domain\"" >>  $se4fs_config
+    echo "samba_domain=\"$samba_domain\"" >>  $se4fs_config
     echo "## Nom de domaine complet ##" >> $se4fs_config
-    echo "domain=\"$ad_domain\"" >> $se4fs_config
+    echo "domain=\"$domain\"" >> $se4fs_config
     echo "##Adresse du serveur DNS##" >> $se4fs_config
     echo "nameserver=\"$nameserver\"" >> $se4fs_config
     echo "## Nom administrateur AD##" >> $se4fs_config
@@ -599,7 +599,7 @@ echo "Modification du preseed avec les données saisies"
 echo -e "$COLCMD"
 
 sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4ad_mask/g; s/###_SE4GW_###/$se4ad_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4ad_name/g" -i  $target_preseed
-sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g; s|###_BOOT_DISK_###|$se4ad_boot_disk|g" -i  $target_preseed 
+sed -e "s/###_AD_DOMAIN_###/$domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g; s|###_BOOT_DISK_###|$se4ad_boot_disk|g" -i  $target_preseed 
 
 
 if [ "$preseed_se4fs" = "yes" ];then
@@ -613,7 +613,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo "Modification du preseed avec les données saisies"
     echo -e "$COLCMD"
     sed -e "s/###_SE4FS_IP_###/$se4fs_ip/g; s/###_SE4FS_MASK_###/$se4fs_mask/g; s/###_SE4FS_GW_###/$se4fs_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4FS_NAME_###/$se4fs_name/g" -i  $target_preseed
-    sed -e "s/###_AD_DOMAIN_###/$ad_domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
+    sed -e "s/###_AD_DOMAIN_###/$domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
     sed -e "s|###_BOOT_DISK_###|$se4fs_boot_disk|g; s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE_SIZE_###/$varse_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
 fi
 }

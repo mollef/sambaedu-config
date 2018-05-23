@@ -325,7 +325,7 @@ cat >/etc/hosts <<END
 ::1	localhost ip6-localhost ip6-loopback
 ff02::1	ip6-allnodes
 ff02::2	ip6-allrouters
-$se4fs_ip	$se4fs_name.$ad_domain	$se4fs_name
+$se4fs_ip	$se4fs_name.$domain	$se4fs_name
 END
 
 cat >/etc/hostname <<END
@@ -491,9 +491,9 @@ echo -e "$COLTXT"
 
 #### Variables suivantes init via Fichier de conf ####
 # ip du se4fs --> $se4fs_ip" 
-# Nom de domaine samba du SE4-FS --> $smb4_domain" 
+# Nom de domaine samba du SE4-FS --> $samba_domain" 
 # Suffixe du domaine --> $suffix_domain" 
-# Nom de domaine complet - realm du SE4-FS --> $ad_domain" 
+# Nom de domaine complet - realm du SE4-FS --> $domain" 
 # Adresse IP de l'annuaire LDAP à migrer en FS --> $se3ip" 
 # Nom du domaine samba actuel --> $se3_domain"  
 # Nom netbios du serveur se3 actuel--> $netbios_name" 
@@ -545,16 +545,14 @@ recup_params
 
 
 # A voir pour modifier ou récupérer depuis sambaedu.config 
-[ -z "$smb4_domain" ] && smb4_domain="sambaedu4"
-[ -z "$suffix_domain" ] && suffix_domain="lan"
-ad_domain="$smb4_domain.$suffix_domain" 
+[ -z "$samba_domain" ] && samba_domain="sambaedu4"
+[ -z "$domain" ] && domain="sambaedu4.lan"
 
 
-smb4_domain_up="$(echo "$smb4_domain" | tr [:lower:] [:upper:])"
-suffix_domain_up="$(echo "$suffix_domain" | tr [:lower:] [:upper:])"
-ad_domain_up="$(echo "$ad_domain" | tr [:lower:] [:upper:])"
+samba_domain_up="$(echo "$samba_domain" | tr [:lower:] [:upper:])"
+domain_up="$(echo "$domain" | tr [:lower:] [:upper:])"
 sambadomaine_old="$(echo $se3_domain| tr [:lower:] [:upper:])"
-sambadomaine_new="$smb4_domain_up"
+sambadomaine_new="$samba_domain_up"
 
 download_packages
 haveged

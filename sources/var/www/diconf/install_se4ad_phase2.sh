@@ -137,7 +137,7 @@ cat >/etc/hosts <<END
 ::1	localhost ip6-localhost ip6-loopback
 ff02::1	ip6-allnodes
 ff02::2	ip6-allrouters
-$se4ad_ip	$se4ad_name.$ad_domain	$se4ad_name
+$se4ad_ip	$se4ad_name.$domain	$se4ad_name
 END
 
 cat >/etc/hostname <<END
@@ -533,7 +533,7 @@ cat > /etc/krb5.conf <<END
 [libdefaults]
  dns_lookup_realm = false
  dns_lookup_kdc = true
- default_realm = $ad_domain_up
+ default_realm = $domain_up
 END
 }
 
@@ -551,8 +551,8 @@ if [ -e "$dir_export/smb.conf" ]; then
 	sed "s/$netbios_name/se4ad/I" -i $dir_export/smb.conf
 	sed "s/$sambadomaine_old/$sambadomaine_new/I" -i $dir_export/smb.conf
 	sed "s#passdb backend.*#passdb backend = ldapsam:ldap://$se4ad_ip#" -i $dir_export/smb.conf  
-	echo "samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$ad_domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf"
-	samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$ad_domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf
+	echo "samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf"
+	samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf
 	quit_on_error "Une erreur s'est produite lors de la migration de l'annaire avec samba-tool. Reglez le probleme sur l'export d'annuaire ou smb.conf et relancez le script" 
         echo -e "$COLINFO"
         echo "Migration de l'annuaire vers samba AD Ok !! On peut couper le service slapd et le désactiver au boot" 
@@ -574,7 +574,7 @@ function provision_new_ad()
 {
 echo -e "$COLPARTIE"
 echo "$dir_export/smb.conf Manquant - Lancement d'une nouvelle installation de Samba AD avec sambatool" 
-samba-tool domain provision --realm=$ad_domain_up --domain $smb4_domain_up --adminpass $ad_admin_pass  
+samba-tool domain provision --realm=$domain_up --domain $samba_domain_up --adminpass $ad_admin_pass  
 echo -e "$COLCMD"
 }
 
@@ -762,7 +762,7 @@ fi
 function write_resolvconf()
 {
 cat >/etc/resolv.conf<<END
-search $ad_domain
+search $domain
 nameserver 127.0.0.1
 END
 }
@@ -775,8 +775,8 @@ cat >/etc/samba/smb.conf <<END
 # Global parameters
 [global]
 	netbios name = SE4AD
-	realm = $ad_domain_up
-	workgroup = $smb4_domain_up
+	realm = $domain_up
+	workgroup = $samba_domain_up
 	dns forwarder = $nameserver
 	server role = active directory domain controller
 	
@@ -907,7 +907,7 @@ function create_www-sambaedu()
 {
 samba-tool user create www-sambaedu --description="Utilisateur admin de l'interface web" --random-password 
 samba-tool group addmembers "Domain Admins" www-sambaedu
-samba-tool domain exportkeytab --principal=www-sambaedu@$ad_domain_up /root/www-sambaedu.keytab
+samba-tool domain exportkeytab --principal=www-sambaedu@$domain_up /root/www-sambaedu.keytab
 }
 
 
@@ -978,9 +978,8 @@ echo -e "$COLTXT"
 
 #### Variables suivantes init via Fichier de conf ####
 # ip du se4ad --> $se4ad_ip" 
-# Nom de domaine samba du SE4-AD --> $smb4_domain" 
-# Suffixe du domaine --> $suffix_domain" 
-# Nom de domaine complet - realm du SE4-AD --> $ad_domain" 
+# Nom de domaine samba du SE4-AD --> $samba_domain" 
+# Nom de domaine complet - realm du SE4-AD --> $domain" 
 # Adresse IP de l'annuaire LDAP à migrer en AD --> $se3ip" 
 # Nom du domaine samba actuel --> $se3_domain"  
 # Nom netbios du serveur se3 actuel--> $netbios_name" 
@@ -1029,16 +1028,14 @@ done
 recup_params
 
 # A voir pour modifier ou récupérer depuis sambaedu.config 
-[ -z "$smb4_domain" ] && smb4_domain="sambaedu4"
-[ -z "$suffix_domain" ] && suffix_domain="lan"
-ad_domain="$smb4_domain.$suffix_domain" 
+[ -z "$samba_domain" ] && samba_domain="sambaedu4"
+[ -z "$domain" ] && domain="sambaedu4.lan"
 
 
-smb4_domain_up="$(echo "$smb4_domain" | tr [:lower:] [:upper:])"
-suffix_domain_up="$(echo "$suffix_domain" | tr [:lower:] [:upper:])"
-ad_domain_up="$(echo "$ad_domain" | tr [:lower:] [:upper:])"
+samba_domain_up="$(echo "$samba_domain" | tr [:lower:] [:upper:])"
+domain_up="$(echo "$domain" | tr [:lower:] [:upper:])"
 sambadomaine_old="$(echo $se3_domain| tr [:lower:] [:upper:])"
-sambadomaine_new="$smb4_domain_up"
+sambadomaine_new="$samba_domain_up"
 
 
 show_title

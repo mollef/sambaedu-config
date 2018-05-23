@@ -272,11 +272,11 @@ Note :
 * le domaine samba ne doit en aucun cas dépasser 15 caractères
 * Les domaines du type sambaedu.lan ou etab.local sont déconseillés en production par l'équipe samba"
 
-	ad_domain="$(hostname -d)"
-	$dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 20 80 $ad_domain 2>$tempfile
-	ad_domain="$(cat $tempfile)"		
-	smb4_domain=$(echo "$ad_domain" | cut -d"." -f1)
-	suffix_domain=$(echo "$ad_domain" | sed -n "s/$smb4_domain\.//p")
+	domain="$(hostname -d)"
+	$dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 20 80 $domain 2>$tempfile
+	domain="$(cat $tempfile)"		
+	samba_domain=$(echo "$domain" | cut -d"." -f1)
+	suffix_domain=$(echo "$domain" | sed -n "s/$samba_domain\.//p")
 	
 	confirm_title="Récapitulatif de la configuration prévue"
 	confirm_txt="IP :         $se4ad_ip
@@ -287,9 +287,8 @@ Passerelle : $se4gw
 
 Nom :        $se4name
 
-Nom de domaine AD saisi : $ad_domain
-Nom de domaine samba :    $smb4_domain
-Suffixe du domain :       $suffix_domain
+Nom de domaine AD saisi : $domain
+Nom de domaine samba :    $samba_domain
 
 Confirmer l'enregistrement de cette configuration ?"
 		
@@ -451,11 +450,10 @@ echo -e "$COLTXT"
 echo "## Adresse IP du futur SE4-AD ##" > $se4ad_config
 echo "se4ad_ip=\"$se4ad_ip\"" >> $se4ad_config
 echo "## Nom de domaine samba du SE4-AD ##" >> $se4ad_config
-echo "smb4_domain=\"$smb4_domain\"" >>  $se4ad_config
+echo "samba_domain=\"$samba_domain\"" >>  $se4ad_config
 echo "## Suffixe du domaine##" >> $se4ad_config
-echo "suffix_domain=\"$suffix_domain\"" >>  $se4ad_config
 echo "## Nom de domaine complet - realm du SE4-AD ##" >> $se4ad_config
-echo "ad_domain=\"$ad_domain\"" >> $se4ad_config
+echo "domain=\"$domain\"" >> $se4ad_config
 echo "## Adresse IP de SE3 ##" >> $se4ad_config
 echo "se3ip=\"$se3ip\"" >> $se4ad_config
 echo "## Nom du domaine samba actuel" >> $se4ad_config
@@ -594,7 +592,7 @@ cat >$lxc_hosts_file <<END
 ::1	localhost ip6-localhost ip6-loopback
 ff02::1	ip6-allnodes
 ff02::2	ip6-allrouters
-$se4ad_ip	se4ad.$ad_domain	se4ad
+$se4ad_ip	se4ad.$domain	se4ad
 END
 
 lxc_hostname_file="/var/lib/lxc/$se4name/rootfs/etc/hosts"
