@@ -308,7 +308,7 @@ apt-get upgrade --quiet --assume-yes
 echo -e "$COLPARTIE"
 echo "installation ntpdate, vim, etc..."
 echo -e "$COLTXT"
-prim_packages="ssh ntpdate vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged"
+prim_packages="ssh ntp vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged libsasl2-modules-gssapi-mit"
 apt-get install --quiet --assume-yes $prim_packages
 }
 
