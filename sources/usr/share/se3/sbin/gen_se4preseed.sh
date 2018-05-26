@@ -218,7 +218,6 @@ Nom :        $se4ad_name
 
 Nom de domaine AD saisi : $domain
 Nom de domaine samba :    $samba_domain
-Suffixe du domain :       $suffix_domain
 
 Confirmer l'enregistrement de cette configuration ?"
 		
@@ -385,6 +384,11 @@ echo -e "$COLTXT"
 # Fonction écriture fichier de conf /etc/sambaedu/se4ad.config
 function write_sambaedu_conf
 {
+
+
+mkdir -p /etc/sambaedu/sambaedu.conf.d
+
+
 if [ -e "$se4ad_config" ] ; then
     echo -e "$COLINFO"
     echo "$se4ad_config existe on en écrase le contenu"
@@ -399,7 +403,6 @@ echo "se4ad_name=\"$se4ad_name\"" >> $se4ad_config
 echo "## Nom de domaine samba du SE4-AD ##" >> $se4ad_config
 echo "samba_domain=\"$samba_domain\"" >>  $se4ad_config
 echo "## Suffixe du domaine##" >> $se4ad_config
-echo "suffix_domain=\"$suffix_domain\"" >>  $se4ad_config
 echo "## Nom de domaine complet - realm du SE4-AD ##" >> $se4ad_config
 echo "domain=\"$domain\"" >> $se4ad_config
 echo "## Adresse IP de SE3 ##" >> $se4ad_config
@@ -436,9 +439,18 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo "domain=\"$domain\"" >> $se4fs_config
     echo "##Adresse du serveur DNS##" >> $se4fs_config
     echo "nameserver=\"$nameserver\"" >> $se4fs_config
-    echo "## Nom administrateur AD##" >> $se4fs_config
+    echo "## params annuaire AD##" >> $se4fs_config
     echo "admin_name=\"Administrator\"" >> $se4fs_config
     echo "ldap_admin_name=\"Administrator\"" >> $se4fs_config
+    echo "people_rdn=\"CN=users\"" >> $se4fs_config
+    echo "groups_rdn=\"ou=Groups\"" >> $se4fs_config
+    echo "rights_rdn=\"ou=Rights\"" >> $se4fs_config
+    echo "parcs_rdn=\"ou=Parcs\"" >> $se4fs_config
+    echo "computers_rdn=\"CN=computers\"" >> $se4fs_config
+    echo "printersRdn=\"ou=Printers\"" >> $se4fs_config
+    echo "trash_rdn=\"ou=Trash\"" >> $se4fs_config
+    echo "ldap_url=\"ldaps://$domain\"" >> $se4fs_config
+
     
 fi
 
@@ -450,6 +462,13 @@ function export_dhcp()
 {
 dhcpd_conf="/etc/dhcp/dhcpd.conf"
 reservation_file="$dir_config/reservations.conf"
+
+
+echo "# configuration sambaedu" > /etc/sambaedu/sambaedu.conf.d/dhcp.conf
+sed '/^\s*#/d' /etc/se3/config_d.cache.sh > /etc/sambaedu/sambaedu.conf.d/dhcp.conf
+
+
+
 if [ -e "$dhcpd_conf" ];then 
     echo -e "$COLINFO"
     echo "Analyse de la configuration DHCP et export des réservations si besoin"

@@ -241,49 +241,6 @@ case $choice in
         esac
 }
 
-# Fonction test carte réseau
-function test_ecard()
-{
-ECARD=$(/sbin/ifconfig | grep eth | sort | head -n 1 | cut -d " " -f 1)
-if [ -z "$ECARD" ]; then
-  ECARD=$(/sbin/ifconfig -a | grep eth | sort | head -n 1 | cut -d " " -f 1)
-
-	if [ -z "$ECARD" ]; then
-		echo -e "$COLERREUR"
-		echo "Aucune carte réseau n'a été détectée."
-		echo "Il n'est pas souhaitable de poursuivre l'installation."
-		echo -e "$COLTXT"
-		echo -e "Voulez-vous ne pas tenir compte de cet avertissement (${COLCHOIX}1${COLTXL}),"
-		echo -e "ou préférez-vous interrompre le script d'installation (${COLCHOIX}2${COLTXL})"
-		echo -e "et corriger le problème avant de relancer ce script?"
-		REPONSE=""
-		while [ "$REPONSE" != "1" -a "$REPONSE" != "2" ]
-		do
-			echo -e "${COLTXL}Votre choix: [${COLDEFAUT}2${COLTXL}] ${COLSAISIE}\c"
-			read REPONSE
-	
-			if [ -z "$REPONSE" ]; then
-				REPONSE=2
-			fi
-		done
-		if [ "$REPONSE" = "2" ]; then
-			echo -e "$COLINFO"
-			echo "Pour résoudre ce problème, chargez le pilote approprié."
-			echo "ou alors complétez le fichier /etc/modules.conf avec une ligne du type:"
-			echo "   alias eth0 <nom_du_module>"
-			echo -e "Il conviendra ensuite de rebooter pour prendre en compte le changement\nou de charger le module pour cette 'session' par 'modprobe <nom_du_module>"
-			echo -e "Vous pourrez relancer ce script via la commande:\n   /var/cache/se3_install/install_se3.sh"
-			echo -e "$COLTXT"
-			exit 1
-		fi
-	else
-	cp /etc/network/interfaces /etc/network/interfaces.orig
-	sed -i "s/eth[0-9]/$ECARD/" /etc/network/interfaces
-	ifup $ECARD
-	fi
-
-fi
-}
 
 # Fonction recupératoin des paramètres via fichier de conf ou tgz
 function recup_params() {
@@ -313,7 +270,7 @@ apt-get upgrade --quiet --assume-yes
 echo -e "$COLPARTIE"
 echo "installation ntpdate, vim, etc..."
 echo -e "$COLTXT"
-prim_packages="ssh ntpdate vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged"
+prim_packages="ssh vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged"
 apt-get install --quiet --assume-yes $prim_packages
 }
 
@@ -325,7 +282,7 @@ cat >/etc/hosts <<END
 ::1	localhost ip6-localhost ip6-loopback
 ff02::1	ip6-allnodes
 ff02::2	ip6-allrouters
-$se4fs_ip	$se4fs_name.$domain	$se4fs_name
+#$se4fs_ip	$se4fs_name.$domain	$se4fs_name
 END
 
 cat >/etc/hostname <<END
@@ -352,18 +309,6 @@ if [ "$download" = "yes" ] || [ ! -e /root/dl_ok ]; then
 	echo -e "$COLTXT"
 fi
 }
-
-function conf_network {
-echo -e "$COLINFO"
-echo "Mofification de l'adressage IP"
-echo -e "$COLTXT"
-gen_network
-service networking restart
-echo "Modification Ok" 
-echo "Testez la connexion internet avant de relancer le script sans option afin de procéder à l'installation"
-exit 0
-}
-
 
 # Fonction installation de samba 4.5 (pour le moment)
 function installsamba()
@@ -425,7 +370,27 @@ grep -q "^PermitRootLogin yes" /etc/ssh/sshd_config || echo "PermitRootLogin yes
 /usr/sbin/service ssh restart
 }
 
+function check_ad_access()
+{
+echo -e "$COLPARTIE"
+echo -e "Test de connexion sur le serveur AD : $se4ad_ip"
+echo -e "$COLCMD"
+ping -c 3 $se4ad_ip
+check_error
+echo -e "$COLINFO"
+echo "Tentative de connexion ssh sur l'AD"
+echo -e "$COLCMD"
+ssh-keyscan -H $se4ad_ip >> ~/.ssh/known_hosts
+scp root@$se4ad_ip:/root/se4fs.conf /root/
+check_error
+if [ -e /root/se4fs.conf ]; then
+cat /root/se4fs.conf >> $se4fs_config
+fi
+echo -e "$COLTXT"
 
+
+fi
+}
 
 # Fonction permettant de changer le pass root
 function change_pass_root()
@@ -492,7 +457,6 @@ echo -e "$COLTXT"
 #### Variables suivantes init via Fichier de conf ####
 # ip du se4fs --> $se4fs_ip" 
 # Nom de domaine samba du SE4-FS --> $samba_domain" 
-# Suffixe du domaine --> $suffix_domain" 
 # Nom de domaine complet - realm du SE4-FS --> $domain" 
 # Adresse IP de l'annuaire LDAP à migrer en FS --> $se3ip" 
 # Nom du domaine samba actuel --> $se3_domain"  
@@ -509,17 +473,6 @@ tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
 
 while :; do
 	case $1 in
-		-d|--download)
-		download_packages
-		exit 0
-		
-		;;
-		
-		-n|--network)
-		conf_network
-		exit 0
-		;;
-		
 		--debug)
 		touch /root/debug
 		;;
@@ -556,7 +509,6 @@ sambadomaine_new="$samba_domain_up"
 
 download_packages
 haveged
-# ad_admin_pass=$(makepasswd --minchars=8)
 go_on
 
 dev_debug
@@ -582,6 +534,7 @@ Permit_ssh_by_password
 echo "Génération des sources SE4"
 gensourcese4
 
+check_ad_access
 
 change_pass_root
 
