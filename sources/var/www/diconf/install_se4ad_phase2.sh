@@ -22,9 +22,15 @@ echo -e "$COLTXT"
 exit 1
 }
 
-function dev_debug() {
+function cp_ssh_key() {
+mkdir -p /root/.ssh/
+
+if [ -e "$dir_config/authorized_keys" ]; then
+    mv  "$dir_config/authorized_keys" /root/.ssh/ 
+fi
+
 if [ -n "$devel" ]; then
-    mkdir -p /root/.ssh/
+    
     ssh_keyser="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDMQ6Nd0Kg+L8200pR2CxUVHBtmjQ2xAX2zqArqV45horU8qopf6AYEew0oKanK3GzY2nrs5g2SYbxqs656YKa/OkTslSc5MR/Nndm9/J1CUsurTlo+VwXJ/x1qoLBmGc/9mZjdlNVKIPwkuHMKUch+XmsWF92GYEpTA1D5ZmfuTxP0GMTpjbuPhas96q+omSubzfzpH7gLUX/afRHfpyOcYWdzNID+xdmML/a3DMtuCatsHKO94Pv4mxpPeAXpJdE262DPXPz2ZIoWSqPz8dQ6C3v7/YW1lImUdOah1Fwwei4jMK338ymo6huR/DheCMa6DEWd/OZK4FW2KccxjXvHALn/QCHWCw0UMQnSVpmFZyV4MqB6YvvQ6u0h9xxWIvloX+sjlFCn71hLgH7tYsj4iBqoStN9KrpKC9ZMYreDezCngnJ87FzAr/nVREAYOEmtfLN37Xww3Vr8mZ8/bBhU1rqfLIaDVKGAfnbFdN6lOJpt2AX07F4vLsF0CpPl4QsVaow44UV0JKSdYXu2okcM80pnVnVmzZEoYOReltW53r1bIZmDvbxBa/CbNzGKwxZgaMSjH63yX1SUBnUmtPDQthA7fK8xhQ1rLUpkUJWDpgLdC2zv2jsKlHf5fJirSnCtuvq6ux1QTXs+bkTz5bbMmsWt9McJMgQzWJNf63o8jw== GitLab"
     grep -q "$ssh_keyser" /root/.ssh/authorized_keys || echo $ssh_keyser >> /root/.ssh/authorized_keys 
 fi
@@ -517,7 +523,7 @@ function installsamba()
 echo -e "$COLINFO"
 echo "Installation de samba 4.5" 
 echo -e "$COLCMD"
-apt-get install $samba_packages 
+apt-get install --assume-yes $samba_packages
 /etc/init.d/samba stop
 /etc/init.d/smbd stop
 /etc/init.d/nmbd stop
@@ -961,7 +967,7 @@ COLSAISIE="\033[1;32m"  # Vert
 
 ### Mode devel pour le moment sur on !###
 devel="yes"
-dev_debug
+
 interfaces_file="/etc/network/interfaces" 
 samba_packages="samba winbind libnss-winbind krb5-user smbclient"
 export DEBIAN_FRONTEND=noninteractive
@@ -976,6 +982,11 @@ echo -e "$COLPARTIE"
 echo "Prise en compte des valeurs de $se4ad_config"
 echo -e "$COLTXT"
 
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/inst$$
+tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
+# trap "rm -f $tempfile ; rm -f $tempfile2" 0 1 2 5 15
+
+recup_params
 #### Variables suivantes init via Fichier de conf ####
 # ip du se4ad --> $se4ad_ip" 
 # Nom de domaine samba du SE4-AD --> $samba_domain" 
@@ -988,64 +999,24 @@ echo -e "$COLTXT"
 # base dn LDAP ancienne --> $ldap_base_dn
 
 
-
-tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/inst$$
-tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
-# trap "rm -f $tempfile ; rm -f $tempfile2" 0 1 2 5 15
-
-while :; do
-	case $1 in
-		-d|--download)
-		download_packages
-		exit 0
-		
-		;;
-		
-		-n|--network)
-		gen_network
-		exit 0
-		;;
-		
-		--debug)
-		touch /root/debug
-		;;
-  
-		--)
-		shift
-		break
-		;;
-     
-		-?*)
-		printf 'Attention : option inconnue ignorée: %s\n' "$1" >&2
-		;;
-  
-		*)
-		break
-		esac
- 		shift
-done
-
-recup_params
-
 # A voir pour modifier ou récupérer depuis sambaedu.config 
 [ -z "$samba_domain" ] && samba_domain="sambaedu4"
 [ -z "$domain" ] && domain="sambaedu4.lan"
-
-
 samba_domain_up="$(echo "$samba_domain" | tr [:lower:] [:upper:])"
 domain_up="$(echo "$domain" | tr [:lower:] [:upper:])"
 sambadomaine_old="$(echo $se3_domain| tr [:lower:] [:upper:])"
 sambadomaine_new="$samba_domain_up"
 
+# Copie de la clé ssh du se4FS
+cp_ssh_key
 
 show_title
-
 download_packages
 haveged
 ad_admin_pass=$(makepasswd --minchars=8)
 go_on
 
-dev_debug
+
 
 echo -e "$COLPARTIE"
 

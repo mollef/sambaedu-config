@@ -381,7 +381,7 @@ echo -e "$COLINFO"
 echo "Tentative de connexion ssh sur l'AD"
 echo -e "$COLCMD"
 ssh-keyscan -H $se4ad_ip >> ~/.ssh/known_hosts
-scp root@$se4ad_ip:/root/se4fs.conf /root/
+scp -i $dir_config/id_rsa @$se4ad_ip:/root/se4fs.conf /root/
 check_error
 if [ -e /root/se4fs.conf ]; then
 cat /root/se4fs.conf >> $se4fs_config

@@ -462,11 +462,10 @@ dhcpd_conf="/etc/dhcp/dhcpd.conf"
 reservation_file="$dir_config/reservations.conf"
 
 
-mkdir -p /etc/sambaedu/sambaedu.conf.d
+# mkdir -p /etc/sambaedu/sambaedu.conf.d
 
-echo "# configuration sambaedu" > /etc/sambaedu/sambaedu.conf.d/dhcp.conf
-sed '/^\s*#/d' /etc/se3/config_d.cache.sh > /etc/sambaedu/sambaedu.conf.d/dhcp.conf
-
+echo "# configuration sambaedu" > $dir_config/dhcp.conf
+sed '/^\s*#/d' /etc/se3/config_d.cache.sh > $dir_config/dhcp.conf
 
 
 if [ -e "$dhcpd_conf" ];then 
@@ -653,9 +652,9 @@ wget http://$se3ip/diconf/authorized_keys
 wget http://$se3ip/diconf/sambaedu.conf
 wget http://$se3ip/diconf/secret/id_rsa_se4fs 
 mkdir -p /target/etc/sambaedu
-cp sambaedu.conf /target/etc/sambaedu/
+cp sambaedu.conf id_rsa_se4fs /target/etc/sambaedu/
 mkdir -p /target/root/.ssh/
-cp id_rsa_se4fs authorized_keys /target/root/.ssh/
+cp authorized_keys /target/root/.ssh/
 chmod 400 /target/root/.ssh/id_rsa_se4fs
 chmod +x ./install_se4fs_phase2.sh
 cp profile_se4fs /target/root/.profile
