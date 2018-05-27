@@ -386,7 +386,7 @@ function write_sambaedu_conf
 {
 
 
-mkdir -p /etc/sambaedu/sambaedu.conf.d
+
 
 
 if [ -e "$se4ad_config" ] ; then
@@ -421,8 +421,6 @@ echo "##Rdn admin LDAP##" >> $se4ad_config
 echo "adminRdn=\"$adminRdn\"" >> $se4ad_config
 echo "##SID domaine actuel" >> $se4ad_config
 echo "domainsid=\"$domainsid\"" >> $se4ad_config
-echo "##NTP server " >> $se4ad_config
-echo "ntpserv=\"$ntpserv\"" >> $se4ad_config
 
 if [ "$preseed_se4fs" = "yes" ];then
     echo "## Adresse IP du futur SE4-AD ##" > $se4fs_config
@@ -463,6 +461,8 @@ function export_dhcp()
 dhcpd_conf="/etc/dhcp/dhcpd.conf"
 reservation_file="$dir_config/reservations.conf"
 
+
+mkdir -p /etc/sambaedu/sambaedu.conf.d
 
 echo "# configuration sambaedu" > /etc/sambaedu/sambaedu.conf.d/dhcp.conf
 sed '/^\s*#/d' /etc/se3/config_d.cache.sh > /etc/sambaedu/sambaedu.conf.d/dhcp.conf

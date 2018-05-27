@@ -389,7 +389,6 @@ fi
 echo -e "$COLTXT"
 
 
-fi
 }
 
 # Fonction permettant de changer le pass root
