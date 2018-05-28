@@ -1,4 +1,4 @@
-sambaedu-config (0.23~5) unstable; urgency=low
+sambaedu-config (0.23~6) unstable; urgency=low
 
   * transfert of sambaedu.conf between se3 and se4fs.
 

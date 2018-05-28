@@ -913,7 +913,7 @@ function create_www-sambaedu()
 {
 samba-tool user create www-sambaedu --description="Utilisateur admin de l'interface web" --random-password 
 samba-tool group addmembers "Domain Admins" www-sambaedu
-samba-tool domain exportkeytab --principal=www-sambaedu@$domain_up /root/www-sambaedu.keytab
+samba-tool domain exportkeytab --principal=www-sambaedu@$domain_up $dir_config/www-sambaedu.keytab
 }
 
 

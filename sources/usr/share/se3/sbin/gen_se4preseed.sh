@@ -584,8 +584,8 @@ echo -e "$COLTXT"
 function write_ssh_keys
 {
 ssh_keys_host="/root/.ssh/authorized_keys"
-rm -f $dir_config/id_rsa_se4fs*
-ssh-keygen -t rsa -N "" -f $dir_config/id_rsa_se4fs -q
+rm -f $dir_config/id_rsa*
+ssh-keygen -t rsa -N "" -f $dir_config/id_rsa -q
 
 if [ -e "$ssh_keys_host" ];then
     echo -e "$COLINFO"
@@ -596,10 +596,11 @@ else
     touch $dir_preseed/authorized_keys
 fi
 chmod 644 $dir_preseed/authorized_keys
-cat $dir_config/id_rsa_se4fs.pub >> $dir_preseed/authorized_keys
+cat $dir_config/id_rsa.pub >> $dir_preseed/authorized_keys
+cp $dir_config/id_rsa.pub $dir_preseed
 
-cp $dir_config/id_rsa_se4fs $dir_preseed/secret/
-chmod 644 $dir_preseed/secret/id_rsa_se4fs
+cp $dir_config/id_rsa $dir_preseed/secret/
+chmod 644 $dir_preseed/secret/id_rsa
 }
 
 # Génération du preseed avec les données saisies
@@ -650,12 +651,13 @@ wget http://$se3ip/diconf/profile_se4fs
 wget http://$se3ip/diconf/.bashrc
 wget http://$se3ip/diconf/authorized_keys
 wget http://$se3ip/diconf/sambaedu.conf
-wget http://$se3ip/diconf/secret/id_rsa_se4fs 
+wget http://$se3ip/diconf/secret/id_rsa.pub 
+wget http://$se3ip/diconf/secret/id_rsa 
 mkdir -p /target/etc/sambaedu
-cp sambaedu.conf id_rsa_se4fs /target/etc/sambaedu/
+cp sambaedu.conf id_rsa id_rsa.pub /target/etc/sambaedu/
 mkdir -p /target/root/.ssh/
 cp authorized_keys /target/root/.ssh/
-chmod 400 /target/root/.ssh/id_rsa_se4fs
+chmod 400 /target/root/.ssh/id_rsa
 chmod +x ./install_se4fs_phase2.sh
 cp profile_se4fs /target/root/.profile
 cp .bashrc install_se4fs_phase2.sh /target/root/
