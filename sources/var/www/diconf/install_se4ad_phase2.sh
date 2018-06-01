@@ -390,6 +390,7 @@ echo -e "$COLCMD"
 /etc/init.d/slapd start
 check_error "Impossible de lancer slapd. Si vous avez lancé le script plusieurs fois, le plus simple est de redémarrer la machine car le port 389 doit être déjà occupé"
 echo -e "$COLTXT"
+
 }
 
 # Nettoyage comptes machines en erreurs et root
@@ -451,13 +452,7 @@ if [ -n "$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn| sed -n
 	ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn| sed -n 's/^cn: //p' | while read cn_parcs
 	do
 	cat >> $dir_config/ad_parcs.ldif <<END	
-dn: OU=$cn_parcs,OU=Parcs,$ad_base_dn
-objectClass: top
-objectClass: organizationalUnit
-ou: $cn_parcs
-description: ensemble $cn_parcs
-
-dn: CN=$cn_parcs,OU=$cn_parcs,OU=Parcs,$ad_base_dn
+dn: CN=$cn_parcs,OU=Parcs,$ad_base_dn
 objectClass: group
 objectClass: top
 END
@@ -675,10 +670,15 @@ echo -e "$COLCMD"
 ldbadd_ou "OU=Rights,$ad_base_dn" "Rights" "Branche des droits"
 ldbadd_ou "OU=Groups,$ad_base_dn" "Groups" "Branche des groupes"
 ldbadd_ou "OU=Cours,OU=Groups,$ad_base_dn" "Cours" "Branche des groupes cours"
+ldbadd_ou "OU=Matieres,OU=Groups,$ad_base_dn" "Matieres" "Branche des groupes matiere"
+ldbadd_ou "OU=Classes,OU=Groups,$ad_base_dn" "Classes" "Branche des groupes classe"
+ldbadd_ou "OU=Equipes,OU=Groups,$ad_base_dn" "Equipes" "Branche des groupes cours"
+
 ldbadd_ou "OU=Administratifs,OU=Groups,$ad_base_dn" "Administratifs" "Branche des administratifs"
 ldbadd_ou "OU=Trash,$ad_base_dn" "Trash" "Branche de la corbeille"
 ldbadd_ou "OU=Parcs,$ad_base_dn" "Parcs" "Branche parcs"
 ldbadd_ou "OU=Printers,$ad_base_dn" "Printers" "Branche imprimantes"
+
 sleep 2
 
 
@@ -711,23 +711,82 @@ ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectCl
 do
 	rdn="$(echo $dn | sed -e "s/dn: //" | cut -d "," -f1)"
 	rdn_cours="$(echo $rdn | grep  "^CN=Cours")"
+	rdn_matiere="$(echo $rdn | grep  "^CN=Matiere")"
+	rdn_equipe="$(echo $rdn | grep  "^CN=Equipe")"
+	rdn_classe="$(echo $rdn | grep  "^CN=Classe")"
 	rdn_other="$(echo $rdn | grep  "^CN=Eleves\|^CN=Profs\|^CN=Equipe_\|^CN=Matiere_\|^CN=Administratifs\|^CN=Classe_\|^CN=overfill" | sed -n "s/^CN=//"p)"
 
 	if [ -n "$rdn_cours" ];then
 # 		target_dn="OU=$rdn_classe,OU=Groups,$ad_base_dn"
 		target_dn="OU=Cours,OU=Groups,$ad_base_dn"
 # 		ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "Cours" "ensemble des groupes cours"
-	elif [ -n "$rdn_other" ];then
-		target_dn="OU=$rdn_other,OU=Groups,$ad_base_dn"
-		ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$rdn_other" "ensemble $rdn_other"
+	elif [ -n "$rdn_matiere" ];then
+		target_dn="OU=Matieres,OU=Groups,$ad_base_dn"
+	elif [ -n "$rdn_classe" ];then
+		target_dn="OU=Classes,OU=Groups,$ad_base_dn"
+	elif [ -n "$rdn_equipe" ];then
+		target_dn="OU=Equipes,OU=Groups,$ad_base_dn"
+# 	elif [ -n "$rdn_other" ];then
+# 		target_dn="OU=$rdn_other,OU=Groups,$ad_base_dn"
+# 		ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$rdn_other" "ensemble $rdn_other"
         else
                 target_dn="OU=Groups,$ad_base_dn"
 	fi
 	ldbmv_grp "$rdn,CN=users,$ad_base_dn" "$rdn" "$target_dn"
 done
-
-
 }
+
+
+function mv_users()
+{
+ldbadd_ou "OU=Users,$ad_base_dn" "Users" "Branche utilisateurs"
+ldbadd_ou "OU=Eleves,OU=Users,$ad_base_dn" "Eleves" "Branche des Eleves"
+ldbadd_ou "OU=Profs,OU=Users,$ad_base_dn" "Profs" "Branche des Profs"
+ldbadd_ou "OU=Administratifs,OU=Users,$ad_base_dn" "Administratifs" "Branche des Administratifs"
+
+echo -e "$COLINFO"
+echo "Déplacement des comptes utilisateurs les branches dédiées - Patience !"
+echo -e "$COLCMD"
+ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=person)" cn | sed -n "s/^cn: //"p | while read cn
+do
+    cn_member="$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" CN=$cn memberOf)"
+    if [ "$cn" = "Administrator" ]; then
+    continue
+    elif echo $cn_member | grep -q Eleves; then
+        target_dn="OU=Eleves,OU=Users,$ad_base_dn"
+    elif echo $cn_member | grep -q Profs; then
+        target_dn="OU=Profs,OU=Users,$ad_base_dn"
+    elif echo $cn_member | grep -q Administratifs; then
+        target_dn="OU=Administratifs,OU=Users,$ad_base_dn"
+    else
+    continue
+    fi
+    ldbmv_grp "CN=$cn,CN=users,$ad_base_dn" "CN=$cn" "$target_dn"
+done
+}
+
+function mv_computers()
+{
+ldbadd_ou "OU=Computers,$ad_base_dn" "Computers" "Branche machines"
+echo -e "$COLINFO"
+echo "Déplacement des comptes machines les branches dédiées - Patience !"
+echo -e "$COLCMD"
+ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=Computers,$ad_base_dn" "(objectClass=computer)" cn | sed -n "s/^cn: //"p | while read cn
+
+do
+    cn_member="$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=Computers,$ad_base_dn" CN=$cn memberOf | sed -n "s/^memberOf: //"p | grep -Ei "?salle" | head -n1)"
+    
+    if [ -n "$cn_member" ]; then
+        cn_parc="$(echo $cn_member | cut -d "," -f1 | sed -n "s/^CN=//"p)"
+        target_dn="OU=$cn_parc,OU=Computers,$ad_base_dn"
+        ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$cn_parc" "Container$cn_parc"
+    else
+        target_dn="OU=Computers,$ad_base_dn"
+    fi
+    ldbmv_grp "CN=$cn,CN=Computers,$ad_base_dn" "CN=$cn" "$target_dn"
+done
+}
+
 
 # Fonction permettant la mise à l'heure du serveur 
 function set_time()
@@ -1047,6 +1106,8 @@ if [ -e "$dir_export/slapd.conf" ]; then
 	write_resolvconf
 	activate_smb_ad
 	modif_ldb
+	mv_users
+	mv_computers
 	check_smb_ad
 	change_pass_admin
 	

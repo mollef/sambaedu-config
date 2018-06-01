@@ -2,7 +2,7 @@
 #
 ##### Permet la génération du preseed de se4-AD et se4-FS#####
 # franck molle
-# version 05 - 2018 
+# version 06 - 2018 
 
 
 
@@ -445,7 +445,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo "rights_rdn=\"ou=Rights\"" >> $se4fs_config
     echo "parcs_rdn=\"ou=Parcs\"" >> $se4fs_config
     echo "computers_rdn=\"CN=computers\"" >> $se4fs_config
-    echo "printersRdn=\"ou=Printers\"" >> $se4fs_config
+    echo "printers_rdn=\"ou=Printers\"" >> $se4fs_config
     echo "trash_rdn=\"ou=Trash\"" >> $se4fs_config
     echo "ldap_url=\"ldaps://$domain\"" >> $se4fs_config
 
@@ -519,6 +519,12 @@ echo -e "$COLTXT"
 # Fonction export des fichiers ldap conf, schémas propres à se3 et ldif
 function export_ldap_files()
 {
+echo -e "$COLINFO"
+echo "Ajout du mapping de groupe sur Le groupe Administratifs avant export"
+echo -e "$COLCMD"
+net groupmap add ntgroup=Administratifs unixgroup=Administratifs type=domain comment="Administratifs du domaine"
+echo -e "$COLTXT"
+
 conf_slapd="/etc/ldap/slapd.conf"
 echo -e "$COLINFO"
 echo "Export de la conf ldap et de ldapse3.ldif vers $dir_export"
@@ -529,6 +535,18 @@ schema_dir="/etc/ldap/schema"
 cp $schema_dir/ltsp.schema $schema_dir/samba.schema $schema_dir/printer.schema $dir_export/
 cp /var/lib/ldap/DB_CONFIG $dir_export/
 cp /etc/ldap/slapd.pem $dir_export/
+}
+
+function export_sql_files()
+{
+echo -e "$COLINFO"
+echo "Export des bases connexions et quotas vers $dir_export"
+echo -e "$COLTXT"
+
+mysqldump --opt se3db quotas > $dir_export/quotas.sql
+mysqldump --opt se3db connexions > $dir_export/connexions.sql
+
+cp $dir_export/quotas.sql $dir_export/connexions.sql $dir_preseed/
 }
 
 # Fonction copie des fichiers de conf @LXC/etc/sambaedu
@@ -543,6 +561,13 @@ if [ "$preseed_se4fs" = "yes" ];then
     if [ -e "$reservation_file" ];then
         cp -v $reservation_file $dir_preseed/
     fi
+    
+    if [ -e "$dir_config/dhcp.conf" ];then
+        cp -v $dir_config/dhcp.conf $dir_preseed/
+    fi
+    
+    
+    
 fi
 echo "Création de l'archive d'export des données $se4ad_config_tgz et copie sur $dir_preseed"
 echo -e "$COLCMD"
@@ -651,21 +676,30 @@ wget http://$se3ip/diconf/profile_se4fs
 wget http://$se3ip/diconf/.bashrc
 wget http://$se3ip/diconf/authorized_keys
 wget http://$se3ip/diconf/sambaedu.conf
+wget http://$se3ip/diconf/connexions.sql
+wget http://$se3ip/diconf/quotas.sql
 wget http://$se3ip/diconf/secret/id_rsa.pub 
 wget http://$se3ip/diconf/secret/id_rsa 
 mkdir -p /target/etc/sambaedu
-cp sambaedu.conf id_rsa id_rsa.pub /target/etc/sambaedu/
+cp sambaedu.conf id_rsa id_rsa.pub connexions.sql quotas.sql /target/etc/sambaedu/
+chmod 600 /target/etc/sambaedu/*
 mkdir -p /target/root/.ssh/
 cp authorized_keys /target/root/.ssh/
-chmod 400 /target/root/.ssh/id_rsa
 chmod +x ./install_se4fs_phase2.sh
 cp profile_se4fs /target/root/.profile
 cp .bashrc install_se4fs_phase2.sh /target/root/
 END
-if [ -e "$dir_preseed/$reservation_file" ];then 
-        echo "wget http://$se3ip/diconf/$reservation_file" >> $se4fs_late_command
-        echo "cp $reservation_file /target/etc/sambaedu" >> $se4fs_late_command
+if [ -e "$dir_preseed/reservations.conf" ];then 
+        echo "wget http://$se3ip/diconf/reservations.conf" >> $se4fs_late_command
+        echo "cp reservations.conf /target/etc/sambaedu" >> $se4fs_late_command
 fi
+
+if [ -e "$dir_preseed/dhcp.conf" ];then 
+        echo "wget http://$se3ip/diconf/dhcp.conf" >> $se4fs_late_command
+        echo "cp dhcp.conf /target/etc/sambaedu" >> $se4fs_late_command
+fi
+
+
 chmod +x $se4fs_late_command
 }
 
@@ -855,6 +889,7 @@ fi
 export_smb_files
 write_sambaedu_conf
 export_ldap_files
+export_sql_files
 cp_config_to_preseed
 write_apache_config
 write_ssh_keys
