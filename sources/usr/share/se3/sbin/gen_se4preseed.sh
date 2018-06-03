@@ -459,7 +459,7 @@ chmod +x $se4fs_config
 function export_dhcp()
 {
 dhcpd_conf="/etc/dhcp/dhcpd.conf"
-reservation_file="$dir_config/reservations.conf"
+reservation_file="$dir_config/reservations.inc"
 
 
 # mkdir -p /etc/sambaedu/sambaedu.conf.d
@@ -689,9 +689,9 @@ chmod +x ./install_se4fs_phase2.sh
 cp profile_se4fs /target/root/.profile
 cp .bashrc install_se4fs_phase2.sh /target/root/
 END
-if [ -e "$dir_preseed/reservations.conf" ];then 
-        echo "wget http://$se3ip/diconf/reservations.conf" >> $se4fs_late_command
-        echo "cp reservations.conf /target/etc/sambaedu" >> $se4fs_late_command
+if [ -e "$dir_preseed/reservations.inc" ];then 
+        echo "wget http://$se3ip/diconf/reservations.inc" >> $se4fs_late_command
+        echo "cp reservations.inc /target/etc/sambaedu" >> $se4fs_late_command
 fi
 
 if [ -e "$dir_preseed/dhcp.conf" ];then 
