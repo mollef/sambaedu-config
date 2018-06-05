@@ -149,6 +149,10 @@ done
 function preconf_se4ad()
 {
 se4ad_lan_title="Configuration du futur SE4-AD"
+if [ ! -e "/bin/lsblk" ];then
+    apt-get install util-linux
+fi
+sd_detect="$(lsblk -n -o "NAME,TYPE" | grep -v fd0 | sort | grep disk | head -n1 | cut -d " " -f1)"
 
 REPONSE=""
 details="no"
@@ -162,7 +166,7 @@ do
 	se4ad_boot_disk_txt="** Nom du disque sur lequel le système sera installé **
 	
 Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "$se4ad_boot_disk_txt" 13 70 "/dev/sda" 2>$tempfile || erreur "Annulation"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "$se4ad_boot_disk_txt" 13 70 "/dev/$sd_detect" 2>$tempfile || erreur "Annulation"
 	se4ad_boot_disk=$(cat $tempfile)
 	
 	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'IP du SE4-AD" 15 70 $se4ad_ip 2>$tempfile || erreur "Annulation"
@@ -182,7 +186,7 @@ Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'a
 		se4ad_gw=$(cat $tempfile)
 	fi
 	details="yes"
-	
+	samba_domain_check="no"
 	se4ad_name_title="Nom du SE4-AD"
 	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_name_title" --inputbox "Saisir le Nom de la machine SE4-AD" 15 70 se4ad 2>$tempfile || erreur "Annulation"
 	se4ad_name=$(cat $tempfile)
@@ -200,11 +204,23 @@ Note :
 * Les domaines du type sambaedu.lan ou etab.local sont déconseillés en production par l'équipe samba"
 
 	domain="$(hostname -d)"
-	$dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 20 80 $domain 2>$tempfile
-	domain="$(cat $tempfile)"		
-	samba_domain=$(echo "$domain" | cut -d"." -f1)
-	suffix_domain=$(echo "$domain" | sed -n "s/$samba_domain\.//p")
-	
+	while [ "$samba_domain_check" != "ok" ]
+	do
+            $dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 20 80 $domain 2>$tempfile
+            domain="$(cat $tempfile)"		
+            samba_domain="$(echo "$domain" | cut -d"." -f1)"
+            samba_domain_size="${#samba_domain}"
+            if [ $samba_domain_size -gt 15 ]; then
+            NEWT_COLORS='                                                                                                                         
+ window=,red
+ border=white,red
+ textbox=white,red
+ button=black,white' whiptail --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --msgbox "Erreur : $samba_domain dépasse 15 caractères, merci de modifier votre saisie" 13 70
+            continue
+            else
+                samba_domain_check="ok"
+            fi
+	done	
 	confirm_title="Récapitulatif de la configuration prévue"
 	confirm_txt="Disque à utiliser : $se4ad_boot_disk
 	
@@ -314,7 +330,7 @@ do
 	
 Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
     
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$se4fs_boot_disk_txt" 13 70 "/dev/sda" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$se4fs_boot_disk_txt" 13 70 "/dev/$sd_detect" 2>$tempfile || erreur "Annulation"
     se4fs_boot_disk=$(cat $tempfile)
 	
     root_size_txt="** Taille de la partition racine **
