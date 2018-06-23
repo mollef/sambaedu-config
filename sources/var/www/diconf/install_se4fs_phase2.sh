@@ -31,7 +31,7 @@ while [ "$REPONSE" != "o" -a "$REPONSE" != "O" -a "$REPONSE" != "n" ]
 do
     echo -e "$COLTXT"
     echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXL}) $COLSAISIE"
-    read REPONSE
+    read -t 40 REPONSE
     echo -e "$COLTXT"
     if [ -z "$REPONSE" ]; then
             REPONSE="o"
@@ -539,8 +539,8 @@ change_pass_root
 
 echo -e "$COLTITRE"
 # echo "L'installation est terminée. Bonne utilisation de SambaEdu4-FS ! :)"
-echo "L'installation de base SE4-FS stretch terminée :) - Vous pouvez poursuivre en installant les paquets se4 si votre AD est fonctionnel
-apt-get install sambaedu-web-common"
+echo "L'installation de base SE4-FS stretch terminée :) - Vous pouvez poursuivre en installant les paquets Se4 si votre AD est fonctionnel
+apt-get install sambaedu"
 echo -e "$COLTXT"
 
 # script_absolute_path=$(readlink -f "$0")

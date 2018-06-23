@@ -69,7 +69,7 @@ function POURSUIVRE()
         do
                 echo -e "$COLTXT"
                 echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXT}) $COLSAISIE\c"
-                read REPONSE
+                read -t 40 REPONSE
                 if [ -z "$REPONSE" ]; then
                         REPONSE="o"
                 fi
@@ -477,7 +477,7 @@ function export_dhcp()
 {
 dhcpd_conf="/etc/dhcp/dhcpd.conf"
 reservation_file="$dir_config/reservations.inc"
-
+rm -f $reservation_file
 
 # mkdir -p /etc/sambaedu/sambaedu.conf.d
 

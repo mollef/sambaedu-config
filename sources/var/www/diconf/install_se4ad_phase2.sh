@@ -45,7 +45,7 @@ while [ "$REPONSE" != "o" -a "$REPONSE" != "O" -a "$REPONSE" != "n" ]
 do
     echo -e "$COLTXT"
     echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXL}) $COLSAISIE"
-    read REPONSE
+    read -t 40 REPONSE
     echo -e "$COLTXT"
     if [ -z "$REPONSE" ]; then
             REPONSE="o"
@@ -390,7 +390,6 @@ echo -e "$COLCMD"
 /etc/init.d/slapd start
 check_error "Impossible de lancer slapd. Si vous avez lancé le script plusieurs fois, le plus simple est de redémarrer la machine car le port 389 doit être déjà occupé"
 echo -e "$COLTXT"
-
 }
 
 # Nettoyage comptes machines en erreurs et root
@@ -750,7 +749,7 @@ echo -e "$COLCMD"
 ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=person)" cn | sed -n "s/^cn: //"p | while read cn
 do
     cn_member="$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" CN=$cn memberOf)"
-    if [ "$cn" = "Administrator" ]; then
+    if [ "$cn" = "Administrator" -o ]; then
     continue
     elif echo $cn_member | grep -q Eleves; then
         target_dn="OU=Eleves,OU=Users,$ad_base_dn"
