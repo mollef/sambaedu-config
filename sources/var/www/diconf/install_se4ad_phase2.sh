@@ -314,7 +314,7 @@ apt-get upgrade --quiet --assume-yes
 echo -e "$COLPARTIE"
 echo "installation ntpdate, vim, etc..."
 echo -e "$COLTXT"
-prim_packages="ssh ntp vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged libsasl2-modules-gssapi-mit"
+prim_packages="ssh openntpd vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged libsasl2-modules-gssapi-mit"
 apt-get install --quiet --assume-yes $prim_packages
 }
 
@@ -703,7 +703,7 @@ ldbadd -H /var/lib/samba/private/sam.ldb $dir_config/ad_rights.ldif
 #~ set +x
 
 echo -e "$COLINFO"
-echo "Déplacement des groupes dans sa branche dédiée - Patience !"
+echo "Déplacement des groupes dans leur branche dédiée - Patience !"
 echo -e "$COLCMD"
 # ldapsearch -xLLL -D $ad_bindDN -w $administrator_pass -b $ad_base_dn -H ldaps://sambaedu4.lan "(objectClass=group)" dn | grep "dn:" | while read dn
 ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=group)" dn | grep "dn:" | while read dn
@@ -744,12 +744,12 @@ ldbadd_ou "OU=Profs,OU=Users,$ad_base_dn" "Profs" "Branche des Profs"
 ldbadd_ou "OU=Administratifs,OU=Users,$ad_base_dn" "Administratifs" "Branche des Administratifs"
 
 echo -e "$COLINFO"
-echo "Déplacement des comptes utilisateurs les branches dédiées - Patience !"
+echo "Déplacement des comptes utilisateurs dans les branches dédiées - Patience !"
 echo -e "$COLCMD"
 ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=person)" cn | sed -n "s/^cn: //"p | while read cn
 do
     cn_member="$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" CN=$cn memberOf)"
-    if [ "$cn" = "Administrator" -o ]; then
+    if [ "$cn" = "Administrator" ]; then
     continue
     elif echo $cn_member | grep -q Eleves; then
         target_dn="OU=Eleves,OU=Users,$ad_base_dn"
@@ -791,35 +791,11 @@ done
 function set_time()
 {
 echo -e "$COLPARTIE"
-echo "Type de configuration Ldap et mise a l'heure"
+echo "Configuration d'Open Ntp et mise à l'heure"
 echo -e "$COLTXT"
-
-
-echo -e "$COLINFO"
-
-if [ -n "$GATEWAY" ]; then
-	echo "Tentative de Mise à l'heure automatique du serveur sur $GATEWAY..."
-	ntpdate -b $GATEWAY
-	if [ "$?" = "0" ]; then
-		heureok="yes"
-	fi
-fi
-
-if [ "$heureok" != "yes" ];then
-
-	echo "Mise à l'heure automatique du serveur sur internet..."
-	echo -e "$COLCMD\c"
-	ntpdate -b fr.pool.ntp.org
-	if [ "$?" != "0" ]; then
-		echo -e "${COLERREUR}"
-		echo "ERREUR: mise à l'heure par internet impossible"
-		echo -e "${COLTXL}Vous devez donc vérifier par vous même que celle-ci est à l'heure"
-		echo -e "le serveur indique le$COLINFO $(date +%c)"
-		echo -e "${COLTXL}Ces renseignements sont-ils corrects ? (${COLCHOIX}O/n${COLTXL}) $COLSAISIE\c"
-		read rep
-		[ "$rep" = "n" ] && echo -e "${COLERREUR}Mettez votre serveur à l'heure avant de relancer l'installation$COLTXT" && exit 1
-	fi
-fi
+sed "s/^#listen on \*/listen on */" -i /etc/openntpd/ntpd.conf 
+/usr/sbin/ntpd -s
+echo -e "$COLTXT"
 }
 
 # Fonction permettant l'écriture de resolv.conf car AD est DNS du domaine
@@ -867,10 +843,14 @@ grep -q "^PermitRootLogin yes" /etc/ssh/sshd_config || echo "PermitRootLogin yes
 
 # Fonction permettant de descendre le niveau de complexité des pass utilisateurs
 function change_policy_passwords() {
+echo -e "$COLPARTIE"
+echo -e "Assouplissement de la politique des mots de passe pour les autres comptes"
+echo -e "$COLINFO"
 samba-tool domain passwordsettings set --complexity=off
 samba-tool domain passwordsettings set --history-length=0
 samba-tool domain passwordsettings set --min-pwd-age=0
 samba-tool domain passwordsettings set --max-pwd-age=0
+echo -e "$COLTXT"
 }
 
 
@@ -1110,6 +1090,7 @@ if [ -e "$dir_export/slapd.conf" ]; then
 	check_smb_ad
 	change_pass_admin
 	
+	
 else
 	echo "$dir_export/slapd.conf non trouvé - L'installation se poursuivra sur un nouveau domaine sans import d'anciennes données"
 	go_on
@@ -1121,7 +1102,7 @@ else
 	write_krb5
 	
 fi
-
+set_time
 change_policy_passwords
 
 create_www-sambaedu
