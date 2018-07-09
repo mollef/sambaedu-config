@@ -60,4 +60,6 @@ Les détails du fonctionnement de cette possibilité sont indiqués `dans la doc
 Roadmap - feuille de route
 ==========================
 
-Voir l'état d'avancement du projet SambaEdu disponible dans la `partie dédiée de Github <https://github.com/orgs/SambaEdu/projects?query=is%3Aopen+sort%3Aname-asc>`__
+Voir l'état d'avancement du paquet sambaedu-config dans la `partie dédiée de Github <https://github.com/orgs/SambaEdu/projects/6>`__
+
+
