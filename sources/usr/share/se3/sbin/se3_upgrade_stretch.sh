@@ -32,25 +32,85 @@ errexit()
 	exit 1
 }
 
-poursuivre()
+function check_whiptail()
 {
-	REPONSE=""
-	while [ "$REPONSE" != "o" -a "$REPONSE" != "n" -a "$REPONSE" != "O" ]
-	do
-		echo -e "$COLTXT"
-		echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXT}) $COLSAISIE\c"
-		read -t 30 REPONSE
-		if [ -z "$REPONSE" ]; then
-			REPONSE="o"
-		fi
-	done
-
-	if [ "$REPONSE" != "o" -a "$REPONSE" != "O" ]; then
-		erreur "Abandon!"
-		errexit		
-	fi
+if [ -z "$(which whiptail)" ];then
+apt-get install whiptail -y 
+fi
 }
 
+
+function show_title() {
+BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
+
+WELCOME_TITLE="Migration vers SE4-FS"
+
+$dialog_box --backtitle "$BACKTITLE" --title "Migration vers SE4-FS" \
+--menu "Bienvenue, choisissez l'action à effectuer" 15 80 7  \
+"1" "Lancement de la migration du SE3 Wheezy vers SE4-FS Stretch" \
+"2" "Téléchargement des paquets dans le cache uniquement" \
+"3" "Sortie du programme sans mofification" \
+2>$tempfile
+
+choice=`cat $tempfile`
+[ "$?" != "0" ] && exit 0
+case $choice in
+        1)
+        ;;
+        2)
+        download_packages
+		exit 0
+        ;;
+        3)
+        exit 0
+        ;;
+        *) exit 0
+        ;;
+        esac
+}
+
+
+
+
+# Affichage de la partie actuelle
+function show_part()
+{
+echo -e "$COLTXT"
+echo -e "$COLPARTIE"
+echo "--------"
+echo "$1"
+echo "--------"
+echo -e "$COLTXT"
+# sleep 1
+}
+
+function erreur()
+{
+        echo -e "$COLERREUR"
+        echo "ERREUR!"
+        echo -e "$1"
+        echo -e "$COLTXT"
+        exit 1
+}
+
+# Poursuivre ou quitter en erreur
+function poursuivre()
+{
+        REPONSE=""
+        while [ "$REPONSE" != "o" -a "$REPONSE" != "O" -a "$REPONSE" != "n" ]
+        do
+                echo -e "$COLTXT"
+                echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXT}) $COLSAISIE\c"
+                read -t 40 REPONSE
+                if [ -z "$REPONSE" ]; then
+                        REPONSE="o"
+                fi
+        done
+
+        if [ "$REPONSE" != "o" -a "$REPONSE" != "O" ]; then
+                erreur "Abandon!"
+        fi
+}
 line_test()
 {
 echo -e "$COLINFO"
@@ -163,19 +223,6 @@ if [ -z "$SCREENOK" ]; then
 fi
 }
 
-
-show_title()
-{
-
-echo -e "$COLTITRE"
-echo "**********************************************************"
-echo "* Script de migration de Wheezy vers Jessie puis Stretch *" | tee -a $fichier_log
-echo "**********************************************************"
-echo -e "$COLTXT"
-poursuivre
-
-}
-
 show_help()
 {
 echo "Script de migration de Wheezy vers Stretch
@@ -190,32 +237,6 @@ A lancer sans option ou avec les options suivantes
 "
 }
 
-# maj_se3wheezy()
-# {
-# gensource_distrib wheezy
-# echo -e "$COLINFO"
-# echo "Partie Wheezy - Mise à  jour des dépots en cours....Patientez"
-# echo -e "$COLTXT"
-# [ "$DEBUG" != "yes" ] && apt-get clean
-# apt-get -qq update $option_update
-# (
-# dpkg -l|grep "se3-\|sambaedu"|cut -d ' ' -f3|while read package
-# do
-# LC_ALL=C apt-get -s install $package|grep newest >/dev/null|| echo $package
-# done
-# )>/root/se3_update_list
-# list_module=$(cat /root/se3_update_list)
-# if [ -n "$list_module" ]; then
-#     echo "Téléchargement des modules SE3 devant être mis à  jour avant migration" 
-#     apt-get install $list_module -d -y --force-yes --allow-unauthenticated 2>&1
-# fi
-# rm -f /root/se3_update_list
-# echo -e "$COLINFO"
-# echo "Téléchargement des paquets ldap Wheezy si nécessaire"
-# echo -e "$COLTXT"
-# 
-# apt-get install ldap-utils libldap-2.4-2 slapd -d -y --allow-unauthenticated
-# }
 
 debian_check()
 {
@@ -526,7 +547,6 @@ if [ "$?" != "0" ]; then
 fi
 apt-get install debian-archive-keyring --allow-unauthenticated | tee -a $fichier_log
 apt-get -qq update 
-backuppc_check_run
 aptitude install libc6 locales  -y < /dev/tty | tee -a $fichier_log
 if [ "$?" != "0" ]; then
     mv /etc/apt/sources.list_save_migration /etc/apt/sources.list 
@@ -544,7 +564,7 @@ touch $chemin_migr/prim_packages_stretch-ok
 dist_upgrade_stretch()
 {
 echo -e "$COLPARTIE"
-echo "Migration en Jessie - installation des paquets restants" 
+echo "Migration en Strech - installation des paquets restants" 
 echo -e "$COLTXT"
 poursuivre
 echo -e "$COLINFO"
@@ -578,6 +598,23 @@ touch $chemin_migr/dist_upgrade_stretch
 echo "migration du systeme OK" | tee -a $fichier_log
 }
 
+download_packages()
+{
+    echo -e "$COLINFO"
+    echo "Pré-téléchargement des paquets uniquement"
+    echo -e "$COLTXT"
+    upgrade_se3wheezy
+    system_check_place
+    gensource_distrib jessie
+    packages_dl
+    gensource_distrib strech
+    packages_dl
+    gensource_distrib wheezy
+    exit 0
+}
+
+
+# recup params particuliers si besoin
 while :; do
 	case $1 in
 		-h|-\?|--help)
@@ -585,10 +622,6 @@ while :; do
 		exit
 		;;
       
-		-d|--download)
-		download="yes"
-		;;
-		
 		--no-update)
 		touch /root/nodl
 		;;
@@ -612,6 +645,13 @@ while :; do
  		shift
 done
 
+# debut du script
+
+
+
+# Variables :
+dialog_box="$(which whiptail)"
+
 option_apt="-y"
 PERMSE3_OPTION="--light"
 DEBIAN_PRIORITY="critical"
@@ -624,6 +664,9 @@ DEBUG="yes"
 # option_update="-o Acquire::Check-Valid-Until=false"
 
 bpc_script="/etc/init.d/backuppc"
+
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/inst$$
+tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
 
 #init des params
 source /usr/share/se3/includes/config.inc.sh -cml
@@ -643,24 +686,10 @@ if [ -e /etc/apt/listchanges.conf ]; then
 		sed -i "s|^frontend=.*|frontend=mail|" /etc/apt/listchanges.conf
 	fi
 fi
-
 show_title
 line_test
 screen_test
 
-if [ "$download" = "yes" ]; then
-    echo -e "$COLINFO"
-    echo "Pré-téléchargement des paquets uniquement"
-    echo -e "$COLTXT"
-    upgrade_se3wheezy
-    system_check_place
-    gensource_distrib jessie
-    packages_dl
-    gensource_distrib strech
-    packages_dl
-    gensource_distrib wheezy
-    exit 0
-fi
 
 #Lancement de la migration Jessie
 
@@ -682,21 +711,28 @@ if [ ! -e $chemin_migr/dist_upgrade_jessie ]; then
     dist_upgrade_jessie
 fi
 
-echo -e "$COLPARTIE"
-echo "Partie 5 : Nettoyage de fichiers obsolètes sur /home et modification des droit sur /home/profiles" | tee -a $fichier_log
-echo -e "$COLTXT"
-
 service mysql restart
+
+
+if [ ! -e $chemin_migr/prim_packages_stretch ]; then
+    prim_packages_stretch
+fi
+
+if [ ! -e $chemin_migr/dist_upgrade_stretch ]; then
+    dist_upgrade_stretch
+fi
+
+
+
+show_part "Nettoyage de fichiers obsolètes sur /home/profiles" | tee -a $fichier_log
+
 
 # modif base sql
 mysql -e "UPDATE se3db.params SET value = 'stretch' WHERE value = 'wheezy';" 
 # mysql -e "UPDATE se3db.params SET value = '2.5' WHERE value = '2.4';" 
 
 
-echo -e "$COLINFO"
-echo "nettoyage du cache et des paquets inutiles"
-echo -e "$COLTXT"
-# nettoyage
+show_part "nettoyage du cache et des paquets inutiles"
 
 apt-get autoremove -y
 apt-get clean
