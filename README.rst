@@ -60,5 +60,4 @@ Les détails du fonctionnement de cette possibilité sont indiqués `dans la doc
 Roadmap - feuille de route
 ==========================
 
-Voir la `roadmap du dépôt principal SE4 <https://github.com/SambaEdu/se4/blob/master/README.rst#roadmap>`__
-
+Voir l'état d'avancement du projet SambaEdu disponible dans la `partie dédiée de Github <https://github.com/orgs/SambaEdu/projects?query=is%3Aopen+sort%3Aname-asc>`__
