@@ -378,7 +378,16 @@ sed "s/$sambadomaine_old/$sambadomaine_new/I" -i $dir_export/$se3ldif
 cp $dir_export/*.schema  /etc/ldap/schema/
 # nettoyage au besoin
 rm -f /var/lib/ldap/* 
-cp $dir_export/DB_CONFIG  /var/lib/ldap/
+# cp $dir_export/DB_CONFIG  /var/lib/ldap/
+cat > /var/lib/ldap/DB_CONFIG <<END
+set_cachesize 	0	41943040	0
+set_flags       DB_TXN_NOSYNC
+set_lg_bsize	524288
+set_lk_max_objects      10000
+set_lk_max_locks        10000
+set_lk_max_lockers      10000
+set_flags DB_LOG_AUTOREMOVE
+END
 slapadd -l $dir_export/$se3ldif
 check_error
 chown -R openldap:openldap /var/lib/ldap/
@@ -549,7 +558,7 @@ if [ -e "$dir_export/smb.conf" ]; then
 	go_on
 	echo -e "$COLCMD"
 	sed "s/$netbios_name/se4ad/I" -i $dir_export/smb.conf
-	sed "s/$sambadomaine_old/$sambadomaine_new/" -i $dir_export/smb.conf
+	sed "s/workgroup = $sambadomaine_old/workgroup = $sambadomaine_new/I" -i $dir_export/smb.conf
 	sed "s#passdb backend.*#passdb backend = ldapsam:ldap://$se4ad_ip#" -i $dir_export/smb.conf  
 	echo "samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf"
 	samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf
