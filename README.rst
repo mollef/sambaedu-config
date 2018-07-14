@@ -44,7 +44,7 @@ L'installation du container ``LXC`` se fait à l'aide d'un script dédié dont l
 
 Durant cette phase on installe de façon automatique un container ``Stretch`` et on y dépose une archive contenant les paramètres importants du ``Se3`` et son  annuaire.
 
-Les détails du fonctionnement de cette possibilité sont indiqués `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/doc-installation/install-lxc-se4AD.rst#procédure-dinstallation-automatique-dun-container-lxc-se4-ad>`__
+Les détails du fonctionnement de cette possibilité sont indiqués `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/documentation/installation/install-lxc-se4AD.rst#procédure-dinstallation-automatique-dun-container-lxc-se4-ad>`__
 
 
 Choix du serveur dédié
@@ -54,7 +54,7 @@ Le fichier ``preseed`` sera, quand à lui, généré à l'aide de la commande ``
 
 Il sera ensuite possible, en utilisant ce fichier ``preseed``, d'installer le serveur dédié en utilisant le serveur ``TFTP`` du ``Se3`` ou un support ammovible (par exemple un ``CD``).
 
-Les détails du fonctionnement de cette possibilité sont indiqués `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/doc-installation/gen-preseed-se4AD.rst#génération-dun-preseed-et-installation-automatique-dun-serveur-se4-ad>`__
+Les détails du fonctionnement de cette possibilité sont indiqués `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/documentation/installation/gen-preseed-se4AD.rst#génération-dun-preseed-et-installation-automatique-dun-serveur-se4-ad>`__
 
 
 Roadmap - feuille de route
