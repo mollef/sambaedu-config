@@ -466,7 +466,11 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo "trash_rdn=\"ou=Trash\"" >> $se4fs_config
     echo "ldap_url=\"ldaps://$domain\"" >> $se4fs_config
 
-    
+   echo "adminse_name" = \"adminse3\"  > $se4fs_config_clients
+   echo "client_windows" = \"1\" >> $se4fs_config_clients
+   echo "adminse_passwd" = \"$xppass\" >> $se4fs_config_clients
+   
+  
 fi
 
 
@@ -575,6 +579,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo -e "$COLINFO"
     echo "Copie du fichier de configuration se4fs et du fichier $reservation_file dhcp s'il existe "
     cp -v $se4fs_config $dir_preseed/
+    cp -v $se4fs_config_clients $dir_preseed/secret/
     if [ -e "$reservation_file" ];then
         cp -v $reservation_file $dir_preseed/
     fi
@@ -696,10 +701,14 @@ wget http://$se3ip/diconf/sambaedu.conf
 wget http://$se3ip/diconf/connexions.sql
 wget http://$se3ip/diconf/quotas.sql
 wget http://$se3ip/diconf/secret/id_rsa.pub 
-wget http://$se3ip/diconf/secret/id_rsa 
+wget http://$se3ip/diconf/secret/id_rsa
+wget http://$se3ip/diconf/secret/clients.conf
+
 mkdir -p /target/etc/sambaedu
+mkdir -p /target/etc/sambaedu/sambaedu.conf.d
+cp clients.conf /target/etc/sambaedu/sambaedu.conf.d/
 cp sambaedu.conf id_rsa id_rsa.pub connexions.sql quotas.sql /target/etc/sambaedu/
-chmod 600 /target/etc/sambaedu/*
+chmod -R 600 /target/etc/sambaedu/*
 mkdir -p /target/root/.ssh/
 cp authorized_keys /target/root/.ssh/
 chmod +x ./install_se4fs_phase2.sh
@@ -888,6 +897,8 @@ mkdir -p "$dir_export"
 dir_preseed="/var/www/diconf"
 se4ad_config="$dir_export/se4ad.config"
 se4fs_config="$dir_config/sambaedu.conf"
+se4fs_config_clients="$dir_config/clients.conf"
+
 script_phase2="install_se4ad_phase2.sh"
 nameserver="$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2| head -n 1)"
 se4ad_config_tgz="se4ad.config.tgz"
