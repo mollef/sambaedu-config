@@ -268,7 +268,7 @@ apt-get -qq update
 apt-get upgrade --quiet --assume-yes
 
 echo -e "$COLPARTIE"
-echo "installation ntpdate, vim, etc..."
+echo "installation des paquets prioritaires ssh, vim, wget, etc..."
 echo -e "$COLTXT"
 prim_packages="ssh vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged"
 apt-get install --quiet --assume-yes $prim_packages
@@ -300,7 +300,7 @@ if [ "$download" = "yes" ] || [ ! -e /root/dl_ok ]; then
 	installbase
 	gensourcelist
 	echo -e "$COLPARTIE"
-	echo "Téléchargement de samba 4" 
+	echo "Téléchargement de samba 4.5" 
 	echo -e "$COLCMD"
 
 	apt-get install $samba_packages -d -y
@@ -389,6 +389,18 @@ fi
 echo -e "$COLTXT"
 
 
+}
+
+# Fonction permettant de changer le pass root
+function install_se_packages()
+{
+echo -e "$COLPARTIE"
+echo -e "Installation des paquets SambaEdu"
+go_on
+echo -e "$COLCMD"
+apt-get install -y sambaedu 
+apt-get install -y sambaedu-client-windows 
+echo -e "$COLTXT"
 }
 
 # Fonction permettant de changer le pass root
@@ -535,12 +547,13 @@ gensourcese4
 
 check_ad_access
 
+install_se_packages
+
 change_pass_root
 
 echo -e "$COLTITRE"
 # echo "L'installation est terminée. Bonne utilisation de SambaEdu4-FS ! :)"
-echo "L'installation de base SE4-FS stretch terminée :) - Vous pouvez poursuivre en installant les paquets Se4 si votre AD est fonctionnel
-apt-get install sambaedu"
+echo "Installation de base SE4-FS stretch terminée :)"
 echo -e "$COLTXT"
 
 # script_absolute_path=$(readlink -f "$0")
