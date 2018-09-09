@@ -557,7 +557,8 @@ if [ -e "$dir_export/smb.conf" ]; then
 	echo "Lancement de la migration du domaine NT4 vers Samba AD avec sambatool" 
 	go_on
 	echo -e "$COLCMD"
-	sed "s/$netbios_name/se4ad/I" -i $dir_export/smb.conf
+	# sed "s/$netbios_name/se4ad/I" -i $dir_export/smb.conf
+	sed "s/netbios name = $netbios_name/netbios name = se4ad/I" -i $dir_export/smb.conf
 	sed "s/workgroup = $sambadomaine_old/workgroup = $sambadomaine_new/I" -i $dir_export/smb.conf
 	sed "s#passdb backend.*#passdb backend = ldapsam:ldap://$se4ad_ip#" -i $dir_export/smb.conf  
 	echo "samba-tool domain classicupgrade --dbdir=$dir_export --use-xattrs=yes --realm=$domain_up --dns-backend=SAMBA_INTERNAL $dir_export/smb.conf"
