@@ -439,38 +439,41 @@ echo "##SID domaine actuel" >> $se4ad_config
 echo "domainsid=\"$domainsid\"" >> $se4ad_config
 
 if [ "$preseed_se4fs" = "yes" ];then
-    echo "## Adresse IP du futur SE4-AD ##" > $se4fs_config
+    echo "## Params du futur SE4-AD ##" > $se4fs_config
     echo "se4ad_ip=\"$se4ad_ip\"" >> $se4fs_config
-    echo "## Nom du SE4-AD ##" >> $se4fs_config
     echo "se4ad_name=\"$se4ad_name\"" >> $se4fs_config
-    echo "## Adresse IP du futur SE4-FS ##" >> $se4fs_config
+    echo "## Params du futur SE4-FS et domaine##" >> $se4fs_config
     echo "se4fs_ip=\"$se4fs_ip\"" >> $se4fs_config
-    echo "## Nom du futur SE4-FS ##" >> $se4fs_config
     echo "se4fs_name=\"$se4fs_name\"" >> $se4fs_config
-    echo "## Nom de domaine samba ##" >> $se4fs_config
     echo "samba_domain=\"$samba_domain\"" >>  $se4fs_config
-    echo "## Nom de domaine complet ##" >> $se4fs_config
     echo "domain=\"$domain\"" >> $se4fs_config
-    echo "##Adresse du serveur DNS##" >> $se4fs_config
     echo "nameserver=\"$nameserver\"" >> $se4fs_config
     echo "## params annuaire AD##" >> $se4fs_config
+    echo "ldap_port=\"636\"" >> $se4fs_config
     echo "admin_name=\"Administrator\"" >> $se4fs_config
     echo "ldap_admin_name=\"Administrator\"" >> $se4fs_config
-    echo "people_rdn=\"OU=Users\"" >> $se4fs_config
-    echo "admin_rdn=\"CN=Users\"" >> $se4fs_config
+    echo "admin_rdn=\"cn=Users\"" >> $se4fs_config
+    echo "people_rdn=\"ou=Users\"" >> $se4fs_config
     echo "groups_rdn=\"ou=Groups\"" >> $se4fs_config
     echo "rights_rdn=\"ou=Rights\"" >> $se4fs_config
     echo "parcs_rdn=\"ou=Parcs\"" >> $se4fs_config
     echo "computers_rdn=\"CN=computers\"" >> $se4fs_config
+    echo "classes_rdn=\"ou=classes\"" >> $se4fs_config
+    echo "equipes_rdn=\"ou=equipes\"" >> $se4fs_config
+    echo "matieres_rdn=\"ou=matieres\"" >> $se4fs_config
+    echo "projets_rdn=\"ou=projets\"" >> $se4fs_config
+    echo "delegations_rdn=\"ou=delegations\"" >> $se4fs_config 
     echo "printers_rdn=\"ou=Printers\"" >> $se4fs_config
     echo "trash_rdn=\"ou=Trash\"" >> $se4fs_config
+    echo "lang=\"fr\"" >> $se4fs_config
     echo "ldap_url=\"ldaps://$domain\"" >> $se4fs_config
-
-   echo "adminse_name" = \"adminse3\"  > $se4fs_config_clients
-   echo "client_windows" = \"1\" >> $se4fs_config_clients
-   echo "adminse_passwd" = \"$xppass\" >> $se4fs_config_clients
-   
-  
+    echo "cnPolicy=\"1\"" >> $se4fs_config
+    echo "pwdPolicy=\"1\"" >> $se4fs_config
+    echo "path2UserSkel=\"/etc/skel/user\"" >> $se4fs_config
+    # Params se4fs_config_clients
+    echo "adminse_name" = \"adminse3\"  > $se4fs_config_clients
+    echo "client_windows" = \"1\" >> $se4fs_config_clients
+    echo "adminse_passwd" = \"$xppass\" >> $se4fs_config_clients
 fi
 
 
