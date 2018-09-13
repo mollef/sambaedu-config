@@ -3,6 +3,7 @@
 ##### Permet la génération du preseed de se4-AD et se4-FS#####
 # franck molle
 # version 06 - 2018 
+# version 07 - 2018 - GrosQuicK : ajout d'un test pour détecter les SID en doublons 
 
 
 
@@ -861,6 +862,22 @@ echo -e "$COLTXT"
 }
 
 
+# Recherche de sid en doublon
+function search_duplicate_sid() {
+if [ -f $test_duplicate_sid ];then
+	echo "Test de la présence d'éventuels doublons dans l'annuaire"
+	duplicate_sid="$( python $test_duplicate_sid )$"
+	if [ "$duplicate_sid"  != "" ];then
+		echo $duplicate_sid
+		erreur "Doublons dans l'annuaire, corriger cela dans l'interface : 
+- Informations système => correction de problèmes => recherche des doublons ldap
+- Gestion des parcs => Rechercher => doublons MAC"
+	else
+		echo "Pas de doublon détecté"
+	fi
+fi
+}
+
 ######## Debut du Script ########
 
 clear
@@ -902,10 +919,11 @@ se4fs_config_clients="$dir_config/clients.conf"
 script_phase2="install_se4ad_phase2.sh"
 nameserver="$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2| head -n 1)"
 se4ad_config_tgz="se4ad.config.tgz"
-
+test_duplicate_sid="/usr/share/se3/sbin/duplicate_sid.py"
 
 show_title
 check_whiptail
+search_duplicate_sid
 conf_network
 preconf_se4ad
 ask_preseed_se4fs
