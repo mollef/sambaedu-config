@@ -869,7 +869,7 @@ echo -e "$COLTXT"
 function search_duplicate_sid() {
 if [ -f $test_duplicate_sid ];then
 	echo "Test de la présence d'éventuels doublons dans l'annuaire"
-	duplicate_sid="$( python $test_duplicate_sid )$"
+	duplicate_sid="$( python $test_duplicate_sid )"
 	if [ "$duplicate_sid"  != "" ];then
 		echo $duplicate_sid
 		erreur "Doublons dans l'annuaire, corriger cela dans l'interface : 
