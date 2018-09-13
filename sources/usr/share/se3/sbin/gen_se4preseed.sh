@@ -868,20 +868,19 @@ echo -e "$COLTXT"
 # Recherche de sid en doublon
 function search_duplicate_sid() {
 if [ -f $test_duplicate_sid ];then
-	echo "Test de la présence d'éventuels doublons dans l'annuaire"
-	duplicate_sid="$( python $test_duplicate_sid )"
-	if [ "$duplicate_sid"  != "" ];then
-		$dialog_box  --backtitle "$BACKTITLE" --title "Doublons dans l'annuaire !" --msgbox "$duplicate_sid 
-		
-		Corriger cela dans l'interface : 
-			- Informations système => correction de problèmes => recherche des doublons ldap
-			- Gestion des parcs => Rechercher => doublons MAC"
-		erreur "Doublons dans l'annuaire, corriger cela dans l'interface : 
+    duplicate_sid="$( python $test_duplicate_sid )"
+    if [ "$duplicate_sid"  != "" ];then
+        $dialog_box  --backtitle "$BACKTITLE" --title "Doublons dans l'annuaire !" --msgbox "$duplicate_sid
+
+        Corriger cela dans l'interface :
+            - Informations système => correction de problèmes => recherche des doublons ldap
+            - Gestion des parcs => Rechercher => doublons MAC" 18 75
+        erreur "Doublons dans l'annuaire, corriger cela dans l'interface :
 - Informations système => correction de problèmes => recherche des doublons ldap
 - Gestion des parcs => Rechercher => doublons MAC"
-	else
-		$dialog_box  --backtitle "$BACKTITLE" --title "Doublons dans l'annuaire !" --msgbox "Pas de doublon dans l'annuaire"
-	fi
+    else
+        $dialog_box  --backtitle "$BACKTITLE" --title "Pas de doublon dans l'annuaire" --msgbox "Aucun sid en doublon n'a été trouvé dans l'annuaire."  18 75
+    fi
 fi
 }
 
