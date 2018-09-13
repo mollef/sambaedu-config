@@ -648,7 +648,7 @@ else
 fi
 chmod 644 $dir_preseed/authorized_keys
 cat $dir_config/id_rsa.pub >> $dir_preseed/authorized_keys
-cp $dir_config/id_rsa.pub $dir_preseed
+cp "$dir_config/id_rsa.pub" "$dir_preseed/"
 
 cp $dir_config/id_rsa $dir_preseed/secret/
 chmod 644 $dir_preseed/secret/id_rsa
@@ -704,7 +704,7 @@ wget http://$se3ip/diconf/authorized_keys
 wget http://$se3ip/diconf/sambaedu.conf
 wget http://$se3ip/diconf/connexions.sql
 wget http://$se3ip/diconf/quotas.sql
-wget http://$se3ip/diconf/secret/id_rsa.pub 
+wget http://$se3ip/diconf/id_rsa.pub 
 wget http://$se3ip/diconf/secret/id_rsa
 wget http://$se3ip/diconf/secret/clients.conf
 
