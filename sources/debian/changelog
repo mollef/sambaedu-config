@@ -1,3 +1,9 @@
+sambaedu-config (0.23.1~) unstable; urgency=low
+
+  * add duplicate_sid.py in package. Add variables in sambaedu.conf
+
+ -- Franck Molle <franck.molle@sambaedu.org>  Mon, 14 Sep 2018 01:25:10 +0100
+
 sambaedu-config (0.23) unstable; urgency=low
 
   * transfert of sambaedu.conf between se3 and se4fs.
