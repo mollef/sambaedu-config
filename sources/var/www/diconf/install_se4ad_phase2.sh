@@ -86,8 +86,9 @@ fi
 # Fonction génération du sources.list stretch FR
 function gensourcelist()
 {
+[ -z "$mirror_name" ] && mirror_name="deb.debian.org"
 cat >/etc/apt/sources.list <<END
-deb http://deb.debian.org/debian stretch main non-free contrib
+deb http://$mirror_name/debian stretch main non-free contrib
 
 deb http://security.debian.org/debian-security stretch/updates main contrib non-free
 

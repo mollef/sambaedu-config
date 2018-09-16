@@ -90,15 +90,12 @@ d-i netcfg/get_domain string ###_AD_DOMAIN_###
 d-i hw-detect/load_firmware boolean true
 #### fin section 2
 
-### 3. Configuration du miroir : utilisation de apt-cacher
-# certains paramètres de cette section sont configurables via l'entrée serveur tftp du se3
-# mais cela est inutile depuis que le se3 incorpore un miroir apt-cacher-ng
-#############
-d-i mirror/country string manual
+### 3. Configuration du miroir : utilisation d'un miroir local ou bien de deb.debian.org
+d-i mirror/country string manual ###_MIRROR_###
 d-i mirror/http/hostname string deb.debian.org
 d-i mirror/http/directory string /debian
 
-# Pas de miroir
+# Pas de PROXY APT
 d-i mirror/http/proxy string
 
 # distribution à installer : stretch

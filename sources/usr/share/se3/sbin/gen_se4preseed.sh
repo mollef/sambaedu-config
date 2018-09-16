@@ -188,6 +188,11 @@ Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'a
 	fi
 	details="yes"
 	samba_domain_check="no"
+	
+	mirror_name_title="Miroir Debian à utiliser pour l'installation"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_name_title" --inputbox "Confirmer le nom du miroir à utiliser ou bien saisir l'adresse de votre miroir local si vous en avez un" 15 70 deb.debian.org 2>$tempfile || erreur "Annulation"
+	mirror_name=$(cat $tempfile)
+		
 	se4ad_name_title="Nom du SE4-AD"
 	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_name_title" --inputbox "Saisir le Nom de la machine SE4-AD" 15 70 se4ad 2>$tempfile || erreur "Annulation"
 	se4ad_name=$(cat $tempfile)
@@ -230,6 +235,8 @@ Masque :     $se4ad_mask
 Réseau :     $se4ad_network
 Broadcast :  $se4ad_bcast
 Passerelle : $se4ad_gw
+Miroir debian : $mirror_name
+
 
 Nom :        $se4ad_name
 
@@ -295,7 +302,6 @@ do
 	se4fs_name=$(cat $tempfile)
 	
 	
-	
 	confirm_title="Récapitulatif de la configuration prévue"
 	confirm_txt="IP :         $se4fs_ip
 Masque :     $se4fs_mask
@@ -304,6 +310,7 @@ Broadcast :  $se4fs_bcast
 Passerelle : $se4fs_gw
 
 Nom :        $se4fs_name
+
 
 Confirmer l'enregistrement de cette configuration ?"
 		
@@ -415,6 +422,8 @@ fi
 # Génération de $se4ad_config
 echo "## Adresse IP du futur SE4-AD ##" > $se4ad_config
 echo "se4ad_ip=\"$se4ad_ip\"" >> $se4ad_config
+echo "## Miroir debian ##" >> $se4ad_config
+echo "mirror_name=\"$mirror_name\"" >> $se4ad_config
 echo "## Nom du futur SE4-AD ##" >> $se4ad_config
 echo "se4ad_name=\"$se4ad_name\"" >> $se4ad_config
 echo "## Nom de domaine samba du SE4-AD ##" >> $se4ad_config
@@ -442,6 +451,8 @@ echo "domainsid=\"$domainsid\"" >> $se4ad_config
 if [ "$preseed_se4fs" = "yes" ];then
     echo "## Params du futur SE4-AD ##" > $se4fs_config
     echo "se4ad_ip=\"$se4ad_ip\"" >> $se4fs_config
+    echo "## Miroir debian ##" >> $se4ad_config
+    echo "mirror_name=\"$mirror_name\"" >> $se4ad_config
     echo "se4ad_name=\"$se4ad_name\"" >> $se4fs_config
     echo "## Params du futur SE4-FS et domaine##" >> $se4fs_config
     echo "se4fs_ip=\"$se4fs_ip\"" >> $se4fs_config
@@ -668,7 +679,7 @@ echo -e "$COLINFO"
 echo "Modification du preseed avec les données saisies"
 echo -e "$COLCMD"
 
-sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4ad_mask/g; s/###_SE4GW_###/$se4ad_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4NAME_###/$se4ad_name/g" -i  $target_preseed
+sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4ad_mask/g; s/###_SE4GW_###/$se4ad_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_MIRROR_###/$mirror_name/g; s/###_SE4NAME_###/$se4ad_name/g" -i  $target_preseed
 sed -e "s/###_AD_DOMAIN_###/$domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g; s|###_BOOT_DISK_###|$se4ad_boot_disk|g" -i  $target_preseed 
 
 
@@ -682,7 +693,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo -e "$COLINFO"
     echo "Modification du preseed avec les données saisies"
     echo -e "$COLCMD"
-    sed -e "s/###_SE4FS_IP_###/$se4fs_ip/g; s/###_SE4FS_MASK_###/$se4fs_mask/g; s/###_SE4FS_GW_###/$se4fs_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_SE4FS_NAME_###/$se4fs_name/g" -i  $target_preseed
+    sed -e "s/###_SE4FS_IP_###/$se4fs_ip/g; s/###_SE4FS_MASK_###/$se4fs_mask/g; s/###_SE4FS_GW_###/$se4fs_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_MIRROR_###/$mirror_name/g; s/###_SE4FS_NAME_###/$se4fs_name/g" -i  $target_preseed
     sed -e "s/###_AD_DOMAIN_###/$domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
     sed -e "s|###_BOOT_DISK_###|$se4fs_boot_disk|g; s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE_SIZE_###/$varse_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
 fi
