@@ -114,7 +114,7 @@ END
 }
 
 
-# Fonction recupératoin des paramètres via fichier de conf ou tgz
+# Fonction recupération des paramètres via fichier de conf ou tgz
 function recup_params() {
 
 if [ -e "/root/$se4ad_config_tgz" ]; then
@@ -428,6 +428,29 @@ ldapdelete -x -D "$adminRdn,$ldap_base_dn" -w "$adminPw" "uid=root,ou=People,$ld
 #ldapdelete -x -D "$ADMINRDN,$BASEDN" -w "$ADMINPW" "cn=root,$GROUPSRDN,$BASEDN"
 echo -e "$COLTXT"
 }
+
+function modif_ldap_admin_account()
+{
+cpt_fin=10000
+for ((cpt=3000; cpt <= cpt_fin ; cpt++))
+do
+
+    rdm_sambasid="$(ldapsearch -xLLL sambaSid=$domainsid-$cpt sambaSid)"
+    if [ -z "$rdm_sambasid" ];then
+        echo "Modification du sambaSid pour admin"
+ldapmodify -x -D "$adminRdn,$ldap_base_dn" -w "$adminPw" <<EOF
+dn: uid=admin,ou=People,$ldap_base_dn
+changetype: modify
+replace: sambaSID
+sambaSID: $domainsid-$cpt
+EOF
+        break
+    fi
+done
+    
+}
+
+
 
 # Fonction génération des ldifs de l'ancien annuaire se3 avec adaptation de la structure pour conformité AD
 function extract_ldifs()
@@ -1088,6 +1111,7 @@ Permit_ssh_by_password
 if [ -e "$dir_export/slapd.conf" ]; then 
 	install_slapd
 	clean_ldap
+	modif_ldap_admin_account
 	extract_ldifs
 	convert_smb_to_ad
 	write_krb5
