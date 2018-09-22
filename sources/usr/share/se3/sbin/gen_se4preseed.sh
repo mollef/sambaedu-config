@@ -465,7 +465,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo "admin_name=\"Administrator\"" >> $se4fs_config
     echo "ldap_admin_name=\"Administrator\"" >> $se4fs_config
     echo "admin_rdn=\"cn=Users\"" >> $se4fs_config
-    echo "people_rdn=\"ou=Users\"" >> $se4fs_config
+    echo "people_rdn=\"ou=Utilisateurs\"" >> $se4fs_config
     echo "groups_rdn=\"ou=Groups\"" >> $se4fs_config
     echo "rights_rdn=\"ou=Rights\"" >> $se4fs_config
     echo "parcs_rdn=\"ou=Parcs\"" >> $se4fs_config
