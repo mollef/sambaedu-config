@@ -771,10 +771,10 @@ done
 
 function mv_users()
 {
-ldbadd_ou "OU=Users,$ad_base_dn" "Users" "Branche utilisateurs"
-ldbadd_ou "OU=Eleves,OU=Users,$ad_base_dn" "Eleves" "Branche des Eleves"
-ldbadd_ou "OU=Profs,OU=Users,$ad_base_dn" "Profs" "Branche des Profs"
-ldbadd_ou "OU=Administratifs,OU=Users,$ad_base_dn" "Administratifs" "Branche des Administratifs"
+ldbadd_ou "OU=Utilisateurs,$ad_base_dn" "Users" "Branche utilisateurs"
+ldbadd_ou "OU=Eleves,OU=Utilisateurs,$ad_base_dn" "Eleves" "Branche des Eleves"
+ldbadd_ou "OU=Profs,OU=Utilisateurs,$ad_base_dn" "Profs" "Branche des Profs"
+ldbadd_ou "OU=Administratifs,OU=Utilisateurs,$ad_base_dn" "Administratifs" "Branche des Administratifs"
 
 echo -e "$COLINFO"
 echo "Déplacement des comptes utilisateurs dans les branches dédiées - Patience !"
@@ -785,11 +785,11 @@ do
     if [ "$cn" = "Administrator" ]; then
     continue
     elif echo $cn_member | grep -q Eleves; then
-        target_dn="OU=Eleves,OU=Users,$ad_base_dn"
+        target_dn="OU=Eleves,OU=Utilisateurs,$ad_base_dn"
     elif echo $cn_member | grep -q Profs; then
-        target_dn="OU=Profs,OU=Users,$ad_base_dn"
+        target_dn="OU=Profs,OU=Utilisateurs,$ad_base_dn"
     elif echo $cn_member | grep -q Administratifs; then
-        target_dn="OU=Administratifs,OU=Users,$ad_base_dn"
+        target_dn="OU=Administratifs,OU=Utilisateurs,$ad_base_dn"
     else
     continue
     fi
