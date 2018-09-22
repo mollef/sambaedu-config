@@ -852,6 +852,7 @@ cat >/etc/samba/smb.conf <<END
 	workgroup = $samba_domain_up
 	dns forwarder = $nameserver
 	server role = active directory domain controller
+	ntlm auth = yes
 	
 [netlogon]
 	path = /var/lib/samba/sysvol/sambaedu4.lan/scripts
