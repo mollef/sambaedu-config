@@ -694,7 +694,7 @@ echo "Modification des exports ldif pour insertion de la base dn AD"
 sed "s/##ad_base_dn##/$ad_base_dn/g" -i $dir_config/*.ldif
 
 
-ldap_base_dn="dc=sambaedu3,dc=maison" ldap_admin_name="Administrator" ldap_admin_passwd="wwwwwww"
+# ldap_base_dn="dc=sambaedu3,dc=maison" ldap_admin_name="Administrator" ldap_admin_passwd="wwwwwww"
 
 echo -e "$COLINFO"
 echo "Ajout des branches de l'annuaire propres à SE4"
@@ -709,7 +709,7 @@ ldbadd_ou "OU=Equipes,OU=Groups,$ad_base_dn" "Equipes" "Branche des groupes cour
 ldbadd_ou "OU=Administratifs,OU=Groups,$ad_base_dn" "Administratifs" "Branche des administratifs"
 ldbadd_ou "OU=Trash,$ad_base_dn" "Trash" "Branche de la corbeille"
 ldbadd_ou "OU=Parcs,$ad_base_dn" "Parcs" "Branche parcs"
-ldbadd_ou "OU=Printers,$ad_base_dn" "Printers" "Branche imprimantes"
+ldbadd_ou "OU=Materiels,$ad_base_dn" "Materiels" "Branche Materiels"
 
 sleep 2
 
@@ -771,7 +771,7 @@ done
 
 function mv_users()
 {
-ldbadd_ou "OU=Utilisateurs,$ad_base_dn" "Users" "Branche utilisateurs"
+ldbadd_ou "OU=Utilisateurs,$ad_base_dn" "Utilisateurs" "Branche utilisateurs"
 ldbadd_ou "OU=Eleves,OU=Utilisateurs,$ad_base_dn" "Eleves" "Branche des Eleves"
 ldbadd_ou "OU=Profs,OU=Utilisateurs,$ad_base_dn" "Profs" "Branche des Profs"
 ldbadd_ou "OU=Administratifs,OU=Utilisateurs,$ad_base_dn" "Administratifs" "Branche des Administratifs"
@@ -811,7 +811,7 @@ do
     if [ -n "$cn_member" ]; then
         cn_parc="$(echo $cn_member | cut -d "," -f1 | sed -n "s/^CN=//"p)"
         target_dn="OU=$cn_parc,OU=Computers,$ad_base_dn"
-        ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$cn_parc" "Container$cn_parc"
+        ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$cn_parc" "Container $cn_parc"
     else
         target_dn="OU=Computers,$ad_base_dn"
     fi
