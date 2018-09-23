@@ -1,5 +1,8 @@
-sambaedu-config (0.23.1~) unstable; urgency=low
-
+sambaedu-config (0.24~1) unstable; urgency=low
+  * change admin sambasid to save accound after upgrade
+  * change name of users branch : ou=Utilisateurs
+  * add local miror support
+  * add raduis support in smb.conf
   * add duplicate_sid.py in package. Add variables in sambaedu.conf
 
  -- Franck Molle <franck.molle@sambaedu.org>  Mon, 14 Sep 2018 01:25:10 +0100
