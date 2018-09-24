@@ -79,8 +79,8 @@ d-i netcfg/get_domain string ###_AD_DOMAIN_###
 d-i hw-detect/load_firmware boolean true
 
 ### 3. Configuration du miroir : utilisation d'un miroir local ou bien de deb.debian.org
-d-i mirror/country string manual ###_MIRROR_###
-d-i mirror/http/hostname string 
+d-i mirror/country string manual 
+d-i mirror/http/hostname string ###_MIRROR_###
 d-i mirror/http/directory string /debian
 
 # Pas de PROXY APT
