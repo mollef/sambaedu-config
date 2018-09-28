@@ -451,8 +451,8 @@ echo "domainsid=\"$domainsid\"" >> $se4ad_config
 if [ "$preseed_se4fs" = "yes" ];then
     echo "## Params du futur SE4-AD ##" > $se4fs_config
     echo "se4ad_ip=\"$se4ad_ip\"" >> $se4fs_config
-    echo "## Miroir debian ##" >> $se4ad_config
-    echo "mirror_name=\"$mirror_name\"" >> $se4ad_config
+    echo "## Miroir debian ##" >> $se4fs_config
+    echo "mirror_name=\"$mirror_name\"" >> $se4fs_config
     echo "se4ad_name=\"$se4ad_name\"" >> $se4fs_config
     echo "## Params du futur SE4-FS et domaine##" >> $se4fs_config
     echo "se4fs_ip=\"$se4fs_ip\"" >> $se4fs_config
