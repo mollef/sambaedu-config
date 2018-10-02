@@ -457,24 +457,28 @@ function extract_ldifs()
 {
 local ad_base_dn="##ad_base_dn##"
 rm -f $dir_config/ad_rights.ldif
-ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b ou=Rights,$ldap_base_dn cn | sed -n 's/^cn: //p' | while read cn_rights
+# ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b ou=Rights,$ldap_base_dn cn | sed -n 's/^cn: //p' | while read cn_rights
+for cn_rights in Annu_is_admin se3_is_admin sovajon_is_admin printers_is_admin echange_can_administrate annu_can_read parc_can_view parc_can_manage no_Trash_user parc_can_clone 
 do
-	
-cat >> $dir_config/ad_rights.ldif <<END	
+    cat >> $dir_config/ad_rights.ldif <<END	
 dn: CN=$cn_rights,OU=Rights,$ad_base_dn
 objectClass: group
 objectClass: top
 member: CN=Administrator,CN=Users,$ad_base_dn
 END
-ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$cn_rights,ou=Rights,$ldap_base_dn member | sed -n 's/member: uid=//p' | cut -d "," -f1 | grep -v "^admin" | while read member_rights
+ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$cn_rights,ou=Rights,$ldap_base_dn member | sed -n 's/member: uid=//p' | cut -d "," -f1 | while read member_rights
 	do
-		echo "member: CN=$member_rights,CN=Users,$ad_base_dn" >> $dir_config/ad_rights.ldif
+		if [ -n "$(ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw uid=$member_rights uid)" ]; then
+                    echo "member: CN=$member_rights,CN=Users,$ad_base_dn" >> $dir_config/ad_rights.ldif
+		fi
 	done
 	
-ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$cn_rights,ou=Rights,$ldap_base_dn member | sed -n 's/member: cn=//p' | cut -d "," -f1 | grep -v "^admin" | while read member_rights
+ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$cn_rights,ou=Rights,$ldap_base_dn member | sed -n 's/member: cn=//p' | cut -d "," -f1 | while read member_rights
 	do
 # 		echo "member: CN=$member_rights,OU=Groups,$ad_base_dn" >> $dir_config/ad_rights.ldif
-		echo "member: CN=$member_rights,CN=Users,$ad_base_dn" >> $dir_config/ad_rights.ldif
+		if [ -n "$(ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw cn=$member_rights cn)" ]; then
+                    echo "member: CN=$member_rights,CN=Users,$ad_base_dn" >> $dir_config/ad_rights.ldif
+		fi
 	done
 echo ""	>> $dir_config/ad_rights.ldif
 done
