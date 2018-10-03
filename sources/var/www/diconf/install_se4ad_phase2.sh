@@ -992,6 +992,24 @@ samba-tool group addmembers "Domain Admins" www-sambaedu
 samba-tool domain exportkeytab --principal=www-sambaedu@$domain_up $dir_config/www-sambaedu.keytab
 }
 
+function disable_ipv6()
+{
+if ! grep -q "#disable_ipv6" /etc/sysctl.conf; then
+echo "#disable_ipv6
+# désactivation de ipv6 pour toutes les interfaces
+net.ipv6.conf.all.disable_ipv6 = 1
+
+# désactivation de l’auto configuration pour toutes les interfaces
+net.ipv6.conf.all.autoconf = 0
+
+# désactivation de ipv6 pour les nouvelles interfaces (ex:si ajout de carte réseau)
+net.ipv6.conf.default.disable_ipv6 = 1
+
+# désactivation de l’auto configuration pour les nouvelles interfaces
+net.ipv6.conf.default.autoconf = 0
+" >> /etc/sysctl.conf
+}
+
 
 # Fonction permettant de changer le pass root
 function change_pass_root()
@@ -1145,6 +1163,8 @@ set_time
 change_policy_passwords
 
 create_www-sambaedu
+
+disable_ipv6
 change_pass_root
 
 echo -e "$COLTITRE"
