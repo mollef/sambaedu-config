@@ -1,4 +1,7 @@
-sambaedu-config (0.24~1) unstable; urgency=low
+sambaedu-config (0.24~2) unstable; urgency=low
+  * disable ipv6
+  * export cups configuration
+  * clean right branche of wrong entries
   * change admin sambasid to save accound after upgrade
   * change name of users branch : ou=Utilisateurs
   * add local miror support
