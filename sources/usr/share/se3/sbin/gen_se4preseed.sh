@@ -402,16 +402,9 @@ done
 echo -e "$COLTXT"
 }
 
-
-
-
 # Fonction écriture fichier de conf /etc/sambaedu/se4ad.config
 function write_sambaedu_conf
 {
-
-
-
-
 
 if [ -e "$se4ad_config" ] ; then
     echo -e "$COLINFO"
@@ -585,9 +578,23 @@ mysqldump --opt se3db connexions > $dir_export/connexions.sql
 cp $dir_export/quotas.sql $dir_export/connexions.sql $dir_preseed/
 }
 
+
+function export_cups_config()
+{
+conf_cups="/etc/cups/printers.conf"
+if [ -e "$conf_cups" ]; then
+    echo -e "$COLINFO"
+    echo "Export du fichier de configuration Cups vers $dir_export"
+    echo -e "$COLTXT"
+    cp /etc/cups/printers.conf $dir_export/
+    cp $dir_export/printers.conf $dir_preseed/
+fi
+}
+
 # Fonction copie des fichiers de conf @LXC/etc/sambaedu
 function cp_config_to_preseed()
 {
+
 mkdir -p $dir_preseed/secret/
 cd $dir_config
 if [ "$preseed_se4fs" = "yes" ];then
@@ -715,6 +722,7 @@ wget http://$se3ip/diconf/authorized_keys
 wget http://$se3ip/diconf/sambaedu.conf
 wget http://$se3ip/diconf/connexions.sql
 wget http://$se3ip/diconf/quotas.sql
+wget http://$se3ip/diconf/printers.conf
 wget http://$se3ip/diconf/id_rsa.pub 
 wget http://$se3ip/diconf/secret/id_rsa
 wget http://$se3ip/diconf/secret/clients.conf
