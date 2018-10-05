@@ -1,4 +1,4 @@
-sambaedu-config (0.24~2) unstable; urgency=low
+sambaedu-config (0.24~3) unstable; urgency=low
   * disable ipv6
   * export cups configuration
   * clean right branche of wrong entries

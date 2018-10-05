@@ -1008,6 +1008,8 @@ net.ipv6.conf.default.disable_ipv6 = 1
 # désactivation de l’auto configuration pour les nouvelles interfaces
 net.ipv6.conf.default.autoconf = 0
 " >> /etc/sysctl.conf
+sysctl -p
+fi
 }
 
 

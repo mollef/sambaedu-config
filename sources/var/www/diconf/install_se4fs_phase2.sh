@@ -216,7 +216,27 @@ Franck.molle@sambaedu.org : Maintenance de l'installeur"
 
 dialog  --ok-label Ok --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOME_TEXT" 25 70
 #
+}
 
+
+# Fonction recupération des paramètres via fichier de conf ou tgz
+function recup_params() {
+
+echo -e "$COLINFO"
+if [ -e "$se4fs_config" ] ; then
+ 	echo "$se4fs_config est bien present sur la machine - initialisation des paramètres"
+	source $se4fs_config 
+	echo -e "$COLTXT"
+else
+	echo "$se4fs_config ne se trouve pas sur la machine"
+	echo -e "$COLTXT"
+	se4fs_ip="$(ifconfig eth0 | grep "inet " | awk '{ print $2}')"
+fi
+}
+
+# Fonction affichage du menu principal
+function show_menu()
+{
 dialog --backtitle "$BACKTITLE" --title "Installeur de samba Edu 4 - serveur File System" \
 --menu "Choisissez l'action à effectuer" 15 90 7  \
 "1" "Installation classique" \
@@ -240,22 +260,6 @@ case $choice in
         *) exit 0
         ;;
         esac
-}
-
-
-# Fonction recupératoin des paramètres via fichier de conf ou tgz
-function recup_params() {
-
-echo -e "$COLINFO"
-if [ -e "$se4fs_config" ] ; then
- 	echo "$se4fs_config est bien present sur la machine - initialisation des paramètres"
-	source $se4fs_config 
-	echo -e "$COLTXT"
-else
-	echo "$se4fs_config ne se trouve pas sur la machine"
-	echo -e "$COLTXT"
-	se4fs_ip="$(ifconfig eth0 | grep "inet " | awk '{ print $2}')"
-fi
 }
 
 # Fonction installation des paquets de base
@@ -299,7 +303,6 @@ if [ "$download" = "yes" ] || [ ! -e /root/dl_ok ]; then
 	echo "Pré-téléchargement des paquets nécessaire à l'installation"
 	echo -e "$COLTXT"
 	installbase
-	gensourcelist
 	echo -e "$COLPARTIE"
 	echo "Téléchargement de samba 4.5" 
 	echo -e "$COLCMD"
@@ -420,6 +423,8 @@ net.ipv6.conf.default.disable_ipv6 = 1
 # désactivation de l’auto configuration pour les nouvelles interfaces
 net.ipv6.conf.default.autoconf = 0
 " >> /etc/sysctl.conf
+sysctl -p
+fi
 }
 
 # Fonction permettant de changer le pass root
@@ -524,7 +529,7 @@ done
 
 show_title
 recup_params
-
+show_menu
 
 
 # A voir pour modifier ou récupérer depuis sambaedu.config 
@@ -537,6 +542,7 @@ domain_up="$(echo "$domain" | tr [:lower:] [:upper:])"
 sambadomaine_old="$(echo $se3_domain| tr [:lower:] [:upper:])"
 sambadomaine_new="$samba_domain_up"
 
+gensourcelist
 download_packages
 haveged
 go_on
