@@ -382,9 +382,10 @@ echo -e "$COLCMD"
 ping -c 3 $se4ad_ip
 check_error
 echo -e "$COLINFO"
-echo "Tentative de connexion ssh sur l'AD"
+echo "Tentative de connexion ssh sur l'AD et copie de la clé ssh si besoin"
 echo -e "$COLCMD"
 ssh-keyscan -H $se4ad_ip >> ~/.ssh/known_hosts
+ssh-copy-id i $dir_config/id_rsa.pub root@$se4ad_ip
 scp -i $dir_config/id_rsa @$se4ad_ip:/root/se4fs.conf /root/
 check_error
 if [ -e /root/se4fs.conf ]; then
@@ -563,7 +564,7 @@ export  DEBIAN_PRIORITY
 [ -e /root/debug ] && DEBUG="yes"
 
 write_hostconf
-
+disable_ipv6
 installsamba
 Permit_ssh_by_password
 
@@ -574,7 +575,7 @@ check_ad_access
 
 install_se_packages
 
-disable_ipv6
+
 
 change_pass_root
 

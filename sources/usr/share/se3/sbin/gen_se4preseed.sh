@@ -961,6 +961,7 @@ export_smb_files
 write_sambaedu_conf
 export_ldap_files
 export_sql_files
+export_cups_config
 cp_config_to_preseed
 write_apache_config
 write_ssh_keys

@@ -1128,7 +1128,7 @@ export  DEBIAN_PRIORITY
 [ -e /root/debug ] && DEBUG="yes"
 
 write_hostconf
-
+disable_ipv6
 reset_smb_ad_conf
 installsamba
 Permit_ssh_by_password
@@ -1166,7 +1166,7 @@ change_policy_passwords
 
 create_www-sambaedu
 
-disable_ipv6
+
 change_pass_root
 
 echo -e "$COLTITRE"
