@@ -714,7 +714,7 @@ ldbadd_ou "OU=Administratifs,OU=Groups,$ad_base_dn" "Administratifs" "Branche de
 ldbadd_ou "OU=Trash,$ad_base_dn" "Trash" "Branche de la corbeille"
 ldbadd_ou "OU=Parcs,$ad_base_dn" "Parcs" "Branche parcs"
 ldbadd_ou "OU=Materiels,$ad_base_dn" "Materiels" "Branche Materiels"
-
+ldbadd_ou "OU=Delegations,$ad_base_dn" "Delegations" "Branche Delegations"
 sleep 2
 
 
