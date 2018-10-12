@@ -468,7 +468,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo "matieres_rdn=\"ou=matieres\"" >> $se4fs_config
     echo "projets_rdn=\"ou=projets\"" >> $se4fs_config
     echo "delegations_rdn=\"ou=delegations\"" >> $se4fs_config 
-    echo "printers_rdn=\"ou=Printers\"" >> $se4fs_config
+    echo "equipements_rdn=\"ou=Materiels\"" >> $se4fs_config
     echo "trash_rdn=\"ou=Trash\"" >> $se4fs_config
     echo "lang=\"fr\"" >> $se4fs_config
     echo "ldap_url=\"ldaps://$domain\"" >> $se4fs_config
