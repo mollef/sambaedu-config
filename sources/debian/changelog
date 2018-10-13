@@ -1,4 +1,6 @@
-sambaedu-config (0.24~5) unstable; urgency=low
+sambaedu-config (0.24~6) unstable; urgency=low
+  * Se4ad support new installation
+  * add equippements_rdn entry
   * Se4fs copy key ssh if needed
   * disable ipv6 on then beginning
   * export cups configuration

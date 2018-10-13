@@ -437,7 +437,9 @@ do
 
     rdm_sambasid="$(ldapsearch -xLLL sambaSid=$domainsid-$cpt sambaSid)"
     if [ -z "$rdm_sambasid" ];then
+        echo -e "$COLINFO"
         echo "Modification du sambaSid pour admin"
+        echo -e "$COLCMD"
 ldapmodify -x -D "$adminRdn,$ldap_base_dn" -w "$adminPw" <<EOF
 dn: uid=admin,ou=People,$ldap_base_dn
 changetype: modify
@@ -525,6 +527,24 @@ END
 done
 
 }
+
+# generation du contenu de la branche Rights 
+function gen_right_ldifs()
+{
+local ad_base_dn="##ad_base_dn##"
+rm -f $dir_config/ad_rights.ldif
+for cn_rights in Annu_is_admin se3_is_admin sovajon_is_admin printers_is_admin echange_can_administrate annu_can_read parc_can_view parc_can_manage no_Trash_user parc_can_clone 
+do
+    cat >> $dir_config/ad_rights.ldif <<END	
+dn: CN=$cn_rights,OU=Rights,$ad_base_dn
+objectClass: group
+objectClass: top
+member: CN=Administrator,CN=Users,$ad_base_dn
+member: CN=admin,CN=Users,$ad_base_dn
+END
+done
+}
+
 # Nettoyage complet de la conf samba ad
 function reset_smb_ad_conf()
 {
@@ -655,7 +675,7 @@ function ldbadd_ou()
 local dn_add=$1
 local rdn_add=$2
 local desc_add=$3
-ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF
+ldbmodify -v -H /var/lib/samba/private/sam.ldb <<EOF
 dn: $dn_add
 changetype: add
 objectClass: organizationalUnit
@@ -666,14 +686,14 @@ description: $desc_add
 EOF
 }
 
-# Fonction permettant le déplacement d'un groupe ds l'annuaire AD
+# Fonction permettant le déplacement d'un groupe ou un utilisateur ds l'annuaire AD
 function ldbmv_grp()
 {
 local dn_mv=$1
 local rdn_mv=$2
 local target_dn_mv=$3
 
-ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF
+ldbmodify -v -H /var/lib/samba/private/sam.ldb <<EOF
 dn: $dn_mv
 changetype: moddn
 newrdn: $rdn_mv
@@ -929,7 +949,7 @@ echo -e "$COLTXT"
 
 
 # Fonction permettant de fixer le pass admin : Attention complexité requise
-function change_pass_admin()
+function change_pass_administrator()
 {
 TEST_PASS="none"
 cpt=1
@@ -940,10 +960,10 @@ do
 	
 	
 	echo -e "$COLCMD"
-	echo -e "Entrez un mot de passe pour le compte Administrator AD (remplaçant de admin sur se3)" 
+	echo -e "Entrez un mot de passe pour le compte Administrator AD - compte d'aministration de l'annuaire AD" 
 	echo -e "$COLTXT"
 	echo -e "---- /!\ Attention /!\ ----"
-	echo -e "le mot de passe doit contenir au moins 8 caractères tout en mélangeant lettres / chiffres et un caractère spécial !"
+	echo -e "le mot de passe doit contenir au moins 8 caractères tout en mélangeant lettres / chiffres et majuscule(s) ou caratère spécial !"
 	read -r administrator_pass
 	sleep 2
 	echo -e "Veuillez confirmer le mot de passe saisi précédemment"
@@ -991,6 +1011,17 @@ samba-tool user create www-sambaedu --description="Utilisateur admin de l'interf
 samba-tool group addmembers "Domain Admins" www-sambaedu
 samba-tool domain exportkeytab --principal=www-sambaedu@$domain_up $dir_config/www-sambaedu.keytab
 }
+
+function create_admin_account()
+{
+echo -e "$COLPARTIE"
+echo -e "Création du compte admin du domaine sambaEdu 4"
+echo -e "$COLCMD"
+echo -e "Entrez un mot de passe" 
+samba-tool user create admin --description="Utilisateur admin du domaine sambaEdu" --random-password
+samba-tool group addmembers "Domain Admins" admin
+}
+
 
 function disable_ipv6()
 {
@@ -1147,23 +1178,23 @@ if [ -e "$dir_export/slapd.conf" ]; then
 	mv_users
 	mv_computers
 	check_smb_ad
-	change_pass_admin
-	
-	
+	change_pass_administrator
 else
 	echo "$dir_export/slapd.conf non trouvé - L'installation se poursuivra sur un nouveau domaine sans import d'anciennes données"
 	go_on
 	provision_new_ad # Voir partie dns interne
+	write_krb5
 	write_smbconf
 	write_resolvconf
 	activate_smb_ad
+	gen_right_ldifs
+	modif_ldb
 	check_smb_ad
-	write_krb5
-	
+	change_pass_administrator
+	create_admin_account
 fi
 set_time
 change_policy_passwords
-
 create_www-sambaedu
 
 
