@@ -1,4 +1,9 @@
-sambaedu-config (0.24~6) unstable; urgency=low
+sambaedu-config (0.24~8) unstable; urgency=low
+  * Add php_restart function
+  * replace openntp by ntp
+  * add ssmtp package on se4fs
+  * add other_groups_rdn
+  * Se4ad support new installation
   * Se4ad support new installation
   * add equippements_rdn entry
   * Se4fs copy key ssh if needed

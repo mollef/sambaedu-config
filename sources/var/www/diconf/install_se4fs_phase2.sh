@@ -1,9 +1,9 @@
 #!/bin/bash
 # installation Se4-FS phase 2
 # version pour Stretch - franck molle
-# version 02 - 2018 
+# version 10 - 2018 
 
-
+# ---------- Début des fonctions ----------#
 # # Fonction permettant de quitter en cas d'erreur 
 function quit_on_choice()
 {
@@ -275,7 +275,7 @@ apt-get upgrade --quiet --assume-yes
 echo -e "$COLPARTIE"
 echo "installation des paquets prioritaires ssh, vim, wget, etc..."
 echo -e "$COLTXT"
-prim_packages="ssh vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged"
+prim_packages="ssh vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged ssmtp"
 apt-get install --quiet --assume-yes $prim_packages
 }
 
@@ -428,6 +428,17 @@ sysctl -p
 fi
 }
 
+function restart_php()
+{
+echo -e "$COLPARTIE"
+echo "Remise en route du service php7-fpm"
+echo -e "$COLCMD"
+/etc/init.d/php7.0-fpm stop
+sleep 3
+/etc/init.d/php7.0-fpm start
+echo -e "$COLTXT"
+}
+
 # Fonction permettant de changer le pass root
 function change_pass_root()
 {	
@@ -575,7 +586,7 @@ check_ad_access
 
 install_se_packages
 
-
+restart_php
 
 change_pass_root
 

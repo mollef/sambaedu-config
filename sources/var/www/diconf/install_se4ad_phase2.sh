@@ -1,17 +1,9 @@
 #!/bin/bash
 # installation Se4-AD phase 2
 # version pour Stretch - franck.molle@sambaedu.org
-# version 02 - 2018 
+# version 10 - 2018 
 
-function erreur()
-{
-        echo -e "$COLERREUR"
-        echo "ERREUR!"
-        echo -e "$1"
-        echo -e "$COLTXT"
-        exit 1
-}
-
+# ---------- Début des fonctions ----------#
 # # Fonction permettant de quitter en cas d'erreur 
 function quit_on_choice()
 {
@@ -313,9 +305,9 @@ apt-get -qq update
 apt-get upgrade --quiet --assume-yes
 
 echo -e "$COLPARTIE"
-echo "installation ntpdate, vim, etc..."
+echo "installation ntp, vim, etc..."
 echo -e "$COLTXT"
-prim_packages="ssh openntpd vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged libsasl2-modules-gssapi-mit"
+prim_packages="ssh ntp vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged libsasl2-modules-gssapi-mit"
 apt-get install --quiet --assume-yes $prim_packages
 }
 
@@ -848,10 +840,14 @@ done
 function set_time()
 {
 echo -e "$COLPARTIE"
-echo "Configuration d'Open Ntp et mise à l'heure"
+echo "Configuration de Ntp et mise à l'heure"
 echo -e "$COLTXT"
-sed "s/^#listen on \*/listen on */" -i /etc/openntpd/ntpd.conf 
-/usr/sbin/ntpd -s
+systemctl stop ntp
+sleep 1
+systemctl start ntp
+
+# sed "s/^#listen on \*/listen on */" -i /etc/openntpd/ntpd.conf 
+# /usr/sbin/ntpd -s
 echo -e "$COLTXT"
 }
 
@@ -981,13 +977,13 @@ do
     if [ $? != 0 ]; then
         echo -e "$COLERREUR"
         let cpt++
-		if [ "$cpt" = 3 ];then
+		if [ "$cpt" = 4 ];then
 			echo -e "3 Tentatives infructueuses - Abandon de modification du mot de passe"
 			echo -e "Vous devrez changer le mot de passe manuellement avec smbpasswd Administrator"
 			echo -e "$COLTXT"
 			break
 		fi
-        echo -e "Attention : mot de passe a été saisi de manière incorrecte ou ne respecte pas les critères de sécurité demandés"
+        echo -e "Attention : le mot de passe a été saisi de manière incorrecte ou ne respecte pas les critères de sécurité demandés"
         echo "Merci de saisir le mot de passe à nouveau"
         sleep 1
     else
@@ -1018,7 +1014,7 @@ echo -e "$COLPARTIE"
 echo -e "Création du compte admin du domaine sambaEdu 4"
 echo -e "$COLCMD"
 echo -e "Entrez un mot de passe" 
-samba-tool user create admin --description="Utilisateur admin du domaine sambaEdu" --random-password
+samba-tool user create admin --description="Utilisateur admin du domaine sambaEdu"
 samba-tool group addmembers "Domain Admins" admin
 }
 
