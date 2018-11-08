@@ -721,6 +721,9 @@ ldbadd_ou "OU=Cours,OU=Groups,$ad_base_dn" "Cours" "Branche des groupes cours"
 ldbadd_ou "OU=Matieres,OU=Groups,$ad_base_dn" "Matieres" "Branche des groupes matiere"
 ldbadd_ou "OU=Classes,OU=Groups,$ad_base_dn" "Classes" "Branche des groupes classe"
 ldbadd_ou "OU=Equipes,OU=Groups,$ad_base_dn" "Equipes" "Branche des groupes cours"
+ldbadd_ou "OU=Projets,OU=Groups,$ad_base_dn" "Projets" "Branche des groupes projets"
+ldbadd_ou "OU=Autres,OU=Groups,$ad_base_dn" "Autres" "Branche des groupes autres"
+
 
 ldbadd_ou "OU=Administratifs,OU=Groups,$ad_base_dn" "Administratifs" "Branche des administratifs"
 ldbadd_ou "OU=Trash,$ad_base_dn" "Trash" "Branche de la corbeille"
@@ -762,7 +765,8 @@ do
 	rdn_matiere="$(echo $rdn | grep  "^CN=Matiere")"
 	rdn_equipe="$(echo $rdn | grep  "^CN=Equipe")"
 	rdn_classe="$(echo $rdn | grep  "^CN=Classe")"
-	rdn_other="$(echo $rdn | grep  "^CN=Eleves\|^CN=Profs\|^CN=Equipe_\|^CN=Matiere_\|^CN=Administratifs\|^CN=Classe_\|^CN=overfill" | sed -n "s/^CN=//"p)"
+	rdn_other="$(echo $rdn | grep -v "^CN=Eleves\|^CN=Profs\|^CN=Equipe_\|^CN=Matiere_\|^CN=Administratifs\|^CN=Classe_\|^CN=overfill\|^CN=Roots\|^CN=Domain\|^CN=Allowed\|^CN=Cert Publishers\|^CN=Denied \|^CN=Dns\|^CN=Enterprise\|^CN=Group Policy\|^CN=RAS and IAS\|^CN=Schema Admins")" 
+	#| sed -n "s/^CN=//"p)"
 
 	if [ -n "$rdn_cours" ];then
 # 		target_dn="OU=$rdn_classe,OU=Groups,$ad_base_dn"
@@ -774,13 +778,14 @@ do
 		target_dn="OU=Classes,OU=Groups,$ad_base_dn"
 	elif [ -n "$rdn_equipe" ];then
 		target_dn="OU=Equipes,OU=Groups,$ad_base_dn"
-# 	elif [ -n "$rdn_other" ];then
-# 		target_dn="OU=$rdn_other,OU=Groups,$ad_base_dn"
+ 	elif [ -n "$rdn_other" ];then
+ 		target_dn="OU=Autres,OU=Groups,$ad_base_dn"
 # 		ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$rdn_other" "ensemble $rdn_other"
         else
                 target_dn="OU=Groups,$ad_base_dn"
 	fi
 	ldbmv_grp "$rdn,CN=users,$ad_base_dn" "$rdn" "$target_dn"
+	echo "$target_dn"
 done
 }
 
