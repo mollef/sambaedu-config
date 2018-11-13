@@ -31,7 +31,6 @@ fi
 # Fonction permettant de poser la question s'il faut poursuivre ou quitter
 function go_on()
 {
-echo
 REPONSE=""
 while [ "$REPONSE" != "o" -a "$REPONSE" != "O" -a "$REPONSE" != "n" ]
 do
@@ -449,8 +448,15 @@ done
 # Fonction génération des ldifs de l'ancien annuaire se3 avec adaptation de la structure pour conformité AD
 function extract_ldifs()
 {
+echo -e "$COLPARTIE"
+echo -e "Extraction des données utiles de l'annuaire ldap - cela peut être long..."
+echo -e "$COLCMD"
+
 local ad_base_dn="##ad_base_dn##"
 rm -f $dir_config/ad_rights.ldif
+echo -e "$COLINFO"
+echo "Export des droits"
+echo -e "$COLCMD"
 # ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b ou=Rights,$ldap_base_dn cn | sed -n 's/^cn: //p' | while read cn_rights
 for cn_rights in Annu_is_admin se3_is_admin sovajon_is_admin printers_is_admin echange_can_administrate annu_can_read parc_can_view parc_can_manage no_Trash_user parc_can_clone 
 do
@@ -477,6 +483,10 @@ ldapsearch -o ldif-wrap=no -xLLL -D $adminRdn,$ldap_base_dn -w $adminPw -b cn=$c
 echo ""	>> $dir_config/ad_rights.ldif
 done
 
+echo -e "$COLINFO"
+echo "Export des données Parcs et machines"
+echo -e "$COLCMD"
+
 if [ -n "$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn| sed -n 's/^cn: //p')" ]; then
 	rm -f $dir_config/ad_parcs.ldif
 	ldapsearch -o ldif-wrap=no -xLLL -b ou=Parcs,$ldap_base_dn cn| sed -n 's/^cn: //p' | while read cn_parcs
@@ -498,6 +508,7 @@ END
 	done
 	
 fi
+
 rm -f $dir_config/ad_computers.ldif
 ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn uid=*\$ uid | sed -n "s/^uid: //p"| sed -e 's/\$//g' | while read cn_computers
 do
@@ -517,6 +528,54 @@ END
 	fi 
 	# ajouter lecture cn=
 done
+
+echo -e "$COLINFO"
+echo "Export des attributs propres aux utilisateurs"
+echo -e "$COLCMD"
+
+rm -rf $dir_config/ad_users
+mkdir -p $dir_config/ad_users
+ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn uid=* uid | sed -n "s/^uid: //p"| sed -e 's/\$//g' | grep -v "^root" | while read uid_user
+do
+	sn="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" sn | sed -n "s/sn: //p")"
+	givenName="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" givenName | sed -n "s/givenName: //p")"
+	mail="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" mail | sed -n "s/mail: //p")"
+	gecos="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" gecos | sed -n "s/gecos: //p")"
+	employeeNumber="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" employeeNumber | sed -n "s/employeeNumber: //p")"
+	initials="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" initials | sed -n "s/initials: //p")"
+	
+# 	if [ -n "$ipHostNumber" -a   -n "$macAddress" ];then
+		cat >>  $dir_config/ad_users/$uid_user.ldif <<END	
+dn: CN=$uid_user,cn=Users,$ad_base_dn
+changetype: modify
+add: sn
+sn: $sn
+-
+add: givenName
+givenName: $givenName
+-
+add: mail
+mail: $mail
+-
+add: initials
+initials: ${givenName:0:5}${sn:0:1}
+-
+add: physicaldeliveryofficename
+physicaldeliveryofficename: $gecos
+END
+if [ -n "$employeeNumber" ]; then
+    cat >>  $dir_config/ad_users/$uid_user.ldif <<END
+-
+add: title
+title: $employeeNumber
+END
+fi
+
+
+# 	fi 
+	# ajouter lecture cn=
+done
+
 
 }
 
@@ -540,7 +599,6 @@ done
 # Nettoyage complet de la conf samba ad
 function reset_smb_ad_conf()
 {
-echo
 echo -e "$COLPARTIE"
 echo "Arrêt des services si existants et installation de Samba & cie" 
 echo -e "$COLTXT\c"
@@ -708,9 +766,7 @@ echo "ldap_base_dn=\"$ad_base_dn\"" >> $se4fs_config
 
 echo "Modification des exports ldif pour insertion de la base dn AD"
 sed "s/##ad_base_dn##/$ad_base_dn/g" -i $dir_config/*.ldif
-
-
-# ldap_base_dn="dc=sambaedu3,dc=maison" ldap_admin_name="Administrator" ldap_admin_passwd="wwwwwww"
+sed "s/##ad_base_dn##/$ad_base_dn/g" -i $dir_config/ad_users/*.ldif
 
 echo -e "$COLINFO"
 echo "Ajout des branches de l'annuaire propres à SE4"
@@ -732,7 +788,7 @@ ldbadd_ou "OU=Materiels,$ad_base_dn" "Materiels" "Branche Materiels"
 ldbadd_ou "OU=Delegations,$ad_base_dn" "Delegations" "Branche Delegations"
 sleep 2
 
-
+# Complétion des branches avec les données extraite de ldap précédemment
 
 echo -e "$COLINFO"
 echo "Complétion de la branche Parcs"
@@ -753,6 +809,15 @@ echo -e "$COLCMD"
 ldbadd -H /var/lib/samba/private/sam.ldb $dir_config/ad_rights.ldif
 
 #~ set +x
+## Partie users ##
+echo -e "$COLINFO"
+echo "Ajout des attributs utiles à SE4 aux utilisateurs de la base AD"
+echo -e "$COLCMD"
+for cn_user in $(ls $dir_config/ad_users) 
+do
+   ldbmodify -H /var/lib/samba/private/sam.ldb $dir_config/ad_users/$cn_user 
+done
+
 
 echo -e "$COLINFO"
 echo "Déplacement des groupes dans leur branche dédiée - Patience !"
@@ -765,7 +830,7 @@ do
 	rdn_matiere="$(echo $rdn | grep  "^CN=Matiere")"
 	rdn_equipe="$(echo $rdn | grep  "^CN=Equipe")"
 	rdn_classe="$(echo $rdn | grep  "^CN=Classe")"
-	rdn_other="$(echo $rdn | grep -v "^CN=Eleves\|^CN=Profs\|^CN=Equipe_\|^CN=Matiere_\|^CN=Administratifs\|^CN=Classe_\|^CN=overfill\|^CN=Roots\|^CN=Domain\|^CN=Allowed\|^CN=Cert Publishers\|^CN=Denied \|^CN=Dns\|^CN=Enterprise\|^CN=Group Policy\|^CN=RAS and IAS\|^CN=Schema Admins")" 
+	rdn_other="$(echo $rdn | grep -v "^CN=Eleves\|^CN=Profs\|^CN=Equipe_\|^CN=Matiere_\|^CN=Administratifs\|^CN=Classe_\|^CN=overfill\|^CN=Roots\|^CN=Domain\|^CN=Allowed\|^CN=Cert Publishers\|^CN=Denied \|^CN=Dns\|^CN=Enterprise\|^CN=Group Policy\|^CN=RAS and IAS\|^CN=Schema Admins\|^CN=Read-only")" 
 	#| sed -n "s/^CN=//"p)"
 
 	if [ -n "$rdn_cours" ];then
