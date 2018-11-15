@@ -1,3 +1,11 @@
+sambaedu-config (0.25~1) unstable; urgency=low
+
+  * Add users ldap attribute migration to AD.
+  * Add progress during imports.
+  * Add test for title attribute
+
+ -- Franck Molle <franck.molle@sambaedu.org>  Thu, 15 Nov 2018 01:02:10 +0100
+
 sambaedu-config (0.24~8) unstable; urgency=low
   * Add php_restart function
   * replace openntp by ntp
