@@ -37,7 +37,7 @@ do
     echo -e "$COLTXT"
     echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXL}) $COLSAISIE"
     read -t 40 REPONSE
-    echo -e "$COLTXT"
+#     echo -e "$COLTXT"
     if [ -z "$REPONSE" ]; then
             REPONSE="o"
     fi
@@ -74,6 +74,15 @@ if [ "$?" != "0" ]; then
     exit 1
 fi
 }
+
+function show_progress()
+{
+[ $cpt -eq 1 ] && echo "Traitement de $cpt_fin éléments lancé..."
+echo "$cpt" | grep -q "0$" && echo -e "$cpt..\c"
+[ $cpt -eq $cpt_fin ] && echo "Terminé !"
+let cpt++
+}
+
 # Fonction génération du sources.list stretch FR
 function gensourcelist()
 {
@@ -396,6 +405,9 @@ echo -e "$COLTXT"
 # Nettoyage comptes machines en erreurs et root
 function clean_ldap()
 {
+echo -e "$COLPARTIE"
+echo "Nettoyage de l'annuaire : suppression des comptes invalides ou obsolètes" 
+echo -e "$COLCMD"
 ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn uid=*\$ uid | sed -n "s/^uid: //p" | while read uid_computers
 do
 	uidnumberEntry="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn "uid=$uid_computers" uidNumber  | grep uidNumber)"
@@ -510,8 +522,11 @@ END
 fi
 
 rm -f $dir_config/ad_computers.ldif
+cpt=1
+cpt_fin=$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn uid=*\$ uid | sed -n "s/^uid: //p"| sed -e 's/\$//g' | wc -l)
 ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn uid=*\$ uid | sed -n "s/^uid: //p"| sed -e 's/\$//g' | while read cn_computers
 do
+        show_progress
 	ipHostNumber="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn "cn=$cn_computers" ipHostNumber | sed -n "s/ipHostNumber: //p")"
 	macAddress="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=Computers,$ldap_base_dn "cn=$cn_computers" macAddress | sed -n "s/macAddress: //p")"
 	if [ -n "$ipHostNumber" -a   -n "$macAddress" ];then
@@ -535,6 +550,8 @@ echo -e "$COLCMD"
 
 rm -rf $dir_config/ad_users
 mkdir -p $dir_config/ad_users
+cpt=1
+cpt_fin=$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn uid=* uid | sed -n "s/^uid: //p"| sed -e 's/\$//g' | grep -v "^root" | wc -l)
 ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn uid=* uid | sed -n "s/^uid: //p"| sed -e 's/\$//g' | grep -v "^root" | while read uid_user
 do
 	sn="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" sn | sed -n "s/sn: //p")"
@@ -542,7 +559,7 @@ do
 	mail="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" mail | sed -n "s/mail: //p")"
 	gecos="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" gecos | sed -n "s/gecos: //p")"
 	employeeNumber="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" employeeNumber | sed -n "s/employeeNumber: //p")"
-	initials="$(ldapsearch -o ldif-wrap=no -xLLL -b ou=people,$ldap_base_dn "uid=$uid_user" initials | sed -n "s/initials: //p")"
+	initials="$(echo ${givenName:0:1}.${sn:0:1}| tr '[a-z]' '[A-Z]')"
 	
 # 	if [ -n "$ipHostNumber" -a   -n "$macAddress" ];then
 		cat >>  $dir_config/ad_users/$uid_user.ldif <<END	
@@ -558,7 +575,7 @@ add: mail
 mail: $mail
 -
 add: initials
-initials: ${givenName:0:5}${sn:0:1}
+initials: $initials
 -
 add: physicaldeliveryofficename
 physicaldeliveryofficename: $gecos
@@ -571,12 +588,10 @@ title: $employeeNumber
 END
 fi
 
-
+show_progress
 # 	fi 
 	# ajouter lecture cn=
 done
-
-
 }
 
 # generation du contenu de la branche Rights 
@@ -630,7 +645,6 @@ apt-get install --assume-yes $samba_packages
 /etc/init.d/nmbd stop
 /etc/init.d/winbind stop
 echo -e "$COLTXT"
-
 }
 
 # Fonction génération du fichier /etc/krb5.conf On peut aussi copier celui de /var/lib/samba
@@ -714,8 +728,6 @@ echo -e "$COLCMD"
 check_error
 echo -e "$COLTXT"
 sleep 10
-
-
 }
 
 
@@ -743,7 +755,7 @@ local dn_mv=$1
 local rdn_mv=$2
 local target_dn_mv=$3
 
-ldbmodify -v -H /var/lib/samba/private/sam.ldb <<EOF
+ldbmodify -H /var/lib/samba/private/sam.ldb <<EOF
 dn: $dn_mv
 changetype: moddn
 newrdn: $rdn_mv
@@ -813,15 +825,22 @@ ldbadd -H /var/lib/samba/private/sam.ldb $dir_config/ad_rights.ldif
 echo -e "$COLINFO"
 echo "Ajout des attributs utiles à SE4 aux utilisateurs de la base AD"
 echo -e "$COLCMD"
+cpt=1
+cpt_fin=$(ls $dir_config/ad_users | wc -l)
 for cn_user in $(ls $dir_config/ad_users) 
 do
-   ldbmodify -H /var/lib/samba/private/sam.ldb $dir_config/ad_users/$cn_user 
+   show_progress
+#    echo -e "Modification du compte N°$cpt/$cpt_fin - \c"
+   ldbmodify -vH /var/lib/samba/private/sam.ldb $dir_config/ad_users/$cn_user > /etc/sambaedu/modify_ad.log
+   
 done
 
 
 echo -e "$COLINFO"
 echo "Déplacement des groupes dans leur branche dédiée - Patience !"
 echo -e "$COLCMD"
+cpt=1
+cpt_fin=$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=group)" dn | grep "dn:" | wc -l)
 # ldapsearch -xLLL -D $ad_bindDN -w $administrator_pass -b $ad_base_dn -H ldaps://sambaedu4.lan "(objectClass=group)" dn | grep "dn:" | while read dn
 ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=group)" dn | grep "dn:" | while read dn
 do
@@ -849,14 +868,18 @@ do
         else
                 target_dn="OU=Groups,$ad_base_dn"
 	fi
-	ldbmv_grp "$rdn,CN=users,$ad_base_dn" "$rdn" "$target_dn"
-	echo "$target_dn"
+ 	show_progress
+        ldbmv_grp "$rdn,CN=users,$ad_base_dn" "$rdn" "$target_dn" >> /etc/sambaedu/modify_ad.log
+	#echo "$target_dn"
 done
 }
 
 
 function mv_users()
 {
+echo -e "$COLINFO"
+echo "Création des branches utilisateurs"
+echo -e "$COLCMD"
 ldbadd_ou "OU=Utilisateurs,$ad_base_dn" "Utilisateurs" "Branche utilisateurs"
 ldbadd_ou "OU=Eleves,OU=Utilisateurs,$ad_base_dn" "Eleves" "Branche des Eleves"
 ldbadd_ou "OU=Profs,OU=Utilisateurs,$ad_base_dn" "Profs" "Branche des Profs"
@@ -865,9 +888,12 @@ ldbadd_ou "OU=Administratifs,OU=Utilisateurs,$ad_base_dn" "Administratifs" "Bran
 echo -e "$COLINFO"
 echo "Déplacement des comptes utilisateurs dans les branches dédiées - Patience !"
 echo -e "$COLCMD"
+cpt=1
+cpt_fin=$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=person)" cn | sed -n "s/^cn: //"p | wc -l)
 ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" "(objectClass=person)" cn | sed -n "s/^cn: //"p | while read cn
 do
     cn_member="$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=users,$ad_base_dn" CN=$cn memberOf)"
+    show_progress
     if [ "$cn" = "Administrator" ]; then
     continue
     elif echo $cn_member | grep -q Eleves; then
@@ -879,7 +905,9 @@ do
     else
     continue
     fi
-    ldbmv_grp "CN=$cn,CN=users,$ad_base_dn" "CN=$cn" "$target_dn"
+#     echo -e "Déplacement de l'utilisateur N°$cpt/$cpt_fin - \c"
+    ldbmv_grp "CN=$cn,CN=users,$ad_base_dn" "CN=$cn" "$target_dn"  >> /etc/sambaedu/modify_ad.log
+    
 done
 }
 
@@ -889,22 +917,23 @@ ldbadd_ou "OU=Computers,$ad_base_dn" "Computers" "Branche machines"
 echo -e "$COLINFO"
 echo "Déplacement des comptes machines les branches dédiées - Patience !"
 echo -e "$COLCMD"
+cpt=1
+cpt_fin=$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=Computers,$ad_base_dn" "(objectClass=computer)" cn | sed -n "s/^cn: //"p |wc -l)
 ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=Computers,$ad_base_dn" "(objectClass=computer)" cn | sed -n "s/^cn: //"p | while read cn
-
 do
+    show_progress
     cn_member="$(ldbsearch -H /var/lib/samba/private/sam.ldb -b "CN=Computers,$ad_base_dn" CN=$cn memberOf | sed -n "s/^memberOf: //"p | grep -Ei "?salle" | head -n1)"
-    
     if [ -n "$cn_member" ]; then
         cn_parc="$(echo $cn_member | cut -d "," -f1 | sed -n "s/^CN=//"p)"
         target_dn="OU=$cn_parc,OU=Computers,$ad_base_dn"
-        ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep "dn:" || ldbadd_ou "$target_dn" "$cn_parc" "Container $cn_parc"
+        ldbsearch -H /var/lib/samba/private/sam.ldb -b "$target_dn" | grep -q "dn:" || ldbadd_ou "$target_dn" "$cn_parc" "Container $cn_parc" >> /etc/sambaedu/modify_ad.log
     else
         target_dn="OU=Computers,$ad_base_dn"
     fi
-    ldbmv_grp "CN=$cn,CN=Computers,$ad_base_dn" "CN=$cn" "$target_dn"
+#     echo -e "Déplacement de la machine N°$cpt/$cpt_fin - \c"
+    ldbmv_grp "CN=$cn,CN=Computers,$ad_base_dn" "CN=$cn" "$target_dn"  >> /etc/sambaedu/modify_ad.log
 done
 }
-
 
 # Fonction permettant la mise à l'heure du serveur 
 function set_time()
