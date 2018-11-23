@@ -578,7 +578,7 @@ add: initials
 initials: $initials
 -
 add: physicaldeliveryofficename
-physicaldeliveryofficename: $gecos
+physicaldeliveryofficename: ${gecos#*,}
 END
 if [ -n "$employeeNumber" ]; then
     cat >>  $dir_config/ad_users/$uid_user.ldif <<END
