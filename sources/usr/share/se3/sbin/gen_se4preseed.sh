@@ -466,6 +466,7 @@ if [ "$preseed_se4fs" = "yes" ];then
     echo "classes_rdn=\"ou=classes\"" >> $se4fs_config
     echo "equipes_rdn=\"ou=equipes\"" >> $se4fs_config
     echo "matieres_rdn=\"ou=matieres\"" >> $se4fs_config
+    echo "cours_rdn=\"ou=cours\"" >> $se4fs_config
     echo "projets_rdn=\"ou=projets\"" >> $se4fs_config
     echo "other_groups_rdn=\"ou=autres\"" >> $se4fs_config
     echo "delegations_rdn=\"ou=delegations\"" >> $se4fs_config 

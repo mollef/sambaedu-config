@@ -1,4 +1,4 @@
-sambaedu-config (0.25~1) unstable; urgency=low
+sambaedu-config (0.25) unstable; urgency=low
 
   * Add users ldap attribute migration to AD.
   * Add progress during imports.
