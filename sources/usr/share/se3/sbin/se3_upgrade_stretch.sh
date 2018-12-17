@@ -1,8 +1,8 @@
 #!/bin/bash
 
-## Version beta 0.1 - 03-2018 ##
+## Version beta 0.2 - 12-2018 ##
 
-####Script permettant de migrer un serveur Se3 de wheezy en se4-fs sous strech  ####
+####Script permettant de migrer un serveur Se3 de wheezy en se4-fs sous stretch  ####
 ### Auteur : Franck Molle franck.molle@sambaedu.org
 
 #Couleurs
@@ -32,12 +32,68 @@ errexit()
 	exit 1
 }
 
+function quit_on_choice()
+{
+echo -e "$COLERREUR"
+echo "Arrêt du script !"
+echo -e "$1"
+echo -e "$COLTXT"
+exit 1
+}
+
+function cp_ssh_key() {
+mkdir -p /root/.ssh/
+
+if [ -e "$dir_config/authorized_keys" ]; then
+    mv  "$dir_config/authorized_keys" /root/.ssh/ 
+fi
+
+if [ -n "$devel" ]; then
+    
+    ssh_keyser="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDMQ6Nd0Kg+L8200pR2CxUVHBtmjQ2xAX2zqArqV45horU8qopf6AYEew0oKanK3GzY2nrs5g2SYbxqs656YKa/OkTslSc5MR/Nndm9/J1CUsurTlo+VwXJ/x1qoLBmGc/9mZjdlNVKIPwkuHMKUch+XmsWF92GYEpTA1D5ZmfuTxP0GMTpjbuPhas96q+omSubzfzpH7gLUX/afRHfpyOcYWdzNID+xdmML/a3DMtuCatsHKO94Pv4mxpPeAXpJdE262DPXPz2ZIoWSqPz8dQ6C3v7/YW1lImUdOah1Fwwei4jMK338ymo6huR/DheCMa6DEWd/OZK4FW2KccxjXvHALn/QCHWCw0UMQnSVpmFZyV4MqB6YvvQ6u0h9xxWIvloX+sjlFCn71hLgH7tYsj4iBqoStN9KrpKC9ZMYreDezCngnJ87FzAr/nVREAYOEmtfLN37Xww3Vr8mZ8/bBhU1rqfLIaDVKGAfnbFdN6lOJpt2AX07F4vLsF0CpPl4QsVaow44UV0JKSdYXu2okcM80pnVnVmzZEoYOReltW53r1bIZmDvbxBa/CbNzGKwxZgaMSjH63yX1SUBnUmtPDQthA7fK8xhQ1rLUpkUJWDpgLdC2zv2jsKlHf5fJirSnCtuvq6ux1QTXs+bkTz5bbMmsWt9McJMgQzWJNf63o8jw== GitLab"
+    grep -q "$ssh_keyser" /root/.ssh/authorized_keys || echo $ssh_keyser >> /root/.ssh/authorized_keys 
+fi
+}
+
+# Fonction permettant de poser la question s'il faut poursuivre ou quitter
+function go_on()
+{
+REPONSE=""
+while [ "$REPONSE" != "o" -a "$REPONSE" != "O" -a "$REPONSE" != "n" ]
+do
+    echo -e "$COLTXT"
+    echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXL}) $COLSAISIE"
+    read -t 40 REPONSE
+#     echo -e "$COLTXT"
+    if [ -z "$REPONSE" ]; then
+            REPONSE="o"
+    fi
+done
+
+if [ "$REPONSE" != "o" -a "$REPONSE" != "O" ]; then
+        quit_on_choice "Abandon!"
+fi
+}
+
+
 function check_whiptail()
 {
 if [ -z "$(which whiptail)" ];then
 apt-get install whiptail -y 
 fi
 }
+
+function check_arch() {
+if [ "$(arch)" != "x86_64" ] ;then
+NEWT_COLORS='                                                                                                                         
+ window=,red
+ border=white,red
+ textbox=white,red
+ button=black,white' whiptail --backtitle "$(arch) non pris en charge" --title "$se4fs_partman_title" --msgbox "Erreur : Seule l'Architecture AMD64 est supportée par SambaEdu 4" 13 70
+    exit 1
+fi
+}
+
 
 
 function show_title() {
@@ -69,8 +125,11 @@ case $choice in
         esac
 }
 
-
-
+function mirror_choice() {
+mirror_name_title="Miroir Debian à utiliser pour l'installation"
+	$dialog_box --backtitle "$BACKTITLE" --title "$mirror_name_title" --inputbox "Confirmer le nom du miroir à utiliser ou bien saisir l'adresse de votre miroir local si vous en avez un" 15 70 deb.debian.org 2>$tempfile || erreur "Annulation"
+	mirror_name=$(cat $tempfile)
+}
 
 # Affichage de la partie actuelle
 function show_part()
@@ -92,6 +151,23 @@ function erreur()
         echo -e "$COLTXT"
         exit 1
 }
+
+# Fonction de verification d'erreur
+function check_error()
+{
+if [ "$?" != "0" ]; then
+    echo -e "$COLERREUR"
+    echo "Attention "
+    echo -e "la dernière commande a envoyé une erreur !"
+    echo -e "$1"
+    echo -e "$COLTXT"
+    go_on
+fi
+}
+
+
+
+
 
 # Poursuivre ou quitter en erreur
 function poursuivre()
@@ -124,20 +200,39 @@ else
 fi
 }
 
-gensource_distrib()
+function gensource_wheezy()
+{
+cat >/etc/apt/sources.list <<END
+# Sources standard:
+deb http://ftp.fr.debian.org/debian/ wheezy main non-free contrib
+
+# Security Updates:
+deb http://security.debian.org/ wheezy/updates main contrib non-free
+
+# wheezy-updates
+deb http://ftp.fr.debian.org/debian/ wheezy-updates main contrib non-free
+END
+apt-get update $option_update
+}
+
+
+function gensource_distrib()
 {
 distrib_name="$1"
 echo -e "$COLINFO"
 echo "Mise a jour des dépots $distrib_name"
 echo -e "$COLTXT"
 rm -f /etc/apt/sources.list.d/*
- 
+if [ "$distrib_name" = "jessie" ];then
+    mirror_name="deb.debian.org"
+fi
+  
 cat >/etc/apt/sources.list <<END
 # Sources standard:
-deb http://ftp.fr.debian.org/debian/ $distrib_name main non-free contrib
+deb http://$mirror_name/debian $distrib_name main non-free contrib
 
 # Security Updates:
-deb http://security.debian.org/ $distrib_name/updates main contrib non-free
+deb http://security.debian.org/debian-security $distrib_name/updates main contrib non-free
 
 # $distrib_name-updates
 deb http://ftp.fr.debian.org/debian/ $distrib_name-updates main contrib non-free
@@ -145,11 +240,11 @@ deb http://ftp.fr.debian.org/debian/ $distrib_name-updates main contrib non-free
 # $distrib_name-backports
 #deb http://ftp.fr.debian.org/debian/ $distrib_name-backports main
 END
-apt-get -q update $option_update
+apt-get update $option_update
 unset distrib_name
 }
 
-gensourcese3()
+function gensourcese3()
 {
 cat >/etc/apt/sources.list.d/se3.list <<END
 #sources pour se3
@@ -161,10 +256,10 @@ deb http://wawadeb.crdp.ac-caen.fr/debian wheezy se3XP
 #### Sources backports smb41  ####
 deb http://wawadeb.crdp.ac-caen.fr/debian wheezybackports smb41
 END
-apt-get -q update
+apt-get update
 }
 
-gensourcese3jessie()
+function gensourcese3jessie()
 {
 cat >/etc/apt/sources.list.d/se3.list <<END
 #sources pour se3
@@ -177,7 +272,7 @@ END
 apt-get -q update
 }
 
-gensourcese4()
+function gensourcese4()
 {
 cat >/etc/apt/sources.list.d/se4.list <<END
 # sources pour se4
@@ -197,7 +292,7 @@ touch $fichier_log
 BPC_SCRIPT="/etc/init.d/backuppc"
 BPC_PID="/var/run/backuppc/BackupPC.pid"
 
-mail_report()
+function mail_report()
 {
 
 [ -e /etc/ssmtp/ssmtp.conf ] && MAIL_ADMIN=$(cat /etc/ssmtp/ssmtp.conf | grep root | cut -d= -f2)
@@ -208,7 +303,7 @@ if [ ! -z "$MAIL_ADMIN" ]; then
 fi
 }
 
-screen_test()
+function screen_test()
 {
 SCREENOK=$(ps ax | grep screen | grep -v grep)
 
@@ -223,7 +318,7 @@ if [ -z "$SCREENOK" ]; then
 fi
 }
 
-show_help()
+function show_help()
 {
 echo "Script de migration de Wheezy vers Stretch
 A lancer sans option ou avec les options suivantes 
@@ -238,7 +333,7 @@ A lancer sans option ou avec les options suivantes
 }
 
 
-debian_check()
+function debian_check()
 {
 # On teste la version de debian
  
@@ -258,7 +353,7 @@ else
 fi
 }
 
-packages_dl() 
+function packages_dl() 
 {
 echo -e "$COLINFO"
 echo "Téléchargement des paquets nécessaires à la migration"
@@ -272,7 +367,7 @@ echo "Taille du cache actuel : $(du -sh /var/cache/apt/archives/ |  awk '{print 
 touch "$chemin_migr/download_only"
 }
 
-system_check_place()
+function system_check()
 {
 echo -e "$COLPARTIE"
 echo "Preparation et tests du systeme" | tee -a $fichier_log
@@ -309,7 +404,13 @@ fi
 if [ "$replica_status" == "" -o "$replica_status" == "0" ]; then
     echo "Serveur ldap en standalone ---> OK"
 else
-    ERREUR "Le serveur ldap soit etre en standalone (pas de replication ldap) !!!\nModifiez cette valeur et relancez le script" | tee -a $fichier_log
+    echo "replication ldap .... Le serveur sera placé en standalone pour la migration"
+#     ERREUR "Le serveur ldap soit etre en standalone (pas de replication ldap) !!!\nModifiez cette valeur et relancez le script" | tee -a $fichier_log
+    CHANGEMYSQL replica_ip ""
+    CHANGEMYSQL replica_status "0"
+    CHANGEMYSQL ldap_server "$se3ip"
+
+	echo "Annuaire replace en mode annuaire local"
     exit 1
 fi
 
@@ -327,8 +428,9 @@ if [ "$libre_var" -lt 1700 ];then
 fi
 }
 
-upgrade_se3wheezy()
+function upgrade_se3_packages()
 {
+local distrib="$1"
 echo "Maj si besoin de debian-archive-keyring"
 apt-get install debian-archive-keyring --allow-unauthenticated
 SE3_CANDIDAT=$(apt-cache policy se3 | grep "Candidat" | awk '{print $2}')
@@ -343,10 +445,10 @@ echo -e "$COLTXT"
         erreur "Une erreur s'est produite lors de la mise à  jour des modules\nIl est conseille de couper la migration"
 	poursuivre
     fi
-touch $chemin_migr/upgrade_se3wheezy
+touch $chemin_migr/upgrade_se3${distrib}
 }
 
-backuppc_check_mount()
+function backuppc_check_mount()
 {
 echo -e "$COLINFO"
 echo "Test de montage sur Backuppc"
@@ -361,7 +463,7 @@ else
 fi
 }
 
-backuppc_check_run()
+function backuppc_check_run()
 {
 rm -f /etc/init.d/backuppc.ori 
 if [ -e "$bpc_script" ]; then
@@ -383,7 +485,7 @@ fi
 }
 
 
-maj_slapd_wheezy()
+function maj_slapd_wheezy()
 {
 if [ "$DIST" = "wheezy" ]; then
 	echo -e "$COLINFO"
@@ -405,7 +507,58 @@ if [ "$DIST" = "wheezy" ]; then
 fi
 }
 
-prim_packages_jessie()
+
+
+# Fonction export des fichiers ldap conf, schémas propres à se3 et ldif
+function export_ldap_files()
+{
+echo -e "$COLINFO"
+echo "Ajout du mapping de groupe sur Le groupe Administratifs avant export"
+echo -e "$COLCMD"
+net groupmap add ntgroup=Administratifs unixgroup=Administratifs type=domain comment="Administratifs du domaine"
+echo -e "$COLTXT"
+
+conf_slapd="/etc/ldap/slapd.conf"
+echo -e "$COLINFO"
+echo "Export de la conf ldap et de ldapse3.ldif vers $dir_export"
+echo -e "$COLTXT"
+cp $conf_slapd $dir_export/
+ldapsearch -xLLL -D "$adminRdn,$ldap_base_dn" -w $adminPw > $dir_export/ldapse3.ldif
+schema_dir="/etc/ldap/schema"
+cp $schema_dir/ltsp.schema $schema_dir/samba.schema $schema_dir/printer.schema $dir_export/
+cp /var/lib/ldap/DB_CONFIG $dir_export/
+cp /etc/ldap/slapd.pem $dir_export/
+}
+
+function import_ldap_files()
+{
+/usr/share/se3/scripts/mkSlapdConf.sh
+/etc/init.d/slapd stop
+sleep 1
+rm -f /var/lib/ldap/* 
+# cp $dir_export/DB_CONFIG  /var/lib/ldap/
+cat > /var/lib/ldap/DB_CONFIG <<END
+set_cachesize 	0	41943040	0
+set_flags       DB_TXN_NOSYNC
+set_lg_bsize	524288
+set_lk_max_objects      10000
+set_lk_max_locks        10000
+set_lk_max_lockers      10000
+set_flags DB_LOG_AUTOREMOVE
+END
+slapadd -l $dir_export/ldapse3.ldif
+check_error
+chown -R openldap:openldap /var/lib/ldap/
+chown -R openldap:openldap /etc/ldap
+
+echo -e "$COLINFO"
+echo "Lancement de slapd" 
+echo -e "$COLCMD"
+/etc/init.d/slapd start
+sleep 1
+}
+
+function prim_packages_jessie()
 {
 echo -e "$COLPARTIE"
 echo "Migration en jessie - installations des paquets prioritaires" | tee -a $fichier_log
@@ -439,7 +592,7 @@ touch $chemin_migr/prim_packages_jessie-ok
 
 }
 
-dist_upgrade_jessie()
+function dist_upgrade_jessie()
 {
 echo -e "$COLPARTIE"
 echo "Migration en Jessie - installation des paquets restants" 
@@ -476,7 +629,7 @@ touch $chemin_migr/dist_upgrade_jessie
 echo "migration du systeme OK" | tee -a $fichier_log
 }
 
-kernel_update()
+function kernel_update()
 {
 echo -e "$COLINFO"
 echo "Mise à jour du noyau linux" 
@@ -489,7 +642,7 @@ arch="686"
 apt-get install linux-image-$arch firmware-linux-nonfree  -y | tee -a $fichier_log
 }
 
-slapdconfig_renew()
+function slapdconfig_renew()
 {
 echo -e "$COLINFO"
 echo "Réécriture du fichier /etc/default/slapd pour utiliser slapd.conf au lieu de cn=config" 
@@ -514,7 +667,7 @@ service slapd start
 sleep 3
 }
 
-nscd_off()
+function nscd_off()
 {
 echo -e "$COLINFO"
 echo "Arrêt de nscd - nscd sucks !" | tee -a $fichier_log
@@ -527,8 +680,18 @@ if [ -e /etc/init.d/nscd  ]; then
 fi
 }
 
+function clean_pre_jessie(){ 
+echo -e "$COLINFO"
+echo "Nettoyage des scripts se3 et des paquets inutiles" | tee -a $fichier_log
+echo -e "$COLTXT"
+apt-get autoremove --purge
+apt-get remove wine wine32 slapd samba --purge
+rm -f /etc/samba/smb.conf
+rm -rf /usr/share/se3/sbin /usr/share/se3/scripts /usr/share/se3/scripts-alertes/ /usr/share/se3/shares/ /usr/share/se3/data/
 
-prim_packages_stretch()
+}
+
+function prim_packages_stretch()
 {
 echo -e "$COLPARTIE"
 echo "Migration en stretch - installations des paquets prioritaires" | tee -a $fichier_log
@@ -561,7 +724,7 @@ touch $chemin_migr/prim_packages_stretch-ok
 
 }
 
-dist_upgrade_stretch()
+function dist_upgrade_stretch()
 {
 echo -e "$COLPARTIE"
 echo "Migration en Strech - installation des paquets restants" 
@@ -598,18 +761,19 @@ touch $chemin_migr/dist_upgrade_stretch
 echo "migration du systeme OK" | tee -a $fichier_log
 }
 
-download_packages()
+function download_packages()
 {
     echo -e "$COLINFO"
     echo "Pré-téléchargement des paquets uniquement"
     echo -e "$COLTXT"
-    upgrade_se3wheezy
-    system_check_place
+    mirror_choice
+    upgrade_se3_packages wheezy
+    system_check
     gensource_distrib jessie
     packages_dl
-    gensource_distrib strech
+    gensource_distrib stretch
     packages_dl
-    gensource_distrib wheezy
+    gensource_wheezy
     exit 0
 }
 
@@ -661,12 +825,17 @@ export  DEBIAN_PRIORITY
 
 NODL="no"
 DEBUG="yes"
+devel="yes"
 # option_update="-o Acquire::Check-Valid-Until=false"
 
 bpc_script="/etc/init.d/backuppc"
 
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/inst$$
 tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
+
+dir_config="/etc/sambaedu"
+dir_export="/etc/sambaedu/export_se4ad"
+mkdir -p "$dir_export"
 
 #init des params
 source /usr/share/se3/includes/config.inc.sh -cml
@@ -686,32 +855,42 @@ if [ -e /etc/apt/listchanges.conf ]; then
 		sed -i "s|^frontend=.*|frontend=mail|" /etc/apt/listchanges.conf
 	fi
 fi
+check_whiptail
+check_arch
 show_title
 line_test
 screen_test
-
-
+mirror_choice
+cp_ssh_key
 #Lancement de la migration Jessie
 
 # test du system
-system_check_place
+system_check
 
 if [ ! -e $chemin_migr/upgrade_se3wheezy ]; then
-    gensource_distrib wheezy
-    upgrade_se3wheezy
+    gensource_wheezy
+    upgrade_se3_packages wheezy
     backuppc_check_mount
     maj_slapd_wheezy
 fi
 
+
 if [ ! -e $chemin_migr/prim_packages_jessie ]; then
+    export_ldap_files
+    import_ldap_files
     prim_packages_jessie
+    gensourcese3jessie
+    upgrade_se3_packages jessie
+    clean_pre_jessie
 fi
 
 if [ ! -e $chemin_migr/dist_upgrade_jessie ]; then
     dist_upgrade_jessie
 fi
 
+
 service mysql restart
+
 
 
 if [ ! -e $chemin_migr/prim_packages_stretch ]; then
