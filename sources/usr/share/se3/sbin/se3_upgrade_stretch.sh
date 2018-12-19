@@ -10,9 +10,46 @@ COLTITRE="\033[1;35m"   # Rose
 COLDEFAUT="\033[0;33m"  # Brun-jaune
 COLCMD="\033[1;37m\c"     # Blanc
 COLERREUR="\033[1;31m"  # Rouge
-COLTXT="\033[0;37m"     # Gris
+COLTXT="\033[0;37m\c"     # Gris
 COLINFO="\033[0;36m\c"	# Cyan
 COLPARTIE="\033[1;34m\c"	# Bleu
+
+
+function show_title() {
+BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
+
+WELCOME_TITLE="Migration vers SE4-FS"
+WELCOME_TEXT="Bienvenue dans le script de migration SAMBAEDU 4.
+
+Ce programme va migrer votre serveur actuel SE3 Wheezy vers SE4FS sous Debian Stretch.
+
+Attention : Vous devez disposer d'un SE4-AD en container ou machine virtuelle qui sera utilisé par SE4-FS"
+
+$dialog_box  --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOME_TEXT" 18 75
+}
+
+
+# Affichage de la partie actuelle
+function show_part()
+{
+echo -e "$COLTXT"
+echo -e "$COLPARTIE"
+echo "--------"
+echo "$1"
+echo "--------"
+echo -e "$COLTXT"
+# sleep 1
+}
+
+# Affichage de la partie actuelle
+function show_info()
+{
+echo -e "$COLTXT"
+echo -e "$COLINFO"
+echo "$1"
+echo -e "$COLTXT"
+# sleep 1
+}
 
 erreur()
 {
@@ -96,7 +133,7 @@ fi
 
 
 
-function show_title() {
+function show_menu() {
 BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
 
 WELCOME_TITLE="Migration vers SE4-FS"
@@ -202,6 +239,7 @@ fi
 
 function gensource_wheezy()
 {
+show_info "Mise à jour des sources Wheezy"
 cat >/etc/apt/sources.list <<END
 # Sources standard:
 deb http://ftp.fr.debian.org/debian/ wheezy main non-free contrib
@@ -212,16 +250,14 @@ deb http://security.debian.org/ wheezy/updates main contrib non-free
 # wheezy-updates
 deb http://ftp.fr.debian.org/debian/ wheezy-updates main contrib non-free
 END
-apt-get update $option_update
+apt-get -q update $option_update
 }
 
 
 function gensource_distrib()
 {
 distrib_name="$1"
-echo -e "$COLINFO"
-echo "Mise a jour des dépots $distrib_name"
-echo -e "$COLTXT"
+show_info "Mise à jour des sources $distrib_name"
 rm -f /etc/apt/sources.list.d/*
 if [ "$distrib_name" = "jessie" ];then
     mirror_name="deb.debian.org"
@@ -240,12 +276,13 @@ deb http://ftp.fr.debian.org/debian/ $distrib_name-updates main contrib non-free
 # $distrib_name-backports
 #deb http://ftp.fr.debian.org/debian/ $distrib_name-backports main
 END
-apt-get update $option_update
+apt-get -q update $option_update
 unset distrib_name
 }
 
 function gensourcese3()
 {
+show_info "Mise à jour des sources SE3 Wheezy"
 cat >/etc/apt/sources.list.d/se3.list <<END
 #sources pour se3
 deb http://wawadeb.crdp.ac-caen.fr/debian wheezy se3XP
@@ -256,11 +293,12 @@ deb http://wawadeb.crdp.ac-caen.fr/debian wheezy se3XP
 #### Sources backports smb41  ####
 deb http://wawadeb.crdp.ac-caen.fr/debian wheezybackports smb41
 END
-apt-get update
+apt-get -q update
 }
 
 function gensourcese3jessie()
 {
+show_info "Mise à jour des sources SE3 Jessie"
 cat >/etc/apt/sources.list.d/se3.list <<END
 #sources pour se3
 deb http://wawadeb.crdp.ac-caen.fr/debian jessie se3
@@ -274,23 +312,19 @@ apt-get -q update
 
 function gensourcese4()
 {
+show_info "Mise à jour des sources SE4 Stretch"
 cat >/etc/apt/sources.list.d/se4.list <<END
 # sources pour se4
-deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4
-# sources pour se4testing
-deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4testing
+# temporairement on est sur SE4XP
+#deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4
+
+#### Sources testing seront desactivees en prod ####
+#deb http://wawadeb.crdp.ac-caen.fr/debian stretch se4testing
+
+deb [trusted=yes] http://wawadeb.crdp.ac-caen.fr/debian stretch se4XP 
 END
 apt-get -q update
 }
-
-#date
-LADATE=$(date +%d-%m-%Y)
-chemin_migr="/root/migration_wheezy2stretch"
-mkdir -p $chemin_migr
-fichier_log="$chemin_migr/migration-$LADATE.log"
-touch $fichier_log
-BPC_SCRIPT="/etc/init.d/backuppc"
-BPC_PID="/var/run/backuppc/BackupPC.pid"
 
 function mail_report()
 {
@@ -437,14 +471,17 @@ SE3_CANDIDAT=$(apt-cache policy se3 | grep "Candidat" | awk '{print $2}')
 SE3_INSTALL=$(apt-cache policy se3 | grep "Install" | awk '{print $2}')
 #[ "$SE3_CANDIDAT" != "$SE3_INSTALL" ] && ERREUR "Il semble que votre serveur se3 n'est pas a jour\nMettez votre serveur a jour puis relancez le script de migration" && exit 1
 
-echo -e "$COLPARTIE"
-echo "Mise a jour des paquets SE3 avant migration"
-echo -e "$COLTXT"
-/usr/share/se3/scripts/install_se3-module.sh se3 | grep -v "pre>" | tee -a $fichier_log
+show_part "Mise a jour des paquets SE3 $distrib"
+
+if [ "$distrib" = "wheezy" ]; then
+    /usr/share/se3/scripts/install_se3-module.sh se3 | grep -v "pre>" | tee -a $fichier_log
+else
+    apt-get install se3 -y
     if [ "$?" != "0" ]; then
-        erreur "Une erreur s'est produite lors de la mise à  jour des modules\nIl est conseille de couper la migration"
+        erreur "Une erreur s'est produite lors de la mise à jour des paquets Se3\nIl est conseille de couper la migration"
 	poursuivre
     fi
+fi
 touch $chemin_migr/upgrade_se3${distrib}
 }
 
@@ -594,9 +631,7 @@ touch $chemin_migr/prim_packages_jessie-ok
 
 function dist_upgrade_jessie()
 {
-echo -e "$COLPARTIE"
-echo "Migration en Jessie - installation des paquets restants" 
-echo -e "$COLTXT"
+show_part "Migration en Jessie - installation des paquets restants" 
 poursuivre
 echo -e "$COLINFO"
 echo "migration du systeme lancee.....ça risque d'être long ;)" 
@@ -667,28 +702,16 @@ service slapd start
 sleep 3
 }
 
-function nscd_off()
-{
-echo -e "$COLINFO"
-echo "Arrêt de nscd - nscd sucks !" | tee -a $fichier_log
-echo -e "$COLTXT"
-### Modif à faire ###
-# nscd sucks !
-if [ -e /etc/init.d/nscd  ]; then
-	insserv -r nscd
-	service nscd stop
-fi
-}
-
 function clean_pre_jessie(){ 
 echo -e "$COLINFO"
 echo "Nettoyage des scripts se3 et des paquets inutiles" | tee -a $fichier_log
 echo -e "$COLTXT"
-apt-get autoremove --purge
-apt-get remove wine wine32 slapd samba --purge
+apt-get remove apt-listchanges --purge -y
+apt-get remove wine wine32 libc6:i386 slapd samba samba-common mysql-server-5.5 ntpdate backuppc nut nut-client nut-server --purge -y
+apt-get autoremove --purge -y
 rm -f /etc/samba/smb.conf
 rm -rf /usr/share/se3/sbin /usr/share/se3/scripts /usr/share/se3/scripts-alertes/ /usr/share/se3/shares/ /usr/share/se3/data/
-
+touch $chemin_migr/clean_pre_jessie
 }
 
 function prim_packages_stretch()
@@ -777,41 +800,54 @@ function download_packages()
     exit 0
 }
 
+function clean_post_stretch {
+show_part "nettoyage du cache et des paquets inutiles"
+apt-get autoremove -y --purge
+apt-get clean
 
+rm -f /etc/apt/apt.conf
+DEBIAN_PRIORITY="high"
+DEBIAN_FRONTEND="dialog" 
+export  DEBIAN_PRIORITY
+export  DEBIAN_FRONTEND
+}
+
+function install_se4 {
+show_part "Installation des paquets SambaEdu 4 FS"
+apt-get install sambaedu -y
+}
 # recup params particuliers si besoin
 while :; do
-	case $1 in
-		-h|-\?|--help)
-		show_help
-		exit
-		;;
-      
-		--no-update)
-		touch /root/nodl
-		;;
-  
-		--debug)
-		touch /root/debug
-		;;
-  
-		--)
-		shift
-		break
-		;;
-     
-		-?*)
-		printf 'Attention : option inconnue ignorée: %s\n' "$1" >&2
-		;;
-  
-		*)
-		break
-		esac
- 		shift
+    case $1 in
+        -h|-\?|--help)
+        show_help
+        exit
+        ;;
+
+        --no-update)
+        touch /root/nodl
+        ;;
+
+        --debug)
+        touch /root/debug
+        ;;
+
+        --)
+        shift
+        break
+        ;;
+
+        -?*)
+        printf 'Attention : option inconnue ignorée: %s\n' "$1" >&2
+        ;;
+
+        *)
+        break
+        esac
+        shift
 done
 
 # debut du script
-
-
 
 # Variables :
 dialog_box="$(which whiptail)"
@@ -828,11 +864,17 @@ DEBUG="yes"
 devel="yes"
 # option_update="-o Acquire::Check-Valid-Until=false"
 
-bpc_script="/etc/init.d/backuppc"
 
+#date
+LADATE=$(date +%d-%m-%Y)
+chemin_migr="/root/migration_wheezy2stretch"
+mkdir -p $chemin_migr
+fichier_log="$chemin_migr/migration-$LADATE.log"
+touch $fichier_log
+BPC_PID="/var/run/backuppc/BackupPC.pid"
+bpc_script="/etc/init.d/backuppc"
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/inst$$
 tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
-
 dir_config="/etc/sambaedu"
 dir_export="/etc/sambaedu/export_se4ad"
 mkdir -p "$dir_export"
@@ -855,9 +897,10 @@ if [ -e /etc/apt/listchanges.conf ]; then
 		sed -i "s|^frontend=.*|frontend=mail|" /etc/apt/listchanges.conf
 	fi
 fi
+show_title
 check_whiptail
 check_arch
-show_title
+show_menu
 line_test
 screen_test
 mirror_choice
@@ -875,59 +918,30 @@ if [ ! -e $chemin_migr/upgrade_se3wheezy ]; then
 fi
 
 
-if [ ! -e $chemin_migr/prim_packages_jessie ]; then
+if [ ! -e $chemin_migr/clean_pre_jessie ]; then
     export_ldap_files
     import_ldap_files
-    prim_packages_jessie
     gensourcese3jessie
     upgrade_se3_packages jessie
     clean_pre_jessie
+    
 fi
 
 if [ ! -e $chemin_migr/dist_upgrade_jessie ]; then
+    prim_packages_jessie
     dist_upgrade_jessie
 fi
 
-
-service mysql restart
-
-
-
-if [ ! -e $chemin_migr/prim_packages_stretch ]; then
-    prim_packages_stretch
-fi
-
 if [ ! -e $chemin_migr/dist_upgrade_stretch ]; then
+    prim_packages_stretch
     dist_upgrade_stretch
 fi
 
+clean_post_stretch
+gensourcese4
+install_se4
+show_part "Terminé :) - Bonne utilisation de SambaEdu 4 !!!"
 
-
-show_part "Nettoyage de fichiers obsolètes sur /home/profiles" | tee -a $fichier_log
-
-
-# modif base sql
-mysql -e "UPDATE se3db.params SET value = 'stretch' WHERE value = 'wheezy';" 
-# mysql -e "UPDATE se3db.params SET value = '2.5' WHERE value = '2.4';" 
-
-
-show_part "nettoyage du cache et des paquets inutiles"
-
-apt-get autoremove -y
-apt-get clean
-
-
-
-echo -e "$COLINFO"
-echo "Termine !!!"
-echo -e "$COLTXT"
-
-[ -e /etc/ssmtp/ssmtp.conf ] && MAIL_REPORT
-
-rm -f /etc/apt/apt.conf
-DEBIAN_PRIORITY="high"
-DEBIAN_FRONTEND="dialog" 
-export  DEBIAN_PRIORITY
-export  DEBIAN_FRONTEND
+# [ -e /etc/ssmtp/ssmtp.conf ] && MAIL_REPORT
 
 exit 0
