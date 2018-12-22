@@ -4,7 +4,23 @@
 # franck molle
 # version 02 - 2018 
 
+# Lecture des fonctions communes
+source /usr/share/se3/sbin/libs-common.sh
 
+# check_whiptail --> test présence 
+# erreur --> sort en erreur avec le message
+# poursuivre_ou_corriger --> explicite
+# poursuivre --> poursuivre oui pas
+# show_part --> afficher message couleur partie
+# show_info --> Affichage d'une info
+# conf_network --> configuration du réseau
+# write_sambaedu_conf  Fonction écriture fichier de conf /etc/sambaedu/se4ad.config et se4fs
+# Fonction export des fichiers tdb et smb.conf --> export_smb_files()
+# Fonction export des fichiers --> dhcp export_dhcp()
+# Fonction export des fichiers ldap conf, schémas propres à se3 et ldif --> export_ldap_files()
+# Fonction export des fichiers  sql --> export_sql_files()
+# Fonction export des fichiers   --> export_cups_config()
+# Recherche de sid en doublon  --> search_duplicate_sid()
 
 function usage() 
 {
@@ -17,14 +33,6 @@ then
 	echo "Usage : pas d'option"
 	exit
 fi
-
-function check_whiptail()
-{
-if [ -z "$(which whiptail)" ];then
-apt-get install whiptail -y 
-fi
-}
-
 
 function show_title() {
 BACKTITLE="Projet Sambaédu - https://www.sambaedu.org/"
@@ -40,120 +48,6 @@ $dialog_box  --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOM
 }
 
 
-
-function erreur()
-{
-        echo -e "$COLERREUR"
-        echo "ERREUR!"
-        echo -e "$1"
-        echo -e "$COLTXT"
-        exit 1
-}
-
-# Poursuivre ou corriger
-function poursuivre_ou_corriger()
-{
-	REPONSE=""
-	while [ "$REPONSE" != "1" -a "$REPONSE" != "2" ]
-	do
-		if [ ! -z "$1" ]; then
-			echo -e "$COLTXT"
-			echo -e "Peut-on poursuivre (${COLCHOIX}1${COLTXT}) ou voulez-vous corriger (${COLCHOIX}2${COLTXT}) ? [${COLDEFAUT}${1}${COLTXT}] $COLSAISIE\c"
-			read REPONSE
-
-			if [ -z "$REPONSE" ]; then
-				REPONSE="$1"
-			fi
-		else
-			echo -e "$COLTXT"
-			echo -e "Peut-on poursuivre (${COLCHOIX}1${COLTXT}) ou voulez-vous corriger (${COLCHOIX}2${COLTXT}) ? $COLSAISIE\c"
-			read REPONSE
-		fi
-	done
-}
-
-# Poursuivre ou quitter en erreur
-function POURSUIVRE()
-{
-        REPONSE=""
-        while [ "$REPONSE" != "o" -a "$REPONSE" != "O" -a "$REPONSE" != "n" ]
-        do
-                echo -e "$COLTXT"
-                echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXT}) $COLSAISIE\c"
-                read REPONSE
-                if [ -z "$REPONSE" ]; then
-                        REPONSE="o"
-                fi
-        done
-
-        if [ "$REPONSE" != "o" -a "$REPONSE" != "O" ]; then
-                ERREUR "Abandon!"
-        fi
-}
-
-#Activation Debug
-function debug() {
-debug="1"
-if [ "$debug" = "1" ]; then
-set -x
-POURSUIVRE
-fi
-
-}
-
-# Affichage de la partie actuelle
-function show_part()
-{
-echo -e "$COLTXT"
-echo -e "$COLPARTIE"
-echo "--------"
-echo "$1"
-echo "--------"
-echo -e "$COLTXT"
-# sleep 1
-}
-
-# confirmation de la conf du lan 
-function conf_network()
-{
-config_lan_title="Configuration du réseau local"	
-se3network=$(grep network $interfaces_file | grep -v "#" | sed -e "s/network//g" | tr "\t" " " | sed -e "s/ //g")
-se3bcast=$(grep broadcast $interfaces_file | grep -v "#" | sed -e "s/broadcast//g" | tr "\t" " " | sed -e "s/ //g")
-se3gw=$(grep gateway $interfaces_file | grep -v "#" | sed -e "s/gateway//g" | tr "\t" " " | sed -e "s/ //g")
-
-
-REPONSE=""
-while [ "$REPONSE" != "yes" ]
-do
-	if [ "$REPONSE" = "no" ]; then
-		$dialog_box --backtitle "$BACKTITLE" --title "$config_lan_title" --inputbox "Veuillez saisir l'adresse de base du reseau" 15 70 $se3network 2>$tempfile || erreur "Annulation"
-		se3network="$(cat $tempfile)"
-				
-		$dialog_box --backtitle "$BACKTITLE" --title "$config_lan_title" --inputbox "Veuillez saisir l'adresse de broadcast" 15 70 $se3bcast 2>$tempfile || erreur "Annulation"
-		se3bcast="$(cat $tempfile)"
-		
-		$dialog_box --backtitle "$BACKTITLE" --title "$config_lan_title" --inputbox "Veuillez saisir l'adresse de la passerelle" 15 70 $se3gw 2>$tempfile || erreur "Annulation"
-		se3gw="$(cat $tempfile)"
-				
-	fi
-
-	confirm_title="Configuration réseau local"
-	confirm_txt="La configuration suivante a été détectée sur le serveur SE3 
-	
-Adresse IP du serveur SE3 :   $se3ip
-Adresse réseau de base :      $se3network
-Adresse de Broadcast :        $se3bcast
-Adresse IP de la Passerelle : $se3gw
-	
-Ces valeurs sont elles correctes ?"	
-	
-	if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 15 70) then
-		REPONSE="yes"
-	else
-		REPONSE="no"
-	fi
-done
-}
 
 # Installation package LXC 1.1 backport
 function install_lxc_package()
@@ -299,7 +193,7 @@ Confirmer l'enregistrement de cette configuration ?"
 		fi	
 done
 
-#~ POURSUIVRE
+#~ poursuivre
 echo -e "$COLTXT"
 }
 
@@ -438,77 +332,6 @@ fi
 chmod 644 $lxc_bashrc
 }
 
-# Fonction écriture fichier de conf /etc/sambaedu/se4ad.config
-function write_sambaedu_conf
-{
-if [ -e "$se4ad_config" ] ; then
-	echo "$se4ad_config existe on en écrase le contenu"
-fi
-echo -e "$COLINFO"
-#echo "Pas de fichier de conf $se4ad_config  -> On en crée un avec les params du se4ad"
-echo -e "$COLTXT"
-echo "## Adresse IP du futur SE4-AD ##" > $se4ad_config
-echo "se4ad_ip=\"$se4ad_ip\"" >> $se4ad_config
-echo "## Nom de domaine samba du SE4-AD ##" >> $se4ad_config
-echo "samba_domain=\"$samba_domain\"" >>  $se4ad_config
-echo "## Suffixe du domaine##" >> $se4ad_config
-echo "## Nom de domaine complet - realm du SE4-AD ##" >> $se4ad_config
-echo "domain=\"$domain\"" >> $se4ad_config
-echo "## Adresse IP de SE3 ##" >> $se4ad_config
-echo "se3ip=\"$se3ip\"" >> $se4ad_config
-echo "## Nom du domaine samba actuel" >> $se4ad_config
-echo "se3_domain=\"$se3_domain\""  >> $se4ad_config
-echo "##Nom netbios du serveur se3 actuel##" >> $se4ad_config
-echo "netbios_name=\"$netbios_name\"" >> $se4ad_config
-echo "##Adresse du serveur DNS##" >> $se4ad_config
-echo "nameserver=\"$nameserver\"" >> $se4ad_config
-echo "##Pass admin LDAP##" >> $se4ad_config
-echo "adminPw=\"$adminPw\"" >> $se4ad_config
-echo "##base dn LDAP##" >> $se4ad_config
-echo "ldap_base_dn=\"$ldap_base_dn\"" >> $se4ad_config
-echo "##Rdn admin LDAP##" >> $se4ad_config
-echo "adminRdn=\"$adminRdn\"" >> $se4ad_config
-echo "##SID domaine actuel" >> $se4ad_config
-echo "domainsid=\"$domainsid\"" >> $se4ad_config
-echo "##NTP server " >> $se4ad_config
-echo "ntpserv=\"$ntpserv\"" >> $se4ad_config
-
-
-chmod +x $se4ad_config
-}
-
-# Fonction export des fichiers tdb et smb.conf 
-function export_smb_files()
-{
-echo -e "$COLINFO"
-echo "Arrêt du service Samba pour export des fichiers TDB"
-echo -e "$COLTXT"
-service samba stop
-echo -e "$COLINFO"
-echo "Copie des fichiers TDB vers $dir_export"
-echo -e "$COLCMD"
-tdb_smb_dir="/var/lib/samba"
-pv_tdb_smb_dir="/var/lib/samba/private"
-cp $pv_tdb_smb_dir/secrets.tdb $dir_export/
-cp $pv_tdb_smb_dir/schannel_store.tdb $dir_export/
-cp $pv_tdb_smb_dir/passdb.tdb $dir_export/
-
-if [ -e "$tdb_smb_dir/gencache_notrans.tdb" ] ;then
-	cp $tdb_smb_dir/gencache_notrans.tdb $dir_export/
-fi
-cp $tdb_smb_dir/group_mapping.tdb $dir_export/
-cp $tdb_smb_dir/account_policy.tdb $dir_export/
-cp $tdb_smb_dir/wins.tdb $dir_export/
-cp $tdb_smb_dir/wins.dat $dir_export/
-
-cp /etc/samba/smb.conf $dir_export/
-echo -e "$COLINFO"
-echo "Remise en route de Samba"
-echo -e "$COLCMD"
-service samba start
-echo -e "$COLTXT"
-}
-
 # Fonction export des fichiers ldap conf, schémas propres à se3 et ldif
 function export_ldap_files()
 {
@@ -522,7 +345,6 @@ schema_dir="/etc/ldap/schema"
 cp $schema_dir/ltsp.schema $schema_dir/samba.schema $schema_dir/printer.schema $dir_export/
 cp /var/lib/ldap/DB_CONFIG $dir_export/
 cp /etc/ldap/slapd.pem $dir_export/
-
 }
 
 # Fonction copie des fichiers de conf @LXC/etc/sambaedu

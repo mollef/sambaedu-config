@@ -5,16 +5,6 @@
 ####Script permettant de migrer un serveur Se3 de wheezy en se4-fs sous stretch  ####
 ### Auteur : Franck Molle franck.molle@sambaedu.org
 
-#Couleurs
-COLTITRE="\033[1;35m"   # Rose
-COLDEFAUT="\033[0;33m"  # Brun-jaune
-COLCMD="\033[1;37m\c"     # Blanc
-COLERREUR="\033[1;31m"  # Rouge
-COLTXT="\033[0;37m\c"     # Gris
-COLINFO="\033[0;36m\c"	# Cyan
-COLPARTIE="\033[1;34m\c"	# Bleu
-
-
 function show_title() {
 BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
 
@@ -28,38 +18,6 @@ Attention : Vous devez disposer d'un SE4-AD en container ou machine virtuelle qu
 $dialog_box  --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOME_TEXT" 18 75
 }
 
-
-# Affichage de la partie actuelle
-function show_part()
-{
-echo -e "$COLTXT"
-echo -e "$COLPARTIE"
-echo "--------"
-echo "$1"
-echo "--------"
-echo -e "$COLTXT"
-# sleep 1
-}
-
-# Affichage de la partie actuelle
-function show_info()
-{
-echo -e "$COLTXT"
-echo -e "$COLINFO"
-echo "$1"
-echo -e "$COLTXT"
-# sleep 1
-}
-
-erreur()
-{
-	echo -e "$COLERREUR"
-	echo "ERREUR!"
-	echo -e "$1"
-	echo -e "$COLTXT"
-	
-}
-
 errexit()
 {
 	DEBIAN_PRIORITY="high"
@@ -68,69 +26,6 @@ errexit()
 	export  DEBIAN_FRONTEND
 	exit 1
 }
-
-function quit_on_choice()
-{
-echo -e "$COLERREUR"
-echo "Arrêt du script !"
-echo -e "$1"
-echo -e "$COLTXT"
-exit 1
-}
-
-function cp_ssh_key() {
-mkdir -p /root/.ssh/
-
-if [ -e "$dir_config/authorized_keys" ]; then
-    mv  "$dir_config/authorized_keys" /root/.ssh/ 
-fi
-
-if [ -n "$devel" ]; then
-    
-    ssh_keyser="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDMQ6Nd0Kg+L8200pR2CxUVHBtmjQ2xAX2zqArqV45horU8qopf6AYEew0oKanK3GzY2nrs5g2SYbxqs656YKa/OkTslSc5MR/Nndm9/J1CUsurTlo+VwXJ/x1qoLBmGc/9mZjdlNVKIPwkuHMKUch+XmsWF92GYEpTA1D5ZmfuTxP0GMTpjbuPhas96q+omSubzfzpH7gLUX/afRHfpyOcYWdzNID+xdmML/a3DMtuCatsHKO94Pv4mxpPeAXpJdE262DPXPz2ZIoWSqPz8dQ6C3v7/YW1lImUdOah1Fwwei4jMK338ymo6huR/DheCMa6DEWd/OZK4FW2KccxjXvHALn/QCHWCw0UMQnSVpmFZyV4MqB6YvvQ6u0h9xxWIvloX+sjlFCn71hLgH7tYsj4iBqoStN9KrpKC9ZMYreDezCngnJ87FzAr/nVREAYOEmtfLN37Xww3Vr8mZ8/bBhU1rqfLIaDVKGAfnbFdN6lOJpt2AX07F4vLsF0CpPl4QsVaow44UV0JKSdYXu2okcM80pnVnVmzZEoYOReltW53r1bIZmDvbxBa/CbNzGKwxZgaMSjH63yX1SUBnUmtPDQthA7fK8xhQ1rLUpkUJWDpgLdC2zv2jsKlHf5fJirSnCtuvq6ux1QTXs+bkTz5bbMmsWt9McJMgQzWJNf63o8jw== GitLab"
-    grep -q "$ssh_keyser" /root/.ssh/authorized_keys || echo $ssh_keyser >> /root/.ssh/authorized_keys 
-fi
-}
-
-# Fonction permettant de poser la question s'il faut poursuivre ou quitter
-function go_on()
-{
-REPONSE=""
-while [ "$REPONSE" != "o" -a "$REPONSE" != "O" -a "$REPONSE" != "n" ]
-do
-    echo -e "$COLTXT"
-    echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXL}) $COLSAISIE"
-    read -t 40 REPONSE
-#     echo -e "$COLTXT"
-    if [ -z "$REPONSE" ]; then
-            REPONSE="o"
-    fi
-done
-
-if [ "$REPONSE" != "o" -a "$REPONSE" != "O" ]; then
-        quit_on_choice "Abandon!"
-fi
-}
-
-
-function check_whiptail()
-{
-if [ -z "$(which whiptail)" ];then
-apt-get install whiptail -y 
-fi
-}
-
-function check_arch() {
-if [ "$(arch)" != "x86_64" ] ;then
-NEWT_COLORS='                                                                                                                         
- window=,red
- border=white,red
- textbox=white,red
- button=black,white' whiptail --backtitle "$(arch) non pris en charge" --title "$se4fs_partman_title" --msgbox "Erreur : Seule l'Architecture AMD64 est supportée par SambaEdu 4" 13 70
-    exit 1
-fi
-}
-
 
 
 function show_menu() {
@@ -168,62 +63,6 @@ mirror_name_title="Miroir Debian à utiliser pour l'installation"
 	mirror_name=$(cat $tempfile)
 }
 
-# Affichage de la partie actuelle
-function show_part()
-{
-echo -e "$COLTXT"
-echo -e "$COLPARTIE"
-echo "--------"
-echo "$1"
-echo "--------"
-echo -e "$COLTXT"
-# sleep 1
-}
-
-function erreur()
-{
-        echo -e "$COLERREUR"
-        echo "ERREUR!"
-        echo -e "$1"
-        echo -e "$COLTXT"
-        exit 1
-}
-
-# Fonction de verification d'erreur
-function check_error()
-{
-if [ "$?" != "0" ]; then
-    echo -e "$COLERREUR"
-    echo "Attention "
-    echo -e "la dernière commande a envoyé une erreur !"
-    echo -e "$1"
-    echo -e "$COLTXT"
-    go_on
-fi
-}
-
-
-
-
-
-# Poursuivre ou quitter en erreur
-function poursuivre()
-{
-        REPONSE=""
-        while [ "$REPONSE" != "o" -a "$REPONSE" != "O" -a "$REPONSE" != "n" ]
-        do
-                echo -e "$COLTXT"
-                echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXT}) $COLSAISIE\c"
-                read -t 40 REPONSE
-                if [ -z "$REPONSE" ]; then
-                        REPONSE="o"
-                fi
-        done
-
-        if [ "$REPONSE" != "o" -a "$REPONSE" != "O" ]; then
-                erreur "Abandon!"
-        fi
-}
 line_test()
 {
 echo -e "$COLINFO"
@@ -544,8 +383,6 @@ if [ "$DIST" = "wheezy" ]; then
 fi
 }
 
-
-
 # Fonction export des fichiers ldap conf, schémas propres à se3 et ldif
 function export_ldap_files()
 {
@@ -595,113 +432,6 @@ echo -e "$COLCMD"
 sleep 1
 }
 
-function prim_packages_jessie()
-{
-echo -e "$COLPARTIE"
-echo "Migration en jessie - installations des paquets prioritaires" | tee -a $fichier_log
-echo -e "$COLTXT"
-poursuivre
-[ -z "$LC_ALL" ] && LC_ALL=C && export LC_ALL=C 
-[ -z "$LANGUAGE" ] && export LANGUAGE=fr_FR:fr:en_GB:en  
-[ -z "$LANG" ] && export LANG=fr_FR@euro 
-# Creation du source.list de la distrib
-gensource_distrib jessie
-# On se lance
-if [ "$?" != "0" ]; then
-    erreur "une erreur s'est produite lors de la mise a jour des paquets disponibles. reglez le probleme et relancez le script"
-    gensource_distrib wheezy
-    errexit
-fi
-apt-get install debian-archive-keyring --allow-unauthenticated | tee -a $fichier_log
-apt-get -qq update 
-backuppc_check_run
-aptitude install libc6 locales  -y < /dev/tty | tee -a $fichier_log
-if [ "$?" != "0" ]; then
-    mv /etc/apt/sources.list_save_migration /etc/apt/sources.list 
-    erreur "Une erreur s'est produite lors de la mise a jour des paquets lib6 et locales. Reglez le probleme et relancez le script"
-    errexit
-fi
-echo -e "$COLINFO"
-echo "mise a jour de lib6  et locales ---> OK" | tee -a $fichier_log
-echo -e "$COLTXT"
-sleep 3
-touch $chemin_migr/prim_packages_jessie-ok
-
-}
-
-function dist_upgrade_jessie()
-{
-show_part "Migration en Jessie - installation des paquets restants" 
-poursuivre
-echo -e "$COLINFO"
-echo "migration du systeme lancee.....ça risque d'être long ;)" 
-echo -e "$COLTXT"
-   
-echo "Dpkg::Options {\"--force-confold\";}" > /etc/apt/apt.conf	
-# echo "Dpkg::Options {\"--force-confnew\";}" > /etc/apt/apt.conf
-gensource_distrib jessie
-if [ "$?" != "0" ]; then
-    erreur "Une erreur s'est produite lors de la mise a jour des paquets disponibles. Reglez le probleme et relancez le script" 
-    errexit
-fi
-# DEBIAN_FRONTEND="non-interactive" 
-apt-get dist-upgrade $option_apt  < /dev/tty | tee -a $fichier_log
-
-if [ "$?" != "0" ]; then
-	echo -e "$COLERREUR Une erreur s'est produite lors de la migration vers Jessie"
-    echo "En fonction du probleme, vous pouvez choisir de poursuivre tout de meme ou bien d'abandonner afin de terminer la migration manuellement"
-    #/usr/share/se3/scripts/install_se3-module.sh se3
-    echo -e "$COLTXT"
-    echo "Voulez vous continuez (o/N) ? "
-    read REPLY
-    if [ "$REPLY" != "O" ] &&  [ "$REPLY" != "o" ] && [ -n $REPLY ]; then
-                    erreur "Abandon !"
-                    GENSOURCESE3
-                    errexit
-    fi
-fi
-touch $chemin_migr/dist_upgrade_jessie
-echo "migration du systeme OK" | tee -a $fichier_log
-}
-
-function kernel_update()
-{
-echo -e "$COLINFO"
-echo "Mise à jour du noyau linux" 
-echo -e "$COLTXT"
-
-# update noyau wheezy
-arch="686"
-[ "$(arch)" != "i686" ] && arch="amd64"
-
-apt-get install linux-image-$arch firmware-linux-nonfree  -y | tee -a $fichier_log
-}
-
-function slapdconfig_renew()
-{
-echo -e "$COLINFO"
-echo "Réécriture du fichier /etc/default/slapd pour utiliser slapd.conf au lieu de cn=config" 
-echo -e "$COLTXT"
-# Retour Slapd.conf
-service slapd stop
-#sed -i "s/#SLAPD_CONF=/SLAPD_CONF=\"\/etc\/ldap\/slapd.conf\"/g" /etc/default/slapd
-echo 'SLAPD_CONF="/etc/ldap/slapd.conf"
-SLAPD_USER="openldap"
-SLAPD_GROUP="openldap"
-SLAPD_PIDFILE=
-SLAPD_SERVICES="ldap:/// ldapi:///"
-SLAPD_SENTINEL_FILE=/etc/ldap/noslapd
-SLAPD_OPTIONS=""
-' > /etc/default/slapd
-
-# [ grep  ] || sed -i "s/SLAPD_CONF=/SLAPD_CONF=\"\/etc\/ldap\/slapd.conf\"/g" /etc/default/slapd
-cp $chemin_migr/slapd.conf /etc/ldap/slapd.conf
-chown openldap:openldap /etc/ldap/slapd.conf
-sleep 2
-service slapd start
-sleep 3
-}
-
 function clean_pre_jessie(){ 
 echo -e "$COLINFO"
 echo "Nettoyage des scripts se3 et des paquets inutiles" | tee -a $fichier_log
@@ -711,64 +441,40 @@ apt-get remove wine wine32 libc6:i386 slapd samba samba-common mysql-server-5.5 
 apt-get autoremove --purge -y
 rm -f /etc/samba/smb.conf
 rm -rf /usr/share/se3/sbin /usr/share/se3/scripts /usr/share/se3/scripts-alertes/ /usr/share/se3/shares/ /usr/share/se3/data/
+userdel www-se3
 touch $chemin_migr/clean_pre_jessie
 }
 
-function prim_packages_stretch()
+function dist_upgrade()
 {
-echo -e "$COLPARTIE"
-echo "Migration en stretch - installations des paquets prioritaires" | tee -a $fichier_log
+local distrib="$1"
+show_part "Migration en $distrib"
 echo -e "$COLTXT"
-poursuivre
 [ -z "$LC_ALL" ] && LC_ALL=C && export LC_ALL=C 
 [ -z "$LANGUAGE" ] && export LANGUAGE=fr_FR:fr:en_GB:en  
 [ -z "$LANG" ] && export LANG=fr_FR@euro 
 # Creation du source.list de la distrib
-gensource_distrib stretch
+gensource_distrib $distrib
 # On se lance
-if [ "$?" != "0" ]; then
-    erreur "une erreur s'est produite lors de la mise a jour des paquets disponibles. reglez le probleme et relancez le script"
-    gensource_distrib wheezy
-    errexit
-fi
 apt-get install debian-archive-keyring --allow-unauthenticated | tee -a $fichier_log
-apt-get -qq update 
 aptitude install libc6 locales  -y < /dev/tty | tee -a $fichier_log
 if [ "$?" != "0" ]; then
-    mv /etc/apt/sources.list_save_migration /etc/apt/sources.list 
     erreur "Une erreur s'est produite lors de la mise a jour des paquets lib6 et locales. Reglez le probleme et relancez le script"
     errexit
 fi
-echo -e "$COLINFO"
-echo "mise a jour de lib6  et locales ---> OK" | tee -a $fichier_log
-echo -e "$COLTXT"
-sleep 3
-touch $chemin_migr/prim_packages_stretch-ok
+showinfo "mise a jour de lib6  et locales ---> OK" | tee -a $fichier_log
+sleep 1
+touch $chemin_migr/prim_packages_$distrib-ok
 
-}
-
-function dist_upgrade_stretch()
-{
-echo -e "$COLPARTIE"
-echo "Migration en Strech - installation des paquets restants" 
-echo -e "$COLTXT"
-poursuivre
-echo -e "$COLINFO"
-echo "migration du systeme lancee.....ça risque d'être long ;)" 
-echo -e "$COLTXT"
+show_info "Installation des paquets Strech restants, patience ;)" 
    
 echo "Dpkg::Options {\"--force-confold\";}" > /etc/apt/apt.conf	
 # echo "Dpkg::Options {\"--force-confnew\";}" > /etc/apt/apt.conf
-gensource_distrib stretch
-if [ "$?" != "0" ]; then
-    erreur "Une erreur s'est produite lors de la mise a jour des paquets disponibles. Reglez le probleme et relancez le script" 
-    errexit
-fi
 # DEBIAN_FRONTEND="non-interactive" 
 apt-get dist-upgrade $option_apt  < /dev/tty | tee -a $fichier_log
 
 if [ "$?" != "0" ]; then
-	echo -e "$COLERREUR Une erreur s'est produite lors de la migration vers Jessie"
+	echo -e "$COLERREUR Une erreur s'est produite lors de la migration vers Stretch"
     echo "En fonction du probleme, vous pouvez choisir de poursuivre tout de meme ou bien d'abandonner afin de terminer la migration manuellement"
     #/usr/share/se3/scripts/install_se3-module.sh se3
     echo -e "$COLTXT"
@@ -780,8 +486,8 @@ if [ "$?" != "0" ]; then
                     errexit
     fi
 fi
-touch $chemin_migr/dist_upgrade_stretch
-echo "migration du systeme OK" | tee -a $fichier_log
+touch $chemin_migr/dist_upgrade_$distrib
+show_info "migration du systeme vers Stretch ok !! " | tee -a $fichier_log
 }
 
 function download_packages()
@@ -928,13 +634,11 @@ if [ ! -e $chemin_migr/clean_pre_jessie ]; then
 fi
 
 if [ ! -e $chemin_migr/dist_upgrade_jessie ]; then
-    prim_packages_jessie
-    dist_upgrade_jessie
+    dist_upgrade jessie
 fi
 
 if [ ! -e $chemin_migr/dist_upgrade_stretch ]; then
-    prim_packages_stretch
-    dist_upgrade_stretch
+    dist_upgrade stretch
 fi
 
 clean_post_stretch
