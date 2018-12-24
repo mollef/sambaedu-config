@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+##### Permet l'installation et la conf d'un container LXC se4-AD#####
+# franck molle
+# version 12 - 2018 
+
+# Lecture des fonctions communes
+source /usr/share/se3/sbin/libs-common.sh
+
+# check_whiptail --> test présence 
+# erreur --> sort en erreur avec le message
+# poursuivre_ou_corriger --> explicite
+# poursuivre --> poursuivre oui pas
+# show_part --> afficher message couleur partie
+# show_info --> Affichage d'une info
+# conf_network --> configuration du réseau
+# write_sambaedu_conf  Fonction écriture fichier de conf /etc/sambaedu/se4ad.config et se4fs
+# Fonction export des fichiers tdb et smb.conf --> export_smb_files()
+# Fonction export des fichiers --> dhcp export_dhcp()
+# Fonction export des fichiers ldap conf, schémas propres à se3 et ldif --> export_ldap_files()
+# Fonction export des fichiers  sql --> export_sql_files()
+# Fonction export des fichiers   --> export_cups_config()
+# Recherche de sid en doublon  --> search_duplicate_sid()
+
+function usage() 
+{
+echo "Script permettant La configuration et l'installation de SE4'"
+}
+
+if [ "$1" = "--help" -o "$1" = "-h" ]
+then
+	usage
+	echo "Usage : pas d'option"
+	exit
+fi
+
+function show_title() {
+BACKTITLE="Projet Sambaédu - https://www.sambaedu.org/"
+
+WELCOME_TITLE="Configuration et installation de SambaEdu 4"
+WELCOME_TEXT="Bienvenue dans l'outil de configuration de SambaEdu 4.
+
+Ce programme vous permettra de lancer les différents outils pour une installation ou une migration simplifée de Sambaedu 4."
+
+$dialog_box  --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOME_TEXT" 18 70
+}
+
+function show_menu() {
+BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
+# while "$loop" != "end"; do
+    $dialog_box --backtitle "$BACKTITLE" --title "Installation ou migration SambaEdu 4" \
+--menu "Bienvenue, choisissez l'action à effectuer" 15 80 7  \
+"1" "Générer des fichiers d'installation automatiques preseed SE4AD / SE4FS" \
+"2" "Installer un annuaire SE4-AD dans un container LXC Debian Stretch " \
+"3" "Migrer la machine Se3 actuelle vers SE4-FS - Nécessite un SE4- AD installé" \
+"4" "Sortir du programme sans mofification" \
+2>$tempfile
+
+    choice=`cat $tempfile`
+    [ "$?" != "0" ] && exit 0
+    case $choice in
+            1)
+            $se3sbin/gen_se4preseed.sh
+            exit 0
+            ;;
+            2)
+            $se3sbin/install_se4lxc.sh
+            exit 0
+            ;;
+            3)
+            $se3sbin/se3_upgrade_stretch.sh
+            exit 0
+            ;;
+            4)
+            exit 0
+            ;;
+            *) exit 0
+            ;;
+    esac
+# done
+        
+}
+
+
+## recuperation des variables necessaires pour interoger mysql ###
+source /etc/se3/config_c.cache.sh
+source /etc/se3/config_m.cache.sh
+source /etc/se3/config_l.cache.sh
+source /usr/share/se3/includes/functions.inc.sh 
+
+# Variables :
+dialog_box="$(which whiptail)"
+tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/inst$$
+tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
+# url_sambaedu_config="https://raw.githubusercontent.com/SambaEdu/se4/master/sources/sambaedu-config"
+url_sambaedu_config="https://raw.githubusercontent.com/SambaEdu/sambaedu-config/master/sources"
+interfaces_file="/etc/network/interfaces" 
+
+
+dir_config="/etc/sambaedu"
+dir_export="/etc/sambaedu/export_se4ad"
+dir_preseed="/var/www/diconf"
+
+mkdir -p "$dir_export"
+
+se4ad_config="$dir_export/se4ad.config"
+script_phase2="install_se4ad_phase2.sh"
+lxc_arch="$(arch)"
+ecard="br0"
+nameserver="$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2| head -n 1)"
+se4ad_config_tgz="se4ad.config.tgz"
+se4fs_config="$dir_config/sambaedu.conf"
+se4fs_config_clients="$dir_config/clients.conf"
+preseed_se4fs="yes"
+se3sbin="/usr/share/se3/sbin/"
+check_whiptail
+
+show_title
+show_part "Recupération des données depuis la BDD et initialisation des variables"
+show_menu
+
+
+exit 0
+
+

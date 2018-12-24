@@ -111,6 +111,17 @@ if [ "$?" != "0" ]; then
 fi
 }
 
+function whiptail_error_style 
+{
+
+NEWT_COLORS='                                                                                                                         
+ window=,red
+ border=white,red
+ textbox=white,red
+ button=black,white' whiptail --backtitle "$1" --title "$2" --msgbox "$3" 13 70
+
+}
+
 # test de l'architecture'
 function check_arch() {
 if [ "$(arch)" != "x86_64" ] ;then
@@ -390,6 +401,7 @@ fi
 
 # Recherche de sid en doublon
 function search_duplicate_sid() {
+test_duplicate_sid="/usr/share/se3/sbin/duplicate_sid.py"
 if [ -f $test_duplicate_sid ];then
     duplicate_sid="$( python $test_duplicate_sid )"
     if [ "$duplicate_sid"  != "" ];then
@@ -397,12 +409,12 @@ if [ -f $test_duplicate_sid ];then
 
         Corriger cela dans l'interface :
             - Informations système => correction de problèmes => recherche des doublons ldap
-            - Gestion des parcs => Rechercher => doublons MAC" 18 75
+            - Gestion des parcs => Rechercher => doublons MAC" 15 75
         erreur "Doublons dans l'annuaire, corriger cela dans l'interface :
 - Informations système => correction de problèmes => recherche des doublons ldap
 - Gestion des parcs => Rechercher => doublons MAC"
     else
-        $dialog_box  --backtitle "$BACKTITLE" --title "Pas de doublon dans l'annuaire" --msgbox "Aucun sid en doublon n'a été trouvé dans l'annuaire."  18 75
+        $dialog_box  --backtitle "$BACKTITLE" --title "Pas de doublon dans l'annuaire" --msgbox "Aucun sid en doublon n'a été trouvé dans l'annuaire."  12 60
     fi
 fi
 }

@@ -524,6 +524,7 @@ show_part "Recupération des données depuis la BDD et initialisation des variab
 
 
 check_whiptail
+search_duplicate_sid
 conf_network
 install_lxc_package
 write_host_lan

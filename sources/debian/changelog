@@ -1,3 +1,11 @@
+sambaedu-config (0.30~) unstable; urgency=low
+
+  * Add sambaedu-config.sh script to manage the others.
+  * Add common libs.
+  * finalise migration se3-wheezy --> se4fs
+
+ -- Franck Molle <franck.molle@sambaedu.org>  Sun, 23 Nov 2018 21:44:15 +0100
+
 sambaedu-config (0.25) unstable; urgency=low
 
   * Add users ldap attribute migration to AD.

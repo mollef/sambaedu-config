@@ -58,7 +58,7 @@ sd_detect="$(lsblk -n -o "NAME,TYPE" | grep -v fd0 | sort | grep disk | head -n1
 
 REPONSE=""
 details="no"
-se4ad_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
+se4ad_ip_cut="$(echo "$se3ip"  | cut -d . -f1-3)."
 se4ad_mask="$se3mask"
 se4ad_network="$se3network"
 se4ad_bcast="$se3bcast"
@@ -71,49 +71,55 @@ Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'a
 	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "$se4ad_boot_disk_txt" 13 70 "/dev/$sd_detect" 2>$tempfile || erreur "Annulation"
 	se4ad_boot_disk=$(cat $tempfile)
 	
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'IP du SE4-AD" 15 70 $se4ad_ip 2>$tempfile || erreur "Annulation"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'IP du SE4-AD" 12 70 $se4ad_ip_cut 2>$tempfile || erreur "Annulation"
 	se4ad_ip=$(cat $tempfile)
 	
+	if [ "$se4ad_ip" = "$se4ad_ip_cut" ]; then
+            whiptail_error_style "$BACKTITLE" "$se4ad_lan_title" "$se4ad_ip_cut est une saisie invalide !!"
+            continue
+	fi
+	
 	if [ "$details" != "no" ]; then
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir le Masque sous réseau" 15 70 $se3mask 2>$tempfile || erreur "Annulation"
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir le Masque sous réseau" 12 70 $se3mask 2>$tempfile || erreur "Annulation"
 		se4ad_mask=$(cat $tempfile)
 		
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 15 70 $se3network 2>$tempfile || erreur "Annulation"
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 12 70 $se3network 2>$tempfile || erreur "Annulation"
 		se4ad_network=$(cat $tempfile)
 		
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de broadcast" 15 70 $se3bcast 2>$tempfile || erreur "Annulation"
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de broadcast" 12 70 $se3bcast 2>$tempfile || erreur "Annulation"
 		se4ad_bcast=$(cat $tempfile)
 		
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 15 70 $se3gw 2>$tempfile || erreur "Annulation"
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 12 70 $se3gw 2>$tempfile || erreur "Annulation"
 		se4ad_gw=$(cat $tempfile)
 	fi
 	details="yes"
 	samba_domain_check="no"
 	
 	mirror_name_title="Miroir Debian à utiliser pour l'installation"
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_name_title" --inputbox "Confirmer le nom du miroir à utiliser ou bien saisir l'adresse de votre miroir local si vous en avez un" 15 70 deb.debian.org 2>$tempfile || erreur "Annulation"
+	$dialog_box --backtitle "$BACKTITLE" --title "$mirror_name_title" --inputbox "Confirmer le nom du miroir à utiliser ou bien saisir l'adresse de votre miroir local si vous en avez un" 12 70 deb.debian.org 2>$tempfile || erreur "Annulation"
 	mirror_name=$(cat $tempfile)
 		
 	se4ad_name_title="Nom du SE4-AD"
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_name_title" --inputbox "Saisir le Nom de la machine SE4-AD" 15 70 se4ad 2>$tempfile || erreur "Annulation"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_name_title" --inputbox "Saisir le Nom de la machine SE4-AD" 12 70 se4ad 2>$tempfile || erreur "Annulation"
 	se4ad_name=$(cat $tempfile)
 	
-	choice_domain_title="Important - nom de domaine AD"
+	choice_domain_title="Important - Nom de domaine AD"
 	choice_domain_text="Sur un domaine AD, le serveur de domaine gère le DNS. Le choix du nom de domaine est donc important.
 Il est composé de plusieurs parties : le nom de domaine samba suivi de son suffixe, séparés par un point.
 
-Exemple de domaine AD : clg-dupontel.belville.ac-dijon.fr 
-* le domaine samba sera clg-dupontel 
-* le suffixe sera belville.ac-acad.fr 
+Exemple de domaine AD : \"diderot.org\"
+* le domaine samba serait \"diderot\" et le suffixe \".org\"
 
-Note : 
-* le domaine samba ne doit en aucun cas dépasser 15 caractères
-* Les domaines du type sambaedu.lan ou etab.local sont déconseillés en production par l'équipe samba"
-
+ATTENTION : 
+* Le domaine samba actuel \"$se3_domain\" doit être CONSERVÉ pour permettre une migration AUTOMATIQUE des clients Windows sur le domaine AD. Le suffixe \"$domain\" peut quant à lui être modifié selon les besoins.
+* le domaine samba ne doit en aucun cas dépasser 15 caractères.
+* Les domaines AD du type sambaedu.lan ou etab.local sont à proscrire"
+NEWT_COLORS='window=,red'   
 	domain="$(hostname -d)"
 	while [ "$samba_domain_check" != "ok" ]
 	do
-            $dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 20 80 $domain 2>$tempfile
+            color="color15"
+            NEWT_COLORS="window=,$color border=black,$color textbox=black,$color" $dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 23 80 $se3_domain.$domain 2>$tempfile || erreur "Annulation"
             domain="$(cat $tempfile)"		
             samba_domain="$(echo "$domain" | cut -d"." -f1)"
             samba_domain_size="${#samba_domain}"
@@ -172,7 +178,7 @@ se4fs_lan_title="Configuration réseau du futur SE4-FS"
 
 REPONSE=""
 details="no"
-se4fs_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
+se4fs_ip_cut="$(echo "$se3ip"  | cut -d . -f1-3)."
 se4fs_mask="$se4ad_mask"
 se4fs_network="$se4ad_network"
 se4fs_bcast="$se4ad_bcast"
@@ -180,28 +186,34 @@ se4fs_gw="$se4ad_gw"
 
 while [ "$REPONSE" != "yes" ]
 do
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'IP du SE4-FS" 15 70 $se4fs_ip 2>$tempfile || erreur "Annulation"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'IP du SE4-FS" 12 70 $se4fs_ip_cut 2>$tempfile || erreur "Annulation"
 	se4fs_ip=$(cat $tempfile)
 	
+	if [ "$se4fs_ip" = "$se4ad_fs_cut" ]; then
+            whiptail_error_style "$BACKTITLE" "$se4ad_lan_title" "$se4fs_ip_cut est une saisie invalide !!"
+            continue
+	fi
+	
+	
 	if [ "$details" != "no" ]; then
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir le Masque sous réseau" 15 70 $se3mask 2>$tempfile || erreur "Annulation"
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir le Masque sous réseau" 12 70 $se3mask 2>$tempfile || erreur "Annulation"
 		se4fs_mask=$(cat $tempfile)
 		
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 15 70 $se3network 2>$tempfile || erreur "Annulation"
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 12 70 $se3network 2>$tempfile || erreur "Annulation"
 		se4fs_network=$(cat $tempfile)
 		
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de broadcast" 15 70 $se3bcast 2>$tempfile || erreur "Annulation"
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de broadcast" 12 70 $se3bcast 2>$tempfile || erreur "Annulation"
 		se4fs_bcast=$(cat $tempfile)
 		
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 15 70 $se3gw 2>$tempfile || erreur "Annulation"
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 12 70 $se3gw 2>$tempfile || erreur "Annulation"
 		se4fs_gw=$(cat $tempfile)
 	fi
 	details="yes"
 	
 	se4fs_name_title="Nom du SE4-FS"
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_name_title" --inputbox "Saisir le Nom de la machine SE4-FS" 15 70 se4fs 2>$tempfile || erreur "Annulation"
-	se4fs_name=$(cat $tempfile)
-	
+# 	$dialog_box --backtitle "$BACKTITLE" --title "$se4fs_name_title" --inputbox "Saisir le Nom de la machine SE4-FS" 12 70 se4fs 2>$tempfile || erreur "Annulation"
+# 	se4fs_name=$(cat $tempfile)
+	se4fs_name="se4fs"
 	
 	confirm_title="Récapitulatif de la configuration prévue"
 	confirm_txt="IP :         $se4fs_ip
@@ -245,7 +257,7 @@ Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'a
     root_size_txt="** Taille de la partition racine **
 
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$root_size_txt" 15 70 "4000 5000 6000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$root_size_txt" 13 70 "4000 5000 6000" 2>$tempfile || erreur "Annulation"
     root_size=$(cat $tempfile)
     root_mini="$(echo $root_size | cut -d" " -f1)"
     root_opt="$(echo $root_size | cut -d" " -f2)"
@@ -254,7 +266,7 @@ Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant le
     var_size_txt="** Taille de la partition /var **
 
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$var_size_txt" 15 70 "10000 12000 15000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$var_size_txt" 13 70 "10000 12000 15000" 2>$tempfile || erreur "Annulation"
     var_size=$(cat $tempfile)
     var_mini="$(echo $var_size | cut -d" " -f1)"
     var_opt="$(echo $var_size | cut -d" " -f2)"
@@ -263,7 +275,7 @@ Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant le
     home_size_txt="** Taille de la partition /home **
 
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$home_size_txt" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$home_size_txt" 13 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
     home_size=$(cat $tempfile)
     home_mini="$(echo $home_size | cut -d" " -f1)"
     home_opt="$(echo $home_size | cut -d" " -f2)"
@@ -272,7 +284,7 @@ Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant le
     varse_size_txt="** Taille de la partition /var/sambaedu **
 
 Saisir en Mo la taille minimale / optimale / maximale souhaitée en séparant les trois valeurs par des espaces. Vous pouvez modifier ou confirmer les valeurs proposées"
-    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$varse_size_txt" 15 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --inputbox "$varse_size_txt" 13 70 "15000 20000 40000" 2>$tempfile || erreur "Annulation"
     varse_size=$(cat $tempfile)
     varse_mini="$(echo $varse_size | cut -d" " -f1)"
     varse_opt="$(echo $varse_size | cut -d" " -f2)"
@@ -634,7 +646,6 @@ se4fs_config_clients="$dir_config/clients.conf"
 script_phase2="install_se4ad_phase2.sh"
 nameserver="$(grep "^nameserver" /etc/resolv.conf | cut -d" " -f2| head -n 1)"
 se4ad_config_tgz="se4ad.config.tgz"
-test_duplicate_sid="/usr/share/se3/sbin/duplicate_sid.py"
 
 show_title
 check_whiptail
