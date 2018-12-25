@@ -37,10 +37,10 @@ fi
 function show_title() {
 BACKTITLE="Projet Sambaédu - https://www.sambaedu.org/"
 
-WELCOME_TITLE="Configuration et installation de SambaEdu 4"
+WELCOME_TITLE="Menu principal de Sambaedu-config"
 WELCOME_TEXT="Bienvenue dans l'outil de configuration de SambaEdu 4.
 
-Ce programme vous permettra de lancer les différents outils pour une installation ou une migration simplifée de Sambaedu 4."
+Ce programme vous permettra de lancer les différents outils en vue d'une installation ou d'une migration automatisée de Sambaedu 4."
 
 $dialog_box  --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOME_TEXT" 18 70
 }
@@ -52,7 +52,7 @@ BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
 --menu "Bienvenue, choisissez l'action à effectuer" 15 80 7  \
 "1" "Générer des fichiers d'installation automatiques preseed SE4AD / SE4FS" \
 "2" "Installer un annuaire SE4-AD dans un container LXC Debian Stretch " \
-"3" "Migrer la machine Se3 actuelle vers SE4-FS - Nécessite un SE4- AD installé" \
+"3" "Migrer la machine SE3 actuelle vers SE4FS. Nécessite un SE4AD déjà fonctionnel" \
 "4" "Sortir du programme sans mofification" \
 2>$tempfile
 
