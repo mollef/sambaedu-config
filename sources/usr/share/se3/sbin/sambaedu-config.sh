@@ -1,8 +1,8 @@
 #!/bin/bash
-#
-##### Permet l'installation et la conf d'un container LXC se4-AD#####
-# franck molle
-# version 12 - 2018 
+# Projet SambaEdu - distribué selon la licence GPL
+##### Script principal du paquet sambaedu-config - Permet le lancement des différents scripts d'installation ou migration 
+### Auteur : Franck Molle franck.molle@sambaedu.org
+## Version 0.3 - 12-2018 ##
 
 # Lecture des fonctions communes
 source /usr/share/se3/sbin/libs-common.sh
@@ -35,10 +35,12 @@ then
 fi
 
 function show_title() {
-BACKTITLE="Projet Sambaédu - https://www.sambaedu.org/"
+BACKTITLE="Projet SambaÉdu - https://www.sambaedu.org"
 
 WELCOME_TITLE="Menu principal de Sambaedu-config"
 WELCOME_TEXT="Bienvenue dans l'outil de configuration de SambaEdu 4.
+
+SambaEdu est un projet libre sous licence GPL vivant de la collaboration active des différents contributeurs issus de différentes académies.
 
 Ce programme vous permettra de lancer les différents outils en vue d'une installation ou d'une migration automatisée de Sambaedu 4."
 
@@ -52,7 +54,7 @@ BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
 --menu "Bienvenue, choisissez l'action à effectuer" 15 80 7  \
 "1" "Générer des fichiers d'installation automatiques preseed SE4AD / SE4FS" \
 "2" "Installer un annuaire SE4-AD dans un container LXC Debian Stretch " \
-"3" "Migrer la machine SE3 actuelle vers SE4FS. Nécessite un SE4AD déjà fonctionnel" \
+"3" "Migrer cette machine SE3 vers SE4FS. Nécessite un SE4AD déjà fonctionnel" \
 "4" "Sortir du programme sans mofification" \
 2>$tempfile
 
@@ -113,10 +115,10 @@ se4fs_config="$dir_config/sambaedu.conf"
 se4fs_config_clients="$dir_config/clients.conf"
 preseed_se4fs="yes"
 se3sbin="/usr/share/se3/sbin/"
+devel="yes"
 check_whiptail
-
+cp_ssh_key
 show_title
-show_part "Recupération des données depuis la BDD et initialisation des variables"
 show_menu
 
 

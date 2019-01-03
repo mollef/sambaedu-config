@@ -1,9 +1,8 @@
 #!/bin/bash
-
+# Projet SambaEdu - distribué selon la licence GPL
 ####Script contenant les fonctions communes des Scripts  ####
-# 
-### Auteur : Franck Molle
-
+### Auteur : Franck Molle franck.molle@sambaedu.org
+## Version 0.3 - 12-2018 ##
 
 #Couleurs
 COLTITRE="\033[1;35m"   # Rose
@@ -62,7 +61,7 @@ function poursuivre()
         do
                 echo -e "$COLTXT"
                 echo -e "Peut-on poursuivre? (${COLCHOIX}O/n${COLTXT}) $COLSAISIE\c"
-                read REPONSE
+                read -t 30 REPONSE
                 if [ -z "$REPONSE" ]; then
                         REPONSE="o"
                 fi
@@ -107,7 +106,7 @@ if [ "$?" != "0" ]; then
     echo -e "la dernière commande a envoyé une erreur !"
     echo -e "$1"
     echo -e "$COLTXT"
-    go_on
+    poursuivre
 fi
 }
 
@@ -142,32 +141,74 @@ set -x
 poursuivre
 fi
 }
+# Fonction permettant la mise à l'heure du serveur 
+function settime() {
+show_info "Mise à l'heure du serveur"
+[ -z "$ntpserv" ] && ntpserv="ntp.midway.ovh"
+
+/usr/sbin/ntpdate -u -b $ntpserv
+sleep 1
+}
+
+# Fonction à fusionner avec la précédente ?
+function set_time()
+{
+echo -e "$COLPARTIE"
+echo "Type de configuration Ldap et mise a l'heure"
+echo -e "$COLTXT"
+
+
+echo -e "$COLINFO"
+
+if [ -n "$GATEWAY" ]; then
+	echo "Tentative de Mise à l'heure automatique du serveur sur $GATEWAY..."
+	ntpdate -b $GATEWAY
+	if [ "$?" = "0" ]; then
+		heureok="yes"
+	fi
+fi
+
+if [ "$heureok" != "yes" ];then
+
+	echo "Mise à l'heure automatique du serveur sur internet..."
+	echo -e "$COLCMD\c"
+	ntpdate -b fr.pool.ntp.org
+	if [ "$?" != "0" ]; then
+		echo -e "${COLERREUR}"
+		echo "ERREUR: mise à l'heure par internet impossible"
+		echo -e "${COLTXL}Vous devez donc vérifier par vous même que celle-ci est à l'heure"
+		echo -e "le serveur indique le$COLINFO $(date +%c)"
+		echo -e "${COLTXL}Ces renseignements sont-ils corrects ? (${COLCHOIX}O/n${COLTXL}) $COLSAISIE\c"
+		read rep
+		[ "$rep" = "n" ] && echo -e "${COLERREUR}Mettez votre serveur à l'heure avant de relancer l'installation$COLTXT" && exit 1
+	fi
+fi
+}
+
+
 
 # Affichage de la partie actuelle
 function show_part()
 {
-echo -e "$COLTXT"
 echo -e "$COLPARTIE"
-echo "--------"
+echo -e "--------"
 echo "$1"
-echo "--------"
-echo -e "$COLTXT"
+echo -e "-------- $COLTXT"
 # sleep 1
 }
 
 # Affichage d'une info
 function show_info()
 {
-echo -e "$COLTXT"
 echo -e "$COLINFO"
-echo "$1"
-echo -e "$COLTXT"
+echo -e "$1 $COLTXT"
 # sleep 1
 }
 
 # confirmation de la conf du lan 
 function conf_network()
 {
+interfaces_file="/etc/network/interfaces"
 config_lan_title="Configuration du réseau local"	
 se3network=$(grep network $interfaces_file | grep -v "#" | sed -e "s/network//g" | tr "\t" " " | sed -e "s/ //g")
 se3bcast=$(grep broadcast $interfaces_file | grep -v "#" | sed -e "s/broadcast//g" | tr "\t" " " | sed -e "s/ //g")
@@ -207,15 +248,130 @@ Ces valeurs sont elles correctes ?"
 done
 }
 
+# Fonction de preconfig se4-AD
+function preconf_se4ad()
+{
+se4ad_lan_title="Configuration du futur SE4-AD"
+if [ ! -e "/bin/lsblk" ];then
+    apt-get install util-linux
+fi
+sd_detect="$(lsblk -n -o "NAME,TYPE" | grep -v fd0 | sort | grep disk | head -n1 | cut -d " " -f1)"
+
+REPONSE=""
+details="no"
+se4ad_ip_cut="$(echo "$se3ip"  | cut -d . -f1-3)."
+se4ad_mask="$se3mask"
+se4ad_network="$se3network"
+se4ad_bcast="$se3bcast"
+se4ad_gw="$se3gw"
+while [ "$REPONSE" != "yes" ]
+do
+	se4ad_boot_disk_txt="** Nom du disque sur lequel le système sera installé **
+	
+Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
+        if [ "$1" != "lxc" ]; then
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "$se4ad_boot_disk_txt" 13 70 "/dev/$sd_detect" 2>$tempfile || erreur "Annulation"
+	se4ad_boot_disk=$(cat $tempfile)
+	else
+            se4ad_boot_disk="Container LXC"
+	fi
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'IP du SE4-AD" 12 70 $se4ad_ip_cut 2>$tempfile || erreur "Annulation"
+	se4ad_ip=$(cat $tempfile)
+	
+	if [ "$se4ad_ip" = "$se4ad_ip_cut" ]; then
+            whiptail_error_style "$BACKTITLE" "$se4ad_lan_title" "$se4ad_ip_cut est une saisie invalide !!"
+            continue
+	fi
+	
+	if [ "$details" != "no" ]; then
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir le Masque sous réseau" 12 70 $se3mask 2>$tempfile || erreur "Annulation"
+		se4ad_mask=$(cat $tempfile)
+		
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 12 70 $se3network 2>$tempfile || erreur "Annulation"
+		se4ad_network=$(cat $tempfile)
+		
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de broadcast" 12 70 $se3bcast 2>$tempfile || erreur "Annulation"
+		se4ad_bcast=$(cat $tempfile)
+		
+		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 12 70 $se3gw 2>$tempfile || erreur "Annulation"
+		se4ad_gw=$(cat $tempfile)
+	fi
+	details="yes"
+	samba_domain_check="no"
+	
+	mirror_name_title="Miroir Debian à utiliser pour l'installation"
+	$dialog_box --backtitle "$BACKTITLE" --title "$mirror_name_title" --inputbox "Confirmer le nom du miroir à utiliser ou bien saisir l'adresse de votre miroir local si vous en avez un" 12 70 deb.debian.org 2>$tempfile || erreur "Annulation"
+	mirror_name=$(cat $tempfile)
+		
+	se4ad_name_title="Nom du SE4-AD"
+	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_name_title" --inputbox "Saisir le Nom de la machine SE4-AD" 12 70 se4ad 2>$tempfile || erreur "Annulation"
+	se4ad_name=$(cat $tempfile)
+	
+	choice_domain_title="Important - Nom de domaine AD"
+	choice_domain_text="Sur un domaine AD, le serveur de domaine gère le DNS. Le choix du nom de domaine est donc primordial
+Il est composé de plusieurs parties : le nom de domaine samba suivi de son suffixe, séparés par un point.
+
+Exemple de domaine AD : \"diderot.org\"
+* le domaine samba serait \"diderot\" et le suffixe \".org\"
+
+ATTENTION : 
+* Le domaine samba actuel \"$se3_domain\" doit être CONSERVÉ pour permettre une migration AUTOMATIQUE des clients Windows sur le domaine AD. Le suffixe \"$domain\" peut quant à lui être modifié selon les besoins.
+* le domaine samba ne doit en aucun cas dépasser 15 caractères.
+* Les domaines AD du type sambaedu.lan ou etab.local sont à proscrire"
+NEWT_COLORS='window=,red'   
+	domain="$(hostname -d)"
+	while [ "$samba_domain_check" != "ok" ]
+	do
+            color="color15"
+            NEWT_COLORS="window=,$color border=black,$color textbox=black,$color" $dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 23 80 $se3_domain.$domain 2>$tempfile || erreur "Annulation"
+            domain="$(cat $tempfile)"		
+            samba_domain="$(echo "$domain" | cut -d"." -f1)"
+            samba_domain_size="${#samba_domain}"
+            if [ $samba_domain_size -gt 15 ]; then
+            NEWT_COLORS='                                                                                                                         
+ window=,red
+ border=white,red
+ textbox=white,red
+ button=black,white' whiptail --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --msgbox "Erreur : $samba_domain dépasse 15 caractères, merci de modifier votre saisie" 13 70
+            continue
+            else
+                samba_domain_check="ok"
+            fi
+	done	
+	confirm_title="Récapitulatif de la configuration prévue"
+	confirm_txt="Disque à utiliser : $se4ad_boot_disk
+	
+IP :         $se4ad_ip
+Masque :     $se4ad_mask
+Réseau :     $se4ad_network
+Broadcast :  $se4ad_bcast
+Passerelle : $se4ad_gw
+Miroir debian : $mirror_name
+
+
+Nom :        $se4ad_name
+
+Nom de domaine AD saisi : $domain
+Nom de domaine samba :    $samba_domain
+
+Confirmer l'enregistrement de cette configuration ?"
+		
+		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 23 60) then
+			REPONSE="yes"
+		else
+			REPONSE="no"
+		fi	
+done
+
+}
+
 
 # Fonction écriture fichier de conf /etc/sambaedu/se4ad.config et se4fs
-function write_sambaedu_conf
+function write_se4ad_config
 {
-
+show_part "Génération des fichiers de configuration SE4"
 if [ -e "$se4ad_config" ] ; then
-    echo -e "$COLINFO"
-    echo "$se4ad_config existe on en écrase le contenu"
-    echo -e "$COLTXT"
+    show_info "$se4ad_config existe on en écrase le contenu"
 fi
 
 # Génération de $se4ad_config
@@ -246,62 +402,75 @@ echo "##Rdn admin LDAP##" >> $se4ad_config
 echo "adminRdn=\"$adminRdn\"" >> $se4ad_config
 echo "##SID domaine actuel" >> $se4ad_config
 echo "domainsid=\"$domainsid\"" >> $se4ad_config
+}
 
-if [ "$preseed_se4fs" = "yes" ];then
-    echo "## Params du futur SE4-AD ##" > $se4fs_config
-    echo "se4ad_ip=\"$se4ad_ip\"" >> $se4fs_config
-    echo "## Miroir debian ##" >> $se4fs_config
-    echo "mirror_name=\"$mirror_name\"" >> $se4fs_config
-    echo "se4ad_name=\"$se4ad_name\"" >> $se4fs_config
-    echo "## Params du futur SE4-FS et domaine##" >> $se4fs_config
-    echo "se4fs_ip=\"$se4fs_ip\"" >> $se4fs_config
-    echo "se4fs_name=\"$se4fs_name\"" >> $se4fs_config
-    echo "samba_domain=\"$samba_domain\"" >>  $se4fs_config
-    echo "domain=\"$domain\"" >> $se4fs_config
-    echo "nameserver=\"$nameserver\"" >> $se4fs_config
-    echo "## params annuaire AD##" >> $se4fs_config
-    echo "ldap_port=\"636\"" >> $se4fs_config
-    echo "admin_name=\"Administrator\"" >> $se4fs_config
-    echo "ldap_admin_name=\"Administrator\"" >> $se4fs_config
-    echo "admin_rdn=\"cn=Users\"" >> $se4fs_config
-    echo "people_rdn=\"ou=Utilisateurs\"" >> $se4fs_config
-    echo "groups_rdn=\"ou=Groups\"" >> $se4fs_config
-    echo "rights_rdn=\"ou=Rights\"" >> $se4fs_config
-    echo "parcs_rdn=\"ou=Parcs\"" >> $se4fs_config
-    echo "computers_rdn=\"CN=computers\"" >> $se4fs_config
-    echo "classes_rdn=\"ou=classes\"" >> $se4fs_config
-    echo "equipes_rdn=\"ou=equipes\"" >> $se4fs_config
-    echo "matieres_rdn=\"ou=matieres\"" >> $se4fs_config
-    echo "cours_rdn=\"ou=cours\"" >> $se4fs_config
-    echo "projets_rdn=\"ou=projets\"" >> $se4fs_config
-    echo "other_groups_rdn=\"ou=autres\"" >> $se4fs_config
-    echo "delegations_rdn=\"ou=delegations\"" >> $se4fs_config 
-    echo "equipements_rdn=\"ou=Materiels\"" >> $se4fs_config
-    echo "trash_rdn=\"ou=Trash\"" >> $se4fs_config
-    echo "lang=\"fr\"" >> $se4fs_config
-    echo "ldap_url=\"ldaps://$domain\"" >> $se4fs_config
-    echo "cnPolicy=\"1\"" >> $se4fs_config
-    echo "pwdPolicy=\"1\"" >> $se4fs_config
-    echo "path2UserSkel=\"/etc/skel/user\"" >> $se4fs_config
-    # Params se4fs_config_clients
-    echo "adminse_name" = \"adminse3\"  > $se4fs_config_clients
-    echo "client_windows" = \"1\" >> $se4fs_config_clients
-    echo "adminse_passwd" = \"$xppass\" >> $se4fs_config_clients
-fi
+function write_se4fs_config
+{
+echo "## Params du futur SE4-AD ##" > $se4fs_config
+echo "se4ad_ip=\"$se4ad_ip\"" >> $se4fs_config
+echo "## Miroir debian ##" >> $se4fs_config
+echo "mirror_name=\"$mirror_name\"" >> $se4fs_config
+echo "se4ad_name=\"$se4ad_name\"" >> $se4fs_config
+echo "## Params du futur SE4-FS et domaine##" >> $se4fs_config
+echo "se4fs_ip=\"$se4fs_ip\"" >> $se4fs_config
+echo "se4fs_name=\"$se4fs_name\"" >> $se4fs_config
+echo "samba_domain=\"$samba_domain\"" >>  $se4fs_config
+echo "domain=\"$domain\"" >> $se4fs_config
+echo "nameserver=\"$nameserver\"" >> $se4fs_config
+echo "## params annuaire AD##" >> $se4fs_config
+echo "ldap_port=\"636\"" >> $se4fs_config
+echo "admin_name=\"Administrator\"" >> $se4fs_config
+echo "ldap_admin_name=\"Administrator\"" >> $se4fs_config
+echo "admin_rdn=\"cn=Users\"" >> $se4fs_config
+echo "people_rdn=\"ou=Utilisateurs\"" >> $se4fs_config
+echo "groups_rdn=\"ou=Groups\"" >> $se4fs_config
+echo "rights_rdn=\"ou=Rights\"" >> $se4fs_config
+echo "parcs_rdn=\"ou=Parcs\"" >> $se4fs_config
+echo "computers_rdn=\"CN=computers\"" >> $se4fs_config
+echo "classes_rdn=\"ou=classes\"" >> $se4fs_config
+echo "equipes_rdn=\"ou=equipes\"" >> $se4fs_config
+echo "matieres_rdn=\"ou=matieres\"" >> $se4fs_config
+echo "cours_rdn=\"ou=cours\"" >> $se4fs_config
+echo "projets_rdn=\"ou=projets\"" >> $se4fs_config
+echo "other_groups_rdn=\"ou=autres\"" >> $se4fs_config
+echo "delegations_rdn=\"ou=delegations\"" >> $se4fs_config 
+echo "equipements_rdn=\"ou=Materiels\"" >> $se4fs_config
+echo "trash_rdn=\"ou=Trash\"" >> $se4fs_config
+echo "lang=\"fr\"" >> $se4fs_config
+echo "ldap_url=\"ldaps://$domain\"" >> $se4fs_config
+echo "cnPolicy=\"1\"" >> $se4fs_config
+echo "pwdPolicy=\"1\"" >> $se4fs_config
+echo "path2UserSkel=\"/etc/skel/user\"" >> $se4fs_config
+# Params se4fs_config_clients
+echo "adminse_name" = \"adminse3\"  > $se4fs_config_clients
+echo "client_windows" = \"1\" >> $se4fs_config_clients
+echo "adminse_passwd" = \"$xppass\" >> $se4fs_config_clients
 chmod +x $se4fs_config
 }
 
+# Fonction génération des fichiers /etc/hosts et /etc/hostname
+function write_hostconf()
+{
+cat >/etc/hosts <<END
+127.0.0.1	localhost
+::1	localhost ip6-localhost ip6-loopback
+ff02::1	ip6-allnodes
+ff02::2	ip6-allrouters
+$se4fs_ip	$se4fs_name.$domain	$se4fs_name
+END
+
+cat >/etc/hostname <<END
+$se4fs_name
+END
+}
 
 # Fonction export des fichiers tdb et smb.conf 
 function export_smb_files()
 {
-echo -e "$COLINFO"
-echo "Arrêt du service Samba pour export des fichiers TDB"
-echo -e "$COLTXT"
+show_part "Export des fichiers Samba"
+show_info "Arrêt du service Samba pour export des fichiers TDB"
 service samba stop
-echo -e "$COLINFO"
-echo "Copie des fichiers TDB vers $dir_export"
-echo -e "$COLCMD"
+show_info "Copie des fichiers TDB vers $dir_export"
 tdb_smb_dir="/var/lib/samba"
 pv_tdb_smb_dir="/var/lib/samba/private"
 cp $pv_tdb_smb_dir/secrets.tdb $dir_export/
@@ -338,9 +507,7 @@ sed '/^\s*#/d' /etc/se3/config_d.cache.sh > $dir_config/dhcp.conf
 
 
 if [ -e "$dhcpd_conf" ];then 
-    echo -e "$COLINFO"
-    echo "Analyse de la configuration DHCP et export des réservations si besoin"
-    echo -e "$COLTXT"
+    show_part "Analyse de la configuration DHCP et export des réservations si besoin"
     cat "$dhcpd_conf" | while read line
     do
         if [ -n "$(echo "$line" | grep "^host")" ] || [ "$temoin" = "yes" ];then
@@ -356,16 +523,14 @@ fi
 # Fonction export des fichiers ldap conf, schémas propres à se3 et ldif
 function export_ldap_files()
 {
-echo -e "$COLINFO"
-echo "Ajout du mapping de groupe sur Le groupe Administratifs avant export"
+show_part "Exports LDAP / SQL / CUPS"
+show_info "Ajout du mapping de groupe sur Le groupe Administratifs avant export"
 echo -e "$COLCMD"
 net groupmap add ntgroup=Administratifs unixgroup=Administratifs type=domain comment="Administratifs du domaine"
 echo -e "$COLTXT"
 
 conf_slapd="/etc/ldap/slapd.conf"
-echo -e "$COLINFO"
-echo "Export de la conf ldap et de ldapse3.ldif vers $dir_export"
-echo -e "$COLTXT"
+show_info "Export des fichiers de conf et ldapse3.ldif vers $dir_export"
 cp $conf_slapd $dir_export/
 ldapsearch -xLLL -D "$adminRdn,$ldap_base_dn" -w $adminPw > $dir_export/ldapse3.ldif
 schema_dir="/etc/ldap/schema"
@@ -377,9 +542,7 @@ cp /etc/ldap/slapd.pem $dir_export/
 # Export des fichiers sql
 function export_sql_files()
 {
-echo -e "$COLINFO"
-echo "Export des bases connexions et quotas vers $dir_export"
-echo -e "$COLTXT"
+show_info "Export des bases connexions et quotas vers $dir_export"
 
 mysqldump --opt se3db quotas > $dir_export/quotas.sql
 mysqldump --opt se3db connexions > $dir_export/connexions.sql
@@ -391,9 +554,7 @@ function export_cups_config()
 {
 conf_cups="/etc/cups/printers.conf"
 if [ -e "$conf_cups" ]; then
-    echo -e "$COLINFO"
-    echo "Export du fichier de configuration Cups vers $dir_export"
-    echo -e "$COLTXT"
+    show_info "Export du fichier de configuration Cups vers $dir_export"
     cp /etc/cups/printers.conf $dir_export/
     [ -n "$dir_preseed" ] && cp $dir_export/printers.conf $dir_preseed/
 fi

@@ -1,7 +1,7 @@
 #!/bin/bash
 # installation Se4-FS phase 2
 # version pour Stretch - franck molle
-# version 10 - 2018 
+# version 01 - 2019 
 
 # ---------- Début des fonctions ----------#
 # # Fonction permettant de quitter en cas d'erreur 
@@ -14,6 +14,25 @@ echo -e "$COLTXT"
 exit 1
 }
 
+# Affichage de la partie actuelle
+function show_part()
+{
+echo ""
+echo -e "$COLPARTIE"
+echo -e "--------"
+echo "$1"
+echo -e "-------- $COLTXT"
+# sleep 1
+}
+
+# Affichage d'une info
+function show_info()
+{
+echo -e "$COLINFO"
+echo -e "$1 $COLTXT"
+# sleep 1
+}
+
 function dev_debug() {
 if [ -n "$devel" ]; then
     mkdir -p /root/.ssh/
@@ -23,7 +42,7 @@ fi
 }
 
 # Fonction permettant de poser la question s'il faut poursuivre ou quitter
-function go_on()
+function poursuivre()
 {
 echo
 REPONSE=""
@@ -52,7 +71,7 @@ if [ "$?" != "0" ]; then
     echo -e "la dernière commande a envoyé une erreur !"
     echo -e "$1"
     echo -e "$COLTXT"
-    go_on
+    poursuivre
 fi
 }
 
@@ -224,12 +243,10 @@ function recup_params() {
 
 echo -e "$COLINFO"
 if [ -e "$se4fs_config" ] ; then
- 	echo "$se4fs_config est bien present sur la machine - initialisation des paramètres"
-	source $se4fs_config 
-	echo -e "$COLTXT"
+ 	show_info "$se4fs_config est bien present sur la machine - initialisation des paramètres"
+	source $se4fs_config
 else
-	echo "$se4fs_config ne se trouve pas sur la machine"
-	echo -e "$COLTXT"
+	show_info "$se4fs_config ne se trouve pas sur la machine"
 	se4fs_ip="$(ifconfig eth0 | grep "inet " | awk '{ print $2}')"
 fi
 }
@@ -237,6 +254,7 @@ fi
 # Fonction affichage du menu principal
 function show_menu()
 {
+while :; do
 dialog --backtitle "$BACKTITLE" --title "Installeur de samba Edu 4 - serveur File System" \
 --menu "Choisissez l'action à effectuer" 15 90 7  \
 "1" "Installation classique" \
@@ -244,39 +262,43 @@ dialog --backtitle "$BACKTITLE" --title "Installeur de samba Edu 4 - serveur Fil
 "3" "Configuration du réseau uniquement (en cas de changement d'IP)" \
 2>$tempfile
 
-choice=`cat $tempfile`
-[ "$?" != "0" ] && exit 0
-case $choice in
-        1)
-        ;;
-        2)
-        download_packages
-		exit 0
-        ;;
-        3)
-        conf_network
-		exit 0
-        ;;
-        *) exit 0
-        ;;
-        esac
+    choice=`cat $tempfile`
+    [ "$?" != "0" ] && exit 0
+    case $choice in
+            1)
+            break
+            ;;
+            2)
+            download_packages
+            download_packages_se4
+            continue
+            ;;
+            3)
+            show_info "Fonction non fonctionnelle for the moment, envoyez-moi un mel ;)" 
+            sleep 5
+#             conf_network
+            continue
+            ;;
+            *) exit 0
+            ;;
+            esac
+done
 }
 
 # Fonction installation des paquets de base
 function installbase()
 {
-echo -e "$COLPARTIE"
-echo "Mise à jour des dépots et upgrade si necessaire, quelques mn de patience..."
-echo -e "$COLTXT"
+show_info "Mise à jour des dépots et upgrade si necessaire, quelques mn de patience..."
+echo -e "$COLCMD"
 # tput reset
 apt-get -qq update
 apt-get upgrade --quiet --assume-yes
 
-echo -e "$COLPARTIE"
-echo "installation des paquets prioritaires ssh, vim, wget, etc..."
-echo -e "$COLTXT"
+show_info "installation des paquets prioritaires ssh, vim, wget, etc..."
+echo -e "$COLCMD"
 prim_packages="ssh vim wget nano iputils-ping bind9-host libldap-2.4-2 ldap-utils makepasswd haveged ssmtp"
 apt-get install --quiet --assume-yes $prim_packages
+echo -e "$COLTXT"
 }
 
 # Fonction génération des fichiers /etc/hosts et /etc/hostname
@@ -299,14 +321,10 @@ function download_packages() {
 if [ "$download" = "yes" ] || [ ! -e /root/dl_ok ]; then
 # 	show_title
 # 	test_ecard
-	echo -e "$COLINFO"
-	echo "Pré-téléchargement des paquets nécessaire à l'installation"
-	echo -e "$COLTXT"
+	show_part "Pré-téléchargement des paquets principaux nécessaire à l'installation"
 	installbase
-	echo -e "$COLPARTIE"
-	echo "Téléchargement de samba 4.5" 
+	show_info "Téléchargement de samba 4.5" 
 	echo -e "$COLCMD"
-
 	apt-get install $samba_packages -d -y
 	echo -e "$COLCMD"
 	echo "Phase de Téléchargement terminée"
@@ -314,13 +332,21 @@ if [ "$download" = "yes" ] || [ ! -e /root/dl_ok ]; then
 fi
 }
 
+function download_packages_se4() {
+gensourcese4
+show_info "Téléchargement des paquets SambaEdu & Cie"
+apt-get install sambaedu -d -y
+rm -f /etc/apt/sources.list.d/se4.list
+show_info "Update des sources"
+apt-get -qq update 
+}
+
 # Fonction installation de samba 4.5 (pour le moment)
 function installsamba()
 {
-echo -e "$COLINFO"
-echo "Installation de samba 4.5" 
+show_info "Installation de samba 4.5" 
 echo -e "$COLCMD"
-apt-get install $samba_packages 
+apt-get install $samba_packages -y
 # /etc/init.d/samba stop
 # /etc/init.d/smbd stop
 # /etc/init.d/nmbd stop
@@ -399,10 +425,12 @@ echo -e "$COLTXT"
 # Fonction permettant de changer le pass root
 function install_se_packages()
 {
-echo -e "$COLPARTIE"
-echo -e "Installation des paquets SambaEdu"
-go_on
+show_part "Installation des paquets SambaEdu"
+poursuivre
+export DEBIAN_FRONTEND="dialog"
+export DEBIAN_PRIORITY="high"
 echo -e "$COLCMD"
+apt-get install -y sambaedu-config 
 apt-get install -y sambaedu 
 apt-get install -y sambaedu-client-windows 
 echo -e "$COLTXT"
@@ -557,7 +585,7 @@ sambadomaine_new="$samba_domain_up"
 gensourcelist
 download_packages
 haveged
-go_on
+poursuivre
 
 dev_debug
 

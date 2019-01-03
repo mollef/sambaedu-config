@@ -1,9 +1,9 @@
 #!/bin/bash
-#
+# Projet SambaEdu - distribué selon la licence GPL
 ##### Permet la génération du preseed de se4-AD et se4-FS#####
-# franck molle
-# version 06 - 2018 
-# version 07 - 2018 - GrosQuicK : ajout d'un test pour détecter les SID en doublons 
+### Auteur : Franck Molle franck.molle@sambaedu.org
+## Version 0.3 - 12-2018 ##
+
 
 # Lecture des fonctions communes
 source /usr/share/se3/sbin/libs-common.sh
@@ -11,10 +11,12 @@ source /usr/share/se3/sbin/libs-common.sh
 # check_whiptail --> test présence 
 # erreur --> sort en erreur avec le message
 # poursuivre_ou_corriger --> explicite
-# POURSUIVRE --> poursuivre oui pas
+# poursuivre --> poursuivre oui pas
 # show_part --> afficher message couleur partie
+# show_info --> Affichage d'une info
 # conf_network --> configuration du réseau
-# write_sambaedu_conf  Fonction écriture fichier de conf /etc/sambaedu/se4ad.config et se4fs
+# write_se4ad_config  Fonction écriture fichier de conf /etc/sambaedu/se4ad.config et se4fs
+# write_se4fs_config
 # Fonction export des fichiers tdb et smb.conf --> export_smb_files()
 # Fonction export des fichiers --> dhcp export_dhcp()
 # Fonction export des fichiers ldap conf, schémas propres à se3 et ldif --> export_ldap_files()
@@ -47,120 +49,6 @@ Une fois la machine SE4-AD / SE4-FS installée, il suffira de la démarrer afin 
 $dialog_box  --backtitle "$BACKTITLE" --title "$WELCOME_TITLE" --msgbox "$WELCOME_TEXT" 18 75
 }
 
-# Fonction de preconfig se4-AD
-function preconf_se4ad()
-{
-se4ad_lan_title="Configuration du futur SE4-AD"
-if [ ! -e "/bin/lsblk" ];then
-    apt-get install util-linux
-fi
-sd_detect="$(lsblk -n -o "NAME,TYPE" | grep -v fd0 | sort | grep disk | head -n1 | cut -d " " -f1)"
-
-REPONSE=""
-details="no"
-se4ad_ip_cut="$(echo "$se3ip"  | cut -d . -f1-3)."
-se4ad_mask="$se3mask"
-se4ad_network="$se3network"
-se4ad_bcast="$se3bcast"
-se4ad_gw="$se3gw"
-while [ "$REPONSE" != "yes" ]
-do
-	se4ad_boot_disk_txt="** Nom du disque sur lequel le système sera installé **
-	
-Indiquer le disque sur lequel le système sera installé. Le plus souvent il s'agira de /dev/sda mais cela peut être différent notamment sur Xen"
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "$se4ad_boot_disk_txt" 13 70 "/dev/$sd_detect" 2>$tempfile || erreur "Annulation"
-	se4ad_boot_disk=$(cat $tempfile)
-	
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'IP du SE4-AD" 12 70 $se4ad_ip_cut 2>$tempfile || erreur "Annulation"
-	se4ad_ip=$(cat $tempfile)
-	
-	if [ "$se4ad_ip" = "$se4ad_ip_cut" ]; then
-            whiptail_error_style "$BACKTITLE" "$se4ad_lan_title" "$se4ad_ip_cut est une saisie invalide !!"
-            continue
-	fi
-	
-	if [ "$details" != "no" ]; then
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir le Masque sous réseau" 12 70 $se3mask 2>$tempfile || erreur "Annulation"
-		se4ad_mask=$(cat $tempfile)
-		
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de base du réseau" 12 70 $se3network 2>$tempfile || erreur "Annulation"
-		se4ad_network=$(cat $tempfile)
-		
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de broadcast" 12 70 $se3bcast 2>$tempfile || erreur "Annulation"
-		se4ad_bcast=$(cat $tempfile)
-		
-		$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse de la passerelle" 12 70 $se3gw 2>$tempfile || erreur "Annulation"
-		se4ad_gw=$(cat $tempfile)
-	fi
-	details="yes"
-	samba_domain_check="no"
-	
-	mirror_name_title="Miroir Debian à utiliser pour l'installation"
-	$dialog_box --backtitle "$BACKTITLE" --title "$mirror_name_title" --inputbox "Confirmer le nom du miroir à utiliser ou bien saisir l'adresse de votre miroir local si vous en avez un" 12 70 deb.debian.org 2>$tempfile || erreur "Annulation"
-	mirror_name=$(cat $tempfile)
-		
-	se4ad_name_title="Nom du SE4-AD"
-	$dialog_box --backtitle "$BACKTITLE" --title "$se4ad_name_title" --inputbox "Saisir le Nom de la machine SE4-AD" 12 70 se4ad 2>$tempfile || erreur "Annulation"
-	se4ad_name=$(cat $tempfile)
-	
-	choice_domain_title="Important - Nom de domaine AD"
-	choice_domain_text="Sur un domaine AD, le serveur de domaine gère le DNS. Le choix du nom de domaine est donc important.
-Il est composé de plusieurs parties : le nom de domaine samba suivi de son suffixe, séparés par un point.
-
-Exemple de domaine AD : \"diderot.org\"
-* le domaine samba serait \"diderot\" et le suffixe \".org\"
-
-ATTENTION : 
-* Le domaine samba actuel \"$se3_domain\" doit être CONSERVÉ pour permettre une migration AUTOMATIQUE des clients Windows sur le domaine AD. Le suffixe \"$domain\" peut quant à lui être modifié selon les besoins.
-* le domaine samba ne doit en aucun cas dépasser 15 caractères.
-* Les domaines AD du type sambaedu.lan ou etab.local sont à proscrire"
-NEWT_COLORS='window=,red'   
-	domain="$(hostname -d)"
-	while [ "$samba_domain_check" != "ok" ]
-	do
-            color="color15"
-            NEWT_COLORS="window=,$color border=black,$color textbox=black,$color" $dialog_box --backtitle "$BACKTITLE" --title "$choice_domain_title" --inputbox "$choice_domain_text" 23 80 $se3_domain.$domain 2>$tempfile || erreur "Annulation"
-            domain="$(cat $tempfile)"		
-            samba_domain="$(echo "$domain" | cut -d"." -f1)"
-            samba_domain_size="${#samba_domain}"
-            if [ $samba_domain_size -gt 15 ]; then
-            NEWT_COLORS='                                                                                                                         
- window=,red
- border=white,red
- textbox=white,red
- button=black,white' whiptail --backtitle "$BACKTITLE" --title "$se4fs_partman_title" --msgbox "Erreur : $samba_domain dépasse 15 caractères, merci de modifier votre saisie" 13 70
-            continue
-            else
-                samba_domain_check="ok"
-            fi
-	done	
-	confirm_title="Récapitulatif de la configuration prévue"
-	confirm_txt="Disque à utiliser : $se4ad_boot_disk
-	
-IP :         $se4ad_ip
-Masque :     $se4ad_mask
-Réseau :     $se4ad_network
-Broadcast :  $se4ad_bcast
-Passerelle : $se4ad_gw
-Miroir debian : $mirror_name
-
-
-Nom :        $se4ad_name
-
-Nom de domaine AD saisi : $domain
-Nom de domaine samba :    $samba_domain
-
-Confirmer l'enregistrement de cette configuration ?"
-		
-		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 23 60) then
-			REPONSE="yes"
-		else
-			REPONSE="no"
-		fi	
-done
-
-echo -e "$COLTXT"
-}
 
 ask_preseed_se4fs()
 {
@@ -234,9 +122,7 @@ Confirmer l'enregistrement de cette configuration ?"
 		fi	
 done
 
-echo -e "$COLTXT"
 }
-
 
 function partman_se4fs()
 {
@@ -311,19 +197,18 @@ Confirmer l'enregistrement de cette configuration ?"
 			REPONSE="no"
 		fi	
 done
-
-echo -e "$COLTXT"
 }
 
 
-# Fonction copie des fichiers de conf @LXC/etc/sambaedu
+# Fonction copie des fichiers de conf /etc/sambaedu
 function cp_config_to_preseed()
 {
+show_part "Mise en place de la structure d'installation preseed et de la configuration apache"
 mkdir -p $dir_preseed/secret/
 cd $dir_config
 if [ "$preseed_se4fs" = "yes" ];then
-    echo -e "$COLINFO"
-    echo "Copie du fichier de configuration se4fs et du fichier $reservation_file dhcp s'il existe "
+    show_info "Copie du fichier de configuration se4fs et du fichier $reservation_file dhcp s'il existe "
+    echo -e "$COLCMD"
     cp -v $se4fs_config $dir_preseed/
     cp -v $se4fs_config_clients $dir_preseed/secret/
     if [ -e "$reservation_file" ];then
@@ -333,22 +218,20 @@ if [ "$preseed_se4fs" = "yes" ];then
     if [ -e "$dir_config/dhcp.conf" ];then
         cp -v $dir_config/dhcp.conf $dir_preseed/
     fi
+    echo -e "$COLTXT"
 fi
-echo "Création de l'archive d'export des données $se4ad_config_tgz et copie sur $dir_preseed"
+show_info "Création de l'archive d'export des données $se4ad_config_tgz et copie sur $dir_preseed"
 echo -e "$COLCMD"
 tar -czf $se4ad_config_tgz export_se4ad
 cp -av  $se4ad_config_tgz $dir_preseed/secret/
-cd -
 echo -e "$COLTXT"
-
-
+cd - >/dev/null
 sleep 2
 }
 
 function write_apache_config()
 {
-echo -e "$COLINFO"
-echo "Mise en place de la conf apache pour le dossier diconf"
+show_info "Mise en place de la conf apache pour le dossier diconf"
 echo -e "$COLCMD"
 
 cat > /etc/apache2/conf.d/diconf <<END
@@ -362,10 +245,16 @@ cat > /etc/apache2/conf.d/diconf <<END
 	AllowOverride All
 	deny from all
 	Allow from $se4ad_ip
+END
+if [ -n "$se4fs_ip" ];then
+cat >> /etc/apache2/conf.d/diconf <<END	
 	Allow from $se4fs_ip
-	
+END
+fi
+cat >> /etc/apache2/conf.d/diconf <<END	
 </Directory>
 END
+
 service apache2 restart
 echo -e "$COLTXT"
 }
@@ -378,10 +267,9 @@ rm -f $dir_config/id_rsa*
 ssh-keygen -t rsa -N "" -f $dir_config/id_rsa -q
 
 if [ -e "$ssh_keys_host" ];then
-    echo -e "$COLINFO"
-    echo "Copie du fichier des clés SSH $ssh_keys_host"
+    show_info "Copie du fichier des clés SSH $ssh_keys_host"
     cp "$ssh_keys_host" "$dir_preseed/"
-    echo -e "$COLCMD"
+#     echo -e "$COLCMD"
 else
     touch $dir_preseed/authorized_keys
 fi
@@ -400,12 +288,9 @@ dir_config_preseed="$dir_config/preseed"
 template_preseed="preseed_se4ad_stretch.in"
 target_preseed="$dir_preseed/se4ad.preseed"
 
-echo -e "$COLINFO"
-echo "Copie du modele $template_preseed dans $target_preseed"
+show_info "Copie du modele $template_preseed dans $target_preseed"
 cp "$dir_config_preseed/$template_preseed" "$target_preseed"
-echo -e "$COLINFO"
-echo "Modification du preseed avec les données saisies"
-echo -e "$COLCMD"
+show_info "Modification du preseed avec les données saisies"
 
 sed -e "s/###_SE4AD_IP_###/$se4ad_ip/g; s/###_SE4MASK_###/$se4ad_mask/g; s/###_SE4GW_###/$se4ad_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_MIRROR_###/$mirror_name/g; s/###_SE4NAME_###/$se4ad_name/g" -i  $target_preseed
 sed -e "s/###_AD_DOMAIN_###/$domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g; s|###_BOOT_DISK_###|$se4ad_boot_disk|g" -i  $target_preseed 
@@ -414,13 +299,9 @@ sed -e "s/###_AD_DOMAIN_###/$domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV
 if [ "$preseed_se4fs" = "yes" ];then
     template_preseed="preseed_se4fs_stretch.in"
     target_preseed="$dir_preseed/se4fs.preseed"
-    echo -e "$COLINFO"
-    echo "Copie du modele $template_preseed dans $target_preseed"
+    show_info "Copie du modele $template_preseed dans $target_preseed"
     cp "$dir_config_preseed/$template_preseed" "$target_preseed"
-    echo -e "$COLTXT"
-    echo -e "$COLINFO"
-    echo "Modification du preseed avec les données saisies"
-    echo -e "$COLCMD"
+    show_info "Modification du preseed avec les données saisies"
     sed -e "s/###_SE4FS_IP_###/$se4fs_ip/g; s/###_SE4FS_MASK_###/$se4fs_mask/g; s/###_SE4FS_GW_###/$se4fs_gw/g; s/###_NAMESERVER_###/$nameserver/g; s/###_MIRROR_###/$mirror_name/g; s/###_SE4FS_NAME_###/$se4fs_name/g" -i  $target_preseed
     sed -e "s/###_AD_DOMAIN_###/$domain/g; s/###_IP_SE3_###/$se3ip/g; s/###_NTP_SERV_###/$ntpserv/g" -i  $target_preseed 
     sed -e "s|###_BOOT_DISK_###|$se4fs_boot_disk|g; s/###_ROOT_SIZE_###/$root_size/g; s/###_VAR_SIZE_###/$var_size/g; s/###_VARSE_SIZE_###/$varse_size/g; s/###_HOME_SIZE_###/$home_size/g" -i  $target_preseed
@@ -429,10 +310,7 @@ fi
 
 function write_late_command() {
 se4fs_late_command="$dir_preseed/se4fs_late_command.sh"
-echo -e "$COLINFO"
-echo "Mise en place du script $se4fs_late_command"
-echo -e "$COLCMD"
-
+show_info "Mise en place du script $se4fs_late_command"
 
 cat > $se4fs_late_command <<END
 #!/bin/sh
@@ -469,7 +347,6 @@ if [ -e "$dir_preseed/dhcp.conf" ];then
         echo "cp dhcp.conf /target/etc/sambaedu" >> $se4fs_late_command
 fi
 
-
 chmod +x $se4fs_late_command
 }
 
@@ -497,18 +374,15 @@ else
 
 # Chargement du boot PXE debian Stretch et conf du tftp pour bootPXE
 function conf_tftp() {
-echo -e "$COLINFO"
-echo "Configuration du TFTP"
-echo -e "$COLTXT"
+show_part "Configuration du TFTP"
 url_debian="ftp.fr.debian.org/debian"
 tftp_menu="/tftpboot/tftp_modeles_pxelinux.cfg/menu/install.menu" 
 
 # vérification de la présence du paquet se3-clonage
 if [ ! -e "/usr/share/se3/scripts/se3_pxe_menu_ou_pas.sh" ]
 then
-    echo "installation du module Clonage" | tee -a $compte_rendu
+    show_info "installation du module Clonage" 
     /usr/share/se3/scripts/install_se3-module.sh se3-clonage
-    echo ""
 fi
 
 cd /tftpboot
@@ -526,7 +400,7 @@ if [ "$testmd5" != "ko" ]; then
     mv  /tmp/netboot/debian-installer /tftpboot/debian-installer-stretch 
     rm -rf /tmp/netboot
     if [ -z "$(grep "DebianStretch64se4ad" $tftp_menu)" ] ; then
-        echo "Ajout du menu d'installation SE4-AD dans le menu TFTP"
+        show_info "Ajout du menu d'installation SE4-AD dans le menu TFTP"
         echo "LABEL DebianStretch64se4ad
             MENU LABEL Netboot Debian stretch SE4-^AD (amd64)
             KERNEL  debian-installer-stretch/amd64/linux
@@ -537,7 +411,7 @@ if [ "$testmd5" != "ko" ]; then
         /usr/share/se3/scripts/se3_pxe_menu_ou_pas.sh menu
     fi
     if [ -z "$(grep "DebianStretch64se4fs" $tftp_menu)" -a "$preseed_se4fs" = "yes" ] ; then
-        echo "Ajout du menu d'installation SE4-FS dans le menu TFTP"
+        show_info "Ajout du menu d'installation SE4-FS dans le menu TFTP"
         echo "LABEL DebianStretch64se4fs
             MENU LABEL Netboot Debian stretch SE4-^FS (amd64)
             KERNEL  debian-installer-stretch/amd64/linux
@@ -609,20 +483,6 @@ echo -e "$COLTXT"
 
 clear
 
-#Couleurs
-COLTITRE="\033[1;35m"   # Rose
-COLPARTIE="\033[1;34m"  # Bleu
-
-COLTXT="\033[0;37m"     # Gris
-COLCHOIX="\033[1;33m\c"   # Jaune
-COLDEFAUT="\033[0;33m"  # Brun-jaune
-COLSAISIE="\033[1;32m"  # Vert
-
-COLCMD="\033[1;37m\c"     # Blanc
-
-COLERREUR="\033[1;31m"  # Rouge
-COLINFO="\033[0;36m"    # Cyan
-
 ## recuperation des variables necessaires pour interoger mysql ###
 source /etc/se3/config_c.cache.sh
 source /etc/se3/config_m.cache.sh
@@ -633,7 +493,7 @@ source /usr/share/se3/includes/functions.inc.sh
 dialog_box="$(which whiptail)"
 tempfile=`tempfile 2>/dev/null` || tempfile=/tmp/inst$$
 url_sambaedu_config="https://raw.githubusercontent.com/SambaEdu/sambaedu-config/master/sources"
-interfaces_file="/etc/network/interfaces" 
+ 
 
 dir_config="/etc/sambaedu"
 dir_export="/etc/sambaedu/export_se4ad"
@@ -655,11 +515,12 @@ preconf_se4ad
 ask_preseed_se4fs
 if [ "$preseed_se4fs" = "yes" ];then
     preconf_se4fs
+    write_se4fs_config
     partman_se4fs
     export_dhcp
 fi
 export_smb_files
-write_sambaedu_conf
+write_se4ad_config
 export_ldap_files
 export_sql_files
 export_cups_config

@@ -246,18 +246,6 @@ done
 # Fonction Affichage du titre et choix dy type d'installation
 function show_title()
 {
-
-clear
-# 
-# echo -e "$COLTITRE"
-# echo "--------------------------------------------------------------------------------"
-# echo "----------- Installation de SambaEdu4-AD sur la machine.----------------"
-# echo "--------------------------------------------------------------------------------"
-# echo -e "$COLTXT"
-# echo "Appuyez sur Entree pour continuer"
-# read dummy
-
-
 BACKTITLE="Projet SambaEdu - https://www.sambaedu.org/"
 
 WELCOME_TITLE="Installeur de samba Edu 4 - serveur Active Directory"
@@ -1230,6 +1218,9 @@ sambadomaine_old="$(echo $se3_domain| tr [:lower:] [:upper:])"
 sambadomaine_new="$samba_domain_up"
 
 # Copie de la clé ssh du se4FS
+
+clear
+
 cp_ssh_key
 
 show_title
