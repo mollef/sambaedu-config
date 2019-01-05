@@ -4,7 +4,7 @@ sambaedu-config
 
 Paquet contenant les scripts de configuration pour migration d'un serveur ``Se3`` vers un serveur ``Se4``.
 
-**Ce Dépôt est destiné à la version Wheezy à installer sur un se3. Un paquet du même nom est généré à partir des sources se4 pour configurer directement des nouveaux serveurs en Stretch**
+**Ce Dépôt est destiné à la version Wheezy à installer sur un se3. Un paquet du même nom existe en outre en Stretch pour les serveurs SE4**
 
 .. sectnum::
 .. contents:: Table des matières
@@ -13,18 +13,19 @@ Paquet contenant les scripts de configuration pour migration d'un serveur ``Se3`
 Objectifs
 =========
 
-Le paquet ``sambaedu-config`` a pour but la mise à disposition des éléments nécessaires à la migration des données ``ldap`` d'un serveur ``Se3`` vers un nouveau serveur ``Se4 Active Directory (Se4-AD)``.
+Le paquet ``sambaedu-config`` a pour but la mise à disposition des éléments nécessaires à la migration de SE3 vers les serveurs SE4-FS et SE4-AD ``(Active Directory)``.
 
 
 Principe de fonctionnement
 ==========================
 
-En ce qui concerne le serveur ``Se4-AD``, deux possibilités de fonctionnement (exclusives l'une de l'autre) sont proposées :
+SambaEdu 4 repose désormais sur l'utilisation de deux entités : SE4-FS (Files System) et SE4-AD (Active Directory) hébergeant surtout les fonctions d'annuaire. 
+En ce qui concerne le ``Se4-AD``, deux possibilités de fonctionnement (exclusives l'une de l'autre) sont proposées :
 
-* Un container de type ``LXC`` qui n'est autre que de la virtualisation allégée.  
-* Une machine virtuelle indépendante type ``Proxmox``, ``Xen``, ``ESX``, ou autre. Dans ce cas, on pourra générer automatiquement un fichier ``preseed`` permettant ensuite l'installation et la configuration automatique du ``Se4-AD``.
+* Un container de type ``LXC`` qui n'est autre que de la virtualisation très allégée, à privilégier pour un serveur ne disposant que de peu de mémoire qui en outre ferait fonctionner le SE4-FS.  
+* Une machine virtuelle indépendante type ``Proxmox``, ``Xen``, ``Vmware ESX``, ou autre. Dans ce cas, on pourra générer automatiquement un fichier ``preseed`` permettant ensuite l'installation et la configuration automatique du ``Se4-AD`` comme pour le ``SE4-FS``. 
 
-**Important** : Dans un cas, comme dans l'autre, l'ensemble des éléments de l'annuaire ``LDAP`` d'origine sont récupérés de façon à être injectés lors de la phase de configuration de l'``Active Directory``.
+**Important** : Dans tous les cas, l'ensemble des éléments de l'annuaire ``LDAP`` d'origine sont récupérés de façon à être injectés lors de la phase de configuration de l'``Active Directory`` et toute l'installation est automatisée.
 
 
 Installation du paquet ``sambaedu-config``
@@ -34,31 +35,23 @@ Le paquet ``sambaedu-config`` est installable via les commandes habituelles à c
 
 Une fois le dépôt ``testing`` activé, il reste ensuite à installer le paquet : ``apt-get install sambaedu-config``.
 
-Le paquet ``sambaedu-config`` déposera les fichiers de configuration nécessaires ainsi que les scripts d'installation pour ``LXC`` ou génération du fichier ``preseed``.
+Le paquet ``sambaedu-config`` déposera les fichiers de configuration nécessaires ainsi que les différents scripts dont le script principal ``sambaedu-config.sh``.
 
 
-Choix du container ``LXC``
-==========================
+Lancement du menu de configuration et d'installation
+====================================================
 
-L'installation du container ``LXC`` se fait à l'aide d'un script dédié dont l'utilisation et le fonctionnement sont détaillés.
+Il suffit de lancer la commande ``sambaedu-config.sh`` afin d'afficher le menu :
 
-Durant cette phase on installe de façon automatique un container ``Stretch`` et on y dépose une archive contenant les paramètres importants du ``Se3`` et son  annuaire.
-
-Les détails du fonctionnement de cette possibilité sont indiqués `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/documentation/installation/install-lxc-se4AD.rst#procédure-dinstallation-automatique-dun-container-lxc-se4-ad>`__
+.. image:: menu_principal.png
 
 
-Choix du serveur dédié
-======================
-
-Le fichier ``preseed`` sera, quand à lui, généré à l'aide de la commande ``/usr/share/se3/sbin/gen_se4preseed.sh``.
-
-Il sera ensuite possible, en utilisant ce fichier ``preseed``, d'installer le serveur dédié en utilisant le serveur ``TFTP`` du ``Se3`` ou un support ammovible (par exemple un ``CD``).
-
-Les détails du fonctionnement de cette possibilité sont indiqués `dans la documentation dédiée. <https://github.com/SambaEdu/se4/blob/master/documentation/installation/gen-preseed-se4AD.rst#génération-dun-preseed-et-installation-automatique-dun-serveur-se4-ad>`__
+Les différentes options d'installation sont détaillées dans le paquet `SambaEdu4. <https://github.com/SambaEdu/se4#a-partir-d-un-se3-existant>`__
 
 
-Roadmap - feuille de route
-==========================
+
+Roadmap - feuille de route du projet
+====================================
 
 Voir l'état d'avancement du paquet sambaedu-config dans la `partie dédiée de Github <https://github.com/orgs/SambaEdu/projects/6>`__
 
