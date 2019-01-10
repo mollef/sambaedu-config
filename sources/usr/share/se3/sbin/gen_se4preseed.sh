@@ -130,7 +130,7 @@ se4fs_partman_title="Configuration du partitionnement du futur SE4-FS"
 
 REPONSE=""
 details="no"
-se4afs_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
+se4fs_ip="$(echo "$se3ip"  | cut -d . -f1-3)."
 while [ "$REPONSE" != "yes" ]
 do
     se4fs_boot_disk_txt="** Nom du disque sur lequel le système sera installé **
@@ -472,7 +472,7 @@ if [ "$preseed_se4fs" = "yes" ];then
 echo ""
 echo "Génération du preseed de $se4fs_name terminée !!
 url pour l'installation depuis un support ammovible :  
-http://$se3ip/diconf/se4afs.preseed"
+http://$se3ip/diconf/se4fs.preseed"
 fi
 
 echo -e "$COLTXT"
