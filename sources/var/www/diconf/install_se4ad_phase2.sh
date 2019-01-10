@@ -1,7 +1,7 @@
 #!/bin/bash
 # installation Se4-AD phase 2
 # version pour Stretch - franck.molle@sambaedu.org
-# version 10 - 2018 
+# version 0.25 - 10 - 2018 
 
 # ---------- Début des fonctions ----------#
 # # Fonction permettant de quitter en cas d'erreur 

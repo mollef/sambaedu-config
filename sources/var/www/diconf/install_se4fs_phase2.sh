@@ -1,7 +1,7 @@
 #!/bin/bash
 # installation Se4-FS phase 2
 # version pour Stretch - franck molle
-# version 01 - 2019 
+# version 0.3 - 12-2019 
 
 # ---------- Début des fonctions ----------#
 # # Fonction permettant de quitter en cas d'erreur 
