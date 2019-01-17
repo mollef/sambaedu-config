@@ -251,6 +251,35 @@ else
 fi
 }
 
+# Mise en place du proxy
+
+function set_proxy() {
+profile_file="/etc/profile"
+wgetrc_file="/etc/wgetrc"
+# nettoyage
+sed -i 's/http_proxy=.*\n//' $profile_file
+sed -i 's/https_proxy=.*\n//' $profile_file
+sed -i 's/ftp_proxy=.*\n//' $profile_file
+sed -i 's/.*http_proxy.*\n//' $profile_file
+sed -i 's/^http_proxy = .*\n//' $wgetrc_file
+sed -i 's/^https_proxy = .*\n//' $wgetrc_file
+# mise en place
+
+if [ -n "$proxy_config" ]; then
+echo "http_proxy=\"http://$proxy_config\"" >> $profile_file
+echo "https_proxy=\"http://$proxy_config\"" >> $profile_file
+echo "ftp_proxy=\"http://$proxy_config\"" >> $profile_file
+echo "export http_proxy https_proxy ftp_proxy" >> $profile_file
+echo "http_proxy = http://$proxy_config" >> $wgetrc_file
+echo "https_proxy = http://$proxy_config" >> $wgetrc_file
+# relecture
+http_proxy="http://$proxy_config"
+https_proxy="http://$proxy_config"
+ftp_proxy="http://$proxy_config"
+export http_proxy https_proxy ftp_proxy
+fi
+}
+
 # Fonction affichage du menu principal
 function show_menu()
 {
@@ -569,6 +598,7 @@ done
 
 show_title
 recup_params
+set_proxy
 show_menu
 
 

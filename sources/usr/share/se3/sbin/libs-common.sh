@@ -213,7 +213,12 @@ config_lan_title="Configuration du réseau local"
 se3network=$(grep network $interfaces_file | grep -v "#" | sed -e "s/network//g" | tr "\t" " " | sed -e "s/ //g")
 se3bcast=$(grep broadcast $interfaces_file | grep -v "#" | sed -e "s/broadcast//g" | tr "\t" " " | sed -e "s/ //g")
 se3gw=$(grep gateway $interfaces_file | grep -v "#" | sed -e "s/gateway//g" | tr "\t" " " | sed -e "s/ //g")
-
+proxy_config="$(sed -n 's#http_proxy="http://##p' /etc/profile | cut -d '"' -f1)"
+if [ -z "$proxy_config" ]; then
+    proxy_detect="Aucun"
+else
+    proxy_detect="$proxy_config"
+fi
 
 REPONSE=""
 while [ "$REPONSE" != "yes" ]
@@ -227,6 +232,10 @@ do
 		
 		$dialog_box --backtitle "$BACKTITLE" --title "$config_lan_title" --inputbox "Veuillez saisir l'adresse de la passerelle" 15 70 $se3gw 2>$tempfile || erreur "Annulation"
 		se3gw="$(cat $tempfile)"
+		
+		$dialog_box --backtitle "$BACKTITLE" --title "$config_lan_title" --inputbox "Veuillez saisir adresse:port du proxy.\nExemple : 172.19.80.1:3128 ou laisser vide sans proxy" 15 70 $proxy_config 2>$tempfile || erreur "Annulation"
+		proxy_config="$(cat $tempfile)"
+		proxy_detect="$proxy_config"
 				
 	fi
 
@@ -237,10 +246,11 @@ Adresse IP du serveur SE3 :   $se3ip
 Adresse réseau de base :      $se3network
 Adresse de Broadcast :        $se3bcast
 Adresse IP de la Passerelle : $se3gw
+Adresse IP et port du proxy : $proxy_detect
 	
 Ces valeurs sont elles correctes ?"	
 	
-	if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 15 70) then
+	if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 17 70) then
 		REPONSE="yes"
 	else
 		REPONSE="no"
@@ -341,15 +351,15 @@ NEWT_COLORS='window=,red'
 	confirm_title="Récapitulatif de la configuration prévue"
 	confirm_txt="Disque à utiliser : $se4ad_boot_disk
 	
-IP :         $se4ad_ip
-Masque :     $se4ad_mask
-Réseau :     $se4ad_network
-Broadcast :  $se4ad_bcast
-Passerelle : $se4ad_gw
+IP :            $se4ad_ip
+Masque :        $se4ad_mask
+Réseau :        $se4ad_network
+Broadcast :     $se4ad_bcast
+Passerelle :    $se4ad_gw
 Miroir debian : $mirror_name
+Serveur Proxy : $proxy_config
 
-
-Nom :        $se4ad_name
+Nom :           $se4ad_name
 
 Nom de domaine AD saisi : $domain
 Nom de domaine samba :    $samba_domain
@@ -375,77 +385,87 @@ if [ -e "$se4ad_config" ] ; then
 fi
 
 # Génération de $se4ad_config
-echo "## Adresse IP du futur SE4-AD ##" > $se4ad_config
-echo "se4ad_ip=\"$se4ad_ip\"" >> $se4ad_config
-echo "## Miroir debian ##" >> $se4ad_config
-echo "mirror_name=\"$mirror_name\"" >> $se4ad_config
-echo "## Nom du futur SE4-AD ##" >> $se4ad_config
-echo "se4ad_name=\"$se4ad_name\"" >> $se4ad_config
-echo "## Nom de domaine samba du SE4-AD ##" >> $se4ad_config
-echo "samba_domain=\"$samba_domain\"" >>  $se4ad_config
-echo "## Suffixe du domaine##" >> $se4ad_config
-echo "## Nom de domaine complet - realm du SE4-AD ##" >> $se4ad_config
-echo "domain=\"$domain\"" >> $se4ad_config
-echo "## Adresse IP de SE3 ##" >> $se4ad_config
-echo "se3ip=\"$se3ip\"" >> $se4ad_config
-echo "## Nom du domaine samba actuel" >> $se4ad_config
-echo "se3_domain=\"$se3_domain\""  >> $se4ad_config
-echo "##Nom netbios du serveur se3 actuel##" >> $se4ad_config
-echo "netbios_name=\"$netbios_name\"" >> $se4ad_config
-echo "##Adresse du serveur DNS##" >> $se4ad_config
-echo "nameserver=\"$nameserver\"" >> $se4ad_config
-echo "##Pass admin LDAP##" >> $se4ad_config
-echo "adminPw=\"$adminPw\"" >> $se4ad_config
-echo "##base dn LDAP##" >> $se4ad_config
-echo "ldap_base_dn=\"$ldap_base_dn\"" >> $se4ad_config
-echo "##Rdn admin LDAP##" >> $se4ad_config
-echo "adminRdn=\"$adminRdn\"" >> $se4ad_config
-echo "##SID domaine actuel" >> $se4ad_config
-echo "domainsid=\"$domainsid\"" >> $se4ad_config
+cat >  $se4ad_config <<END
+## Adresse IP du futur SE4-AD ##
+se4ad_ip="$se4ad_ip"
+## Miroir debian ##
+mirror_name="$mirror_name"
+## Nom du futur SE4-AD ##
+se4ad_name="$se4ad_name"
+## Nom de domaine samba du SE4-AD ##
+samba_domain="$samba_domain"
+## Nom de domaine complet - realm du SE4-AD ##
+domain="$domain"
+## Adresse IP de SE3 ##
+se3ip="$se3ip"
+## Nom du domaine samba actuel
+se3_domain="$se3_domain"
+##Nom netbios du serveur se3 actuel##
+netbios_name="$netbios_name"
+##Adresse du serveur DNS##
+nameserver="$nameserver"
+##Pass admin LDAP##
+adminPw="$adminPw"
+##base dn LDAP##
+ldap_base_dn="$ldap_base_dn"
+##Rdn admin LDAP##
+adminRdn="$adminRdn"
+##SID domaine actuel
+domainsid="$domainsid"
+proxy_config="$proxy_config"
+END
 }
 
 function write_se4fs_config
 {
-echo "## Params du futur SE4-AD ##" > $se4fs_config
-echo "se4ad_ip=\"$se4ad_ip\"" >> $se4fs_config
-echo "## Miroir debian ##" >> $se4fs_config
-echo "mirror_name=\"$mirror_name\"" >> $se4fs_config
-echo "se4ad_name=\"$se4ad_name\"" >> $se4fs_config
-echo "## Params du futur SE4-FS et domaine##" >> $se4fs_config
-echo "se4fs_ip=\"$se4fs_ip\"" >> $se4fs_config
-echo "se4fs_name=\"$se4fs_name\"" >> $se4fs_config
-echo "samba_domain=\"$samba_domain\"" >>  $se4fs_config
-echo "domain=\"$domain\"" >> $se4fs_config
-echo "nameserver=\"$nameserver\"" >> $se4fs_config
-echo "## params annuaire AD##" >> $se4fs_config
-echo "ldap_port=\"636\"" >> $se4fs_config
-echo "admin_name=\"Administrator\"" >> $se4fs_config
-echo "ldap_admin_name=\"Administrator\"" >> $se4fs_config
-echo "admin_rdn=\"cn=Users\"" >> $se4fs_config
-echo "people_rdn=\"ou=Utilisateurs\"" >> $se4fs_config
-echo "groups_rdn=\"ou=Groups\"" >> $se4fs_config
-echo "rights_rdn=\"ou=Rights\"" >> $se4fs_config
-echo "parcs_rdn=\"ou=Parcs\"" >> $se4fs_config
-echo "computers_rdn=\"CN=computers\"" >> $se4fs_config
-echo "classes_rdn=\"ou=classes\"" >> $se4fs_config
-echo "equipes_rdn=\"ou=equipes\"" >> $se4fs_config
-echo "matieres_rdn=\"ou=matieres\"" >> $se4fs_config
-echo "cours_rdn=\"ou=cours\"" >> $se4fs_config
-echo "projets_rdn=\"ou=projets\"" >> $se4fs_config
-echo "other_groups_rdn=\"ou=autres\"" >> $se4fs_config
-echo "delegations_rdn=\"ou=delegations\"" >> $se4fs_config 
-echo "equipements_rdn=\"ou=Materiels\"" >> $se4fs_config
-echo "trash_rdn=\"ou=Trash\"" >> $se4fs_config
-echo "lang=\"fr\"" >> $se4fs_config
-echo "ldap_url=\"ldaps://$domain\"" >> $se4fs_config
-echo "cnPolicy=\"1\"" >> $se4fs_config
-echo "pwdPolicy=\"1\"" >> $se4fs_config
-echo "path2UserSkel=\"/etc/skel/user\"" >> $se4fs_config
+cat >  $se4fs_config <<END
+## Params du futur SE4-AD ## 
+se4ad_ip="$se4ad_ip"
+## Miroir debian ##
+mirror_name="$mirror_name"
+se4ad_name="$se4ad_name"
+## Params du futur SE4-FS et domaine##
+se4fs_ip="$se4fs_ip"
+se4fs_name="$se4fs_name"
+samba_domain="$samba_domain"
+domain="$domain"
+nameserver="$nameserver"
+## params annuaire AD##
+ldap_port="636"
+admin_name="Administrator"
+ldap_admin_name="Administrator"
+admin_rdn="cn=Users"
+people_rdn="ou=Utilisateurs"
+groups_rdn="ou=Groups"
+rights_rdn="ou=Rights"
+parcs_rdn="ou=Parcs"
+computers_rdn="CN=computers"
+classes_rdn="ou=classes"
+equipes_rdn="ou=equipes"
+matieres_rdn="ou=matieres"
+cours_rdn="ou=cours"
+projets_rdn="ou=projets"
+other_groups_rdn="ou=autres"
+delegations_rdn="ou=delegations" 
+equipements_rdn="ou=Materiels"
+trash_rdn="ou=Trash"
+lang="fr"
+ldap_url="ldaps://$domain"
+cnPolicy="1"
+pwdPolicy="1"
+path2UserSkel="/etc/skel/user"
+proxy_config="$proxy_config"
+END
+
 # Params se4fs_config_clients
-echo "adminse_name" = \"adminse3\"  > $se4fs_config_clients
-echo "client_windows" = \"1\" >> $se4fs_config_clients
-echo "adminse_passwd" = \"$xppass\" >> $se4fs_config_clients
+cat > $se4fs_config_clients <<END
+adminse_name = "adminse3"  
+client_windows = "1" 
+adminse_passwd = "$xppass"
+END
+
 chmod +x $se4fs_config
+
 }
 
 # Fonction génération des fichiers /etc/hosts et /etc/hostname
@@ -486,8 +506,7 @@ cp $tdb_smb_dir/wins.tdb $dir_export/
 cp $tdb_smb_dir/wins.dat $dir_export/
 
 cp /etc/samba/smb.conf $dir_export/
-echo -e "$COLINFO"
-echo "Remise en route de Samba"
+show_info "Remise en route de Samba"
 echo -e "$COLCMD"
 service samba start
 echo -e "$COLTXT"

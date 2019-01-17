@@ -136,6 +136,37 @@ else
 fi
 }
 
+
+# Mise en place du proxy
+
+function set_proxy() {
+profile_file="/etc/profile"
+wgetrc_file="/etc/wgetrc"
+# nettoyage
+sed -i 's/http_proxy=.*\n//' $profile_file
+sed -i 's/https_proxy=.*\n//' $profile_file
+sed -i 's/ftp_proxy=.*\n//' $profile_file
+sed -i 's/.*http_proxy.*\n//' $profile_file
+sed -i 's/^http_proxy = .*\n//' $wgetrc_file
+sed -i 's/^https_proxy = .*\n//' $wgetrc_file
+# mise en place
+
+if [ -n "$proxy_config" ]; then
+echo "http_proxy=\"http://$proxy_config\"" >> $profile_file
+echo "https_proxy=\"http://$proxy_config\"" >> $profile_file
+echo "ftp_proxy=\"http://$proxy_config\"" >> $profile_file
+echo "export http_proxy https_proxy ftp_proxy" >> $profile_file
+echo "http_proxy = http://$proxy_config" >> $wgetrc_file
+echo "https_proxy = http://$proxy_config" >> $wgetrc_file
+# relecture
+http_proxy="http://$proxy_config"
+https_proxy="http://$proxy_config"
+ftp_proxy="http://$proxy_config"
+export http_proxy https_proxy ftp_proxy
+fi
+}
+
+
 # Fonction génération des fichiers /etc/hosts et /etc/hostname
 function write_hostconf()
 {
@@ -189,6 +220,9 @@ do
     $dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir l'Adresse du serveur DNS" 15 70 $se4ad_gw 2>$tempfile || erreur "Annulation"
     se4ad_dns=$(cat $tempfile)
     
+    $dialog_box --backtitle "$BACKTITLE" --title "$se4ad_lan_title" --inputbox "Saisir Adresse:port du serveur proxy" 15 70 $proxy_config 2>$tempfile || erreur "Annulation"
+    proxy_conf=$(cat $tempfile)
+    
     confirm_title="Nouvelle configuration réseau"
     confirm_txt="La configuration sera la suivante 
 
@@ -198,6 +232,7 @@ Adresse réseau de base :      $se4ad_network
 Adresse de Broadcast :        $se4ad_bcast
 Adresse IP de la Passerelle : $se4ad_gw
 Adresse IP du Serveur DNS   : $se4ad_dns
+Adresse et port du proxy    : $proxy_config
 	
 Poursuivre avec ces modifications ?"	
 	
@@ -1197,6 +1232,7 @@ tempfile2=`tempfile 2>/dev/null` || tempfile=/tmp/inst2$$
 # trap "rm -f $tempfile ; rm -f $tempfile2" 0 1 2 5 15
 
 recup_params
+set_proxy
 #### Variables suivantes init via Fichier de conf ####
 # ip du se4ad --> $se4ad_ip" 
 # Nom de domaine samba du SE4-AD --> $samba_domain" 

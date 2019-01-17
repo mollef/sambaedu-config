@@ -1,4 +1,4 @@
-sambaedu-config (0.30.1) unstable; urgency=low
+sambaedu-config (0.30.2) unstable; urgency=low
 
   * Add sambaedu-config.sh script to manage the others.
   * Add common libs.

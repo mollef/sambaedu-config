@@ -110,12 +110,13 @@ Réseau :     $se4fs_network
 Broadcast :  $se4fs_bcast
 Passerelle : $se4fs_gw
 
+Proxy :      $proxy_config
 Nom :        $se4fs_name
 
 
 Confirmer l'enregistrement de cette configuration ?"
 		
-		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 18 60) then
+		if ($dialog_box --backtitle "$BACKTITLE" --title "$confirm_title" --yesno "$confirm_txt" 19 60) then
 			REPONSE="yes"
 		else
 			REPONSE="no"
