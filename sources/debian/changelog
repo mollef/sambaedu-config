@@ -1,5 +1,6 @@
-sambaedu-config (0.30.2) unstable; urgency=low
+sambaedu-config (0.30.3) unstable; urgency=low
 
+  * Del spaces in configs files.
   * Add sambaedu-config.sh script to manage the others.
   * Add common libs.
   * finalise migration se3-wheezy --> se4fs

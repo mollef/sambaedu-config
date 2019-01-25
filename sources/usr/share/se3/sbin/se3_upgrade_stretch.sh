@@ -409,7 +409,7 @@ SE3_INSTALL=$(apt-cache policy se3 | grep "Install" | awk '{print $2}')
 show_part "Mise a jour du paquet SE3 $distrib"
 service apache2se stop
 service apache2 stop
-apt-get install se3 -y
+apt-get install se3 -y --force-yes 
     if [ "$?" != "0" ]; then
         erreur "Une erreur s'est produite lors de la mise à jour des paquets Se3\nIl est conseille de couper la migration"
 	poursuivre
@@ -564,7 +564,7 @@ show_part "Suppression de paquets et de scripts SE3 - certains seront réinstall
 show_info "Nettoyage des scripts se3 et des paquets inutiles" | tee -a $fichier_log
 echo -e "$COLCMD"
 apt-get autoremove --purge -y
-for package in rlinetd apt-listchanges wine wine32 libc6:i386 samba samba-common mysql-server-5.5 ntpdate backuppc nut nut-client nut-server cups cups-client cups-server-common cups-common
+for package in se3-pla apache2 rlinetd apt-listchanges wine wine32 libc6:i386 samba samba-common mysql-server-5.5 ntpdate backuppc nut nut-client nut-server cups cups-client cups-server-common cups-common
 do
     if  dpkg -l | grep -q $package
     then

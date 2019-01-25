@@ -459,8 +459,8 @@ END
 
 # Params se4fs_config_clients
 cat > $se4fs_config_clients <<END
-adminse_name = "adminse3"  
-client_windows = "1" 
+adminse_name = "adminse3"
+client_windows = "1"
 adminse_passwd = "$xppass"
 END
 
