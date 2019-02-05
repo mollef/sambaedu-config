@@ -114,7 +114,7 @@ function gensource_distrib()
 {
 distrib_name="$1"
 show_info "Mise à jour des sources $distrib_name"
-rm -f /etc/apt/sources.list.d/*
+[ "$devel" != "yes" ] && rm -f /etc/apt/sources.list.d/*
 if [ "$distrib_name" = "jessie" ];then
     mirror_debian="deb.debian.org"
 else
@@ -421,9 +421,7 @@ touch $chemin_migr/upgrade_se3${distrib}
 
 function backuppc_check_mount()
 {
-echo -e "$COLINFO"
-echo "Test de montage sur Backuppc"
-echo -e "$COLTXT"
+show_info "Test de montage sur Backuppc"
 df -h | grep backuppc && umount /var/lib/backuppc
 if [ ! -z "$(df -h | grep /var/lib/backuppc)" ]; then 
     erreur "Il semble qu'une ressource soit montee sur /var/lib/backuppc. Il faut la demonter puis relancer"
@@ -434,24 +432,14 @@ else
 fi
 }
 
-function backuppc_check_run()
+function backuppc_uninstall()
 {
 rm -f /etc/init.d/backuppc.ori 
 if [ -e "$bpc_script" ]; then
-    echo -e "$COLINFO"
-    echo "Test bon fonctionnenment backuppc et Suppression en cas de besoin"
-    echo -e "$COLTXT"
-    if [ ! -e "$BPC_PID" ]; then
-        $bpc_script start 
-        if [ "$?" != "0" ]; then
-            apt-get remove backuppc --purge -y
-            rm -f /etc/apache2se/sites-enabled/backuppc.conf
-        else
-            $bpc_script stop
-        fi
-    else
-        $bpc_script stop
-    fi
+    show_info "Suppression de backuppc"
+    $bpc_script stop
+    apt-get remove backuppc --purge -y
+    rm -f /etc/apache2se/sites-enabled/backuppc.conf
 fi
 }
 
@@ -559,12 +547,32 @@ echo -e "$COLCMD"
 sleep 1
 }
 
+function clean_se3_modules(){
+show_part "Suppression des modules se3 obsolètes"
+backuppc_check_mount
+backuppc_uninstall
+for package in se3-pla se3-internet
+do
+    if  dpkg -l | grep -q $package
+    then
+        show_info "Suppression de $package"
+        apt-get remove $package --purge -y 
+        apt-get autoremove --purge -y
+    fi
+    
+done
+
+apache2_dir="/etc/apache2"
+apt-get remove se3-pla phpldapadmin --purge
+
+}
+
 function clean_pre_jessie(){ 
 show_part "Suppression de paquets et de scripts SE3 - certains seront réinstallés post-migration"
 show_info "Nettoyage des scripts se3 et des paquets inutiles" | tee -a $fichier_log
 echo -e "$COLCMD"
 apt-get autoremove --purge -y
-for package in se3-pla apache2 rlinetd apt-listchanges wine wine32 libc6:i386 samba samba-common mysql-server-5.5 ntpdate backuppc nut nut-client nut-server cups cups-client cups-server-common cups-common
+for package in apache2 apache2.2-bin apache2.2-common rlinetd apt-listchanges wine wine32 libc6:i386 samba samba-common mysql-server-5.5 ntpdate backuppc nut nut-client nut-server cups cups-client cups-server-common cups-common
 do
     if  dpkg -l | grep -q $package
     then
@@ -837,8 +845,10 @@ if [ ! -e $chemin_migr/upgrade_se3wheezy ]; then
 fi
 
 if [ ! -e $chemin_migr/clean_pre_jessie ]; then
+
     export_ldap_files
     import_ldap_files
+    clean_se3_modules
     gensourcese3jessie
     upgrade_se3_packages jessie
     poursuivre
